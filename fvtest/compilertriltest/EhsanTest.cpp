@@ -63,4 +63,4 @@ TEST_P(EhsanArraycmpEqualTest, SillyTest) {
     EXPECT_EQ(returnValueForArraycmpEqual, entry_point(&s1[0], &s2[0], length));
 }
 
-INSTANTIATE_TEST_CASE_P(EhsanTest, ArraycmpEqualTest, ::testing::Range(127, 128));
+INSTANTIATE_TEST_CASE_P(EhsanTest, EhsanArraycmpEqualTest, ::testing::Range(127, 128));
