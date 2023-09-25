@@ -43,11 +43,11 @@ TEST_P(EhsanArraycmpEqualTest, SillyTest) {
     std::snprintf(inputTrees, sizeof(inputTrees),
       "(method return=Int32 args=[Address, Address, Int64]"
       "  (block"
-      "    (ireturn"
+      "    (lreturn"
       "      (arraycmplen address=0 args=[Address, Address]"
       "        (aload parm=0)"
       "        (aload parm=1)"
-      "        (iload parm=2)))))"
+      "        (lload parm=2)))))"
       );
 
 
