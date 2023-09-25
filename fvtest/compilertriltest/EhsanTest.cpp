@@ -32,9 +32,9 @@ static const int32_t returnValueForArraycmpEqual = 0;
  * @details Used for arraycmp test with the arrays with same data.
  * The parameter is the length parameter for the arraycmp evaluator.
  */
-class ArraycmpEqualTest : public TRTest::JitTest, public ::testing::WithParamInterface<int32_t> {};
+class EhsanArraycmpEqualTest : public TRTest::JitTest, public ::testing::WithParamInterface<int32_t> {};
 
-TEST_P(ArraycmpEqualTest, ArraycmpEqualVariableLen) {
+TEST_P(EhsanArraycmpEqualTest, SillyTest) {
     SKIP_ON_ARM(MissingImplementation);
     SKIP_ON_RISCV(MissingImplementation);
 
