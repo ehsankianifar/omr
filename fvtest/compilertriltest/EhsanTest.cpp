@@ -32,7 +32,7 @@ static const int32_t returnValueForArraycmpEqual = 0;
  * @details Used for arraycmp test with the arrays with same data.
  * The parameter is the length parameter for the arraycmp evaluator.
  */
-class EhsanArraycmpEqualTest : public TRTest::JitTest, public ::testing::WithParamInterface<int32_t> {};
+class EhsanArraycmpEqualTest : public TRTest::JitTest, public ::testing::WithParamInterface<int64_t> {};
 
 TEST_P(EhsanArraycmpEqualTest, SillyTest) {
     SKIP_ON_ARM(MissingImplementation);
@@ -41,14 +41,16 @@ TEST_P(EhsanArraycmpEqualTest, SillyTest) {
     auto length = GetParam();
     char inputTrees[1024] = {0};
     std::snprintf(inputTrees, sizeof(inputTrees),
-      "(method return=Int32 args=[Address, Address, Int32]"
+      "(method return=Int32 args=[Address, Address, Int64]"
       "  (block"
       "    (ireturn"
-      "      (arraycmp address=0 args=[Address, Address]"
+      "      (arraycmplen address=0 args=[Address, Address]"
       "        (aload parm=0)"
       "        (aload parm=1)"
       "        (iload parm=2)))))"
       );
+
+
     auto trees = parseString(inputTrees);
 
     ASSERT_NOTNULL(trees);
@@ -59,8 +61,8 @@ TEST_P(EhsanArraycmpEqualTest, SillyTest) {
 
     std::vector<unsigned char> s1(length, 0x5c);
     std::vector<unsigned char> s2(length, 0x5c);
-    auto entry_point = compiler.getEntryPoint<int32_t (*)(unsigned char *, unsigned char *, int32_t)>();
-    EXPECT_EQ(returnValueForArraycmpEqual, entry_point(&s1[0], &s2[0], length));
+    auto entry_point = compiler.getEntryPoint<int64_t (*)(unsigned char *, unsigned char *, int64_t)>();
+    EXPECT_EQ(0, entry_point(&s1[0], &s2[0], (int64_t)length));
 }
 
-INSTANTIATE_TEST_CASE_P(EhsanTest, EhsanArraycmpEqualTest, ::testing::Range(127, 128));
+INSTANTIATE_TEST_CASE_P(EhsanTest, EhsanArraycmpEqualTest, static_cast<int64_t>(256));
