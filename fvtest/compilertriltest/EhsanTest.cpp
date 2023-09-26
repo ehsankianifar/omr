@@ -95,4 +95,36 @@ TEST_P(EhsanArraycmpEqualTest, DiffrentArrayTest) {
     EXPECT_EQ(0, entry_point(&s1[0], &s2[0], (int64_t)length));
 }
 
+TEST_P(EhsanArraycmpEqualTest, NotEqualTest) {
+    SKIP_ON_ARM(MissingImplementation);
+    SKIP_ON_RISCV(MissingImplementation);
+
+    auto length = GetParam();
+    char inputTrees[1024] = {0};
+    std::snprintf(inputTrees, sizeof(inputTrees),
+      "(method return=Int32 args=[Address, Address, Int64]"
+      "  (block"
+      "    (lreturn"
+      "      (arraycmplen address=0 args=[Address, Address]"
+      "        (aload parm=0)"
+      "        (aload parm=1)"
+      "        (lload parm=2)))))"
+      );
+
+
+    auto trees = parseString(inputTrees);
+
+    ASSERT_NOTNULL(trees);
+
+    Tril::DefaultCompiler compiler(trees);
+
+    ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
+
+    std::vector<unsigned char> s1(length, 0x5c);
+    std::vector<unsigned char> s2(length, 0x5c);
+    s2[10]=11;
+    auto entry_point = compiler.getEntryPoint<int64_t (*)(unsigned char *, unsigned char *, int64_t)>();
+    EXPECT_EQ(0, entry_point(&s1[0], &s2[0], (int64_t)length));
+}
+
 INSTANTIATE_TEST_CASE_P(EhsanTest, EhsanArraycmpEqualTest, ::testing::Range(static_cast<int64_t>(255), static_cast<int64_t>(256)));
