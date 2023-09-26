@@ -34,7 +34,37 @@ static const int32_t returnValueForArraycmpEqual = 0;
  */
 class EhsanArraycmpEqualTest : public TRTest::JitTest, public ::testing::WithParamInterface<int64_t> {};
 
-TEST_P(EhsanArraycmpEqualTest, SillyTest) {
+TEST_P(EhsanArraycmpEqualTest, SameArrayTest) {
+    SKIP_ON_ARM(MissingImplementation);
+    SKIP_ON_RISCV(MissingImplementation);
+
+    auto length = GetParam();
+    char inputTrees[1024] = {0};
+    std::snprintf(inputTrees, sizeof(inputTrees),
+      "(method return=Int32 args=[Address, Address, Int64]"
+      "  (block"
+      "    (lreturn"
+      "      (arraycmplen address=0 args=[Address, Address]"
+      "        (aload parm=0)"
+      "        (aload parm=1)"
+      "        (lload parm=2)))))"
+      );
+
+
+    auto trees = parseString(inputTrees);
+
+    ASSERT_NOTNULL(trees);
+
+    Tril::DefaultCompiler compiler(trees);
+
+    ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
+
+    std::vector<unsigned char> s1(length, 0x5c);
+    auto entry_point = compiler.getEntryPoint<int64_t (*)(unsigned char *, unsigned char *, int64_t)>();
+    EXPECT_EQ(0, entry_point(&s1[0], &s1[0], (int64_t)length));
+}
+
+TEST_P(EhsanArraycmpEqualTest, DiffrentArrayTest) {
     SKIP_ON_ARM(MissingImplementation);
     SKIP_ON_RISCV(MissingImplementation);
 
