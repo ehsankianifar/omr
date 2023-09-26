@@ -11890,12 +11890,13 @@ OMR::Z::TreeEvaluator::arraycmplenEvaluator(TR::Node * node, TR::CodeGenerator *
 
    TR::LabelSymbol * shortCircuitLabel = generateLabelSymbol(cg);
 
-   //set value to result
+   //set default value to result
    generateRILInstruction(cg, TR::InstOpCode::LGFI, node, resultReg, 666);
-   // subtract f - s
-   generateRRLInstruction(cg, TR::InstOpCode::LR, node, tempraryResult, firstBaseReg);
-   generateRRInstruction(cg, TR::InstOpCode::SRK, node, tempraryResult, secondBaseReg);
-   // jump to short
+   // subtract base addresses 
+   generateRRInstruction(cg, TR::InstOpCode::LR, node, tempraryResult, firstBaseReg);
+   generateRRInstruction(cg, TR::InstOpCode::SR, node, tempraryResult, secondBaseReg);
+   cg->stopUsingRegister(tempraryResult);
+   // jump to the end
    generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BZ, node, shortCircuitLabel);
 
    TR::RegisterDependencyConditions * dependencies = cg->createDepsForRRMemoryInstructions(node, firstPair, secondPair);
