@@ -11880,22 +11880,24 @@ OMR::Z::TreeEvaluator::arraycmplenEvaluator(TR::Node * node, TR::CodeGenerator *
    secondBaseReg = cg->gprClobberEvaluate(secondBaseAddr);
 
    TR::Register * orgLen = cg->gprClobberEvaluate(elemsExpr);
+   #define resultReg orgLen;
    TR::Register * firstLen = cg->allocateRegister();
    TR::Register * secondLen = cg->allocateRegister();
-   TR::Register * tempraryResult = cg->allocateRegister();
+   TR::Register * addressDelta = cg->allocateRegister();
    TR::RegisterPair * firstPair = cg->allocateConsecutiveRegisterPair(firstLen, firstBaseReg);
    TR::RegisterPair * secondPair = cg->allocateConsecutiveRegisterPair(secondLen, secondBaseReg);
-   TR::Register * resultReg = cg->allocateRegister();
+   //TR::Register * resultReg = cg->allocateRegister();
    TR::Instruction * cursor;
 
    TR::LabelSymbol * shortCircuitLabel = generateLabelSymbol(cg);
 
    //set default value to result
    generateRILInstruction(cg, TR::InstOpCode::LGFI, node, resultReg, 666);
+   //generateRRInstruction(cg, TR::InstOpCode::getLoadRegOpCode(), node, resultReg, orgLen);
    // subtract base addresses 
-   generateRRInstruction(cg, TR::InstOpCode::LR, node, tempraryResult, firstBaseReg);
-   generateRRInstruction(cg, TR::InstOpCode::SR, node, tempraryResult, secondBaseReg);
-   cg->stopUsingRegister(tempraryResult);
+   generateRRInstruction(cg, TR::InstOpCode::LR, node, addressDelta, firstBaseReg);
+   generateRRInstruction(cg, TR::InstOpCode::SR, node, addressDelta, secondBaseReg);
+   cg->stopUsingRegister(addressDelta);
    // jump to the end
    generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BZ, node, shortCircuitLabel);
 
@@ -11905,7 +11907,7 @@ OMR::Z::TreeEvaluator::arraycmplenEvaluator(TR::Node * node, TR::CodeGenerator *
    generateRRInstruction(cg, TR::InstOpCode::getLoadRegOpCode(), node, secondLen, orgLen);
    cursor = generateRRInstruction(cg, TR::InstOpCode::CLCL, node, firstPair, secondPair);
 
-   generateRRInstruction(cg, TR::InstOpCode::getLoadRegOpCode(), node, resultReg, orgLen);
+   //generateRRInstruction(cg, TR::InstOpCode::getLoadRegOpCode(), node, resultReg, orgLen);
    cursor = generateRRInstruction(cg, TR::InstOpCode::getSubstractRegOpCode(), node, resultReg, firstLen);
 
 
