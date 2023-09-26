@@ -11891,9 +11891,10 @@ OMR::Z::TreeEvaluator::arraycmplenEvaluator(TR::Node * node, TR::CodeGenerator *
    TR::LabelSymbol * shortCircuitLabel = generateLabelSymbol(cg);
 
    //set value to result
-   generateRILInstruction(cg, TR::InstOpCode::LGFI, node, resultReg, firstBaseReg, secondBaseReg);
+   generateRILInstruction(cg, TR::InstOpCode::LGFI, node, resultReg, 666);
    // subtract f - s
-   generateRRFInstruction(cg, TR::InstOpCode::SRK, node, tempraryResult, 44);
+   generateRRLInstruction(cg, TR::InstOpCode::LR, node, tempraryResult, firstBaseReg);
+   generateRRInstruction(cg, TR::InstOpCode::SRK, node, tempraryResult, secondBaseReg);
    // jump to short
    generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BZ, node, shortCircuitLabel);
 
