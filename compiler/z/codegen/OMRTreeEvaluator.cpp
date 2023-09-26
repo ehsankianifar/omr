@@ -11882,10 +11882,20 @@ OMR::Z::TreeEvaluator::arraycmplenEvaluator(TR::Node * node, TR::CodeGenerator *
    TR::Register * orgLen = cg->gprClobberEvaluate(elemsExpr);
    TR::Register * firstLen = cg->allocateRegister();
    TR::Register * secondLen = cg->allocateRegister();
+   TR::Register * tempraryResult = cg->allocateRegister();
    TR::RegisterPair * firstPair = cg->allocateConsecutiveRegisterPair(firstLen, firstBaseReg);
    TR::RegisterPair * secondPair = cg->allocateConsecutiveRegisterPair(secondLen, secondBaseReg);
    TR::Register * resultReg = cg->allocateRegister();
    TR::Instruction * cursor;
+
+   TR::LabelSymbol * shortCircuitLabel = generateLabelSymbol(cg);
+
+   //set value to result
+   generateRILInstruction(cg, TR::InstOpCode::LGFI, node, resultReg, firstBaseReg, secondBaseReg);
+   // subtract f - s
+   generateRRFInstruction(cg, TR::InstOpCode::SRK, node, tempraryResult, 44);
+   // jump to short
+   generateS390BranchInstruction(cg, TR::InstOpCode::BRC, TR::InstOpCode::COND_BZ, node, shortCircuitLabel);
 
    TR::RegisterDependencyConditions * dependencies = cg->createDepsForRRMemoryInstructions(node, firstPair, secondPair);
 
@@ -11911,6 +11921,8 @@ OMR::Z::TreeEvaluator::arraycmplenEvaluator(TR::Node * node, TR::CodeGenerator *
    cg->decReferenceCount(secondBaseAddr);
    cursor->setDependencyConditions(dependencies);
 
+   // jump here if base addresses are equal.
+   generateS390LabelInstruction(cg, TR::InstOpCode::label, node, shortCircuitLabel);
 
    node->setRegister(resultReg);
    return resultReg;
