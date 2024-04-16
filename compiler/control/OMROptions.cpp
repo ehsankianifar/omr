@@ -2734,11 +2734,6 @@ OMR::Options::jitPreProcess()
          self()->setOption(TR_DisableZNext);
          }
 
-#if defined(TR_HOST_X86) || defined(TR_HOST_S390) || defined(TR_HOST_ARM64)
-      // Dual TLH disabled by default on X, Z, and AArch64
-      self()->setOption(TR_DisableDualTLH);
-#endif
-
       if (self()->realTimeGC())
          {
          // Outlined-new requires heapAlloc and heapTop fields in the vmthread,
