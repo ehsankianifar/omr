@@ -187,7 +187,7 @@ MM_ForwardedHeader::setSelfForwardedObject()
 	if (oldValue != lockCompareExchangeObjectHeader(forwardedObject, oldValue, newValue)) {
 		/* If we lost on self-forwarding, return where we are really forwarded. We could still be self-forwarded (another thread raced us) or
 		 * strictly forwarded (another thread successfully copied the object). Either way, getNonStrictForwardedObject() should return us where we really are. */
-		MM_ForwardedHeader forwardedHeader(forwardedObject, compressObjectReferences());
+		MM_ForwardedHeader forwardedHeader(forwardedObject, compressObjectReferences(),2);
 		forwardedObject = forwardedHeader.getNonStrictForwardedObject();
 	}
 

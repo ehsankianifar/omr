@@ -1432,7 +1432,8 @@ MM_Scavenger::copyAndForward(MM_EnvironmentStandard *env, volatile omrobjectptr_
 	if (NULL != objectPtr) {
 		if (isObjectInEvacuateMemory(objectPtr)) {
 			/* Object needs to be copy and forwarded.  Check if the work has already been done */
-			MM_ForwardedHeader forwardHeader(objectPtr, compressed);
+			//EHSAN: here is where the header is created!
+			MM_ForwardedHeader forwardHeader(objectPtr, compressed, 61);
 			omrobjectptr_t forwardPtr = forwardHeader.getForwardedObject();
 
 			if (NULL != forwardPtr) {
@@ -1470,7 +1471,7 @@ MM_Scavenger::copyAndForward(MM_EnvironmentStandard *env, volatile omrobjectptr_
 			}
 		} else if (isObjectInNewSpace(objectPtr)) {
 #if defined(OMR_GC_MODRON_SCAVENGER_STRICT)
-			MM_ForwardedHeader forwardHeader(objectPtr, compressed);
+			MM_ForwardedHeader forwardHeader(objectPtr, compressed, 62);
 			Assert_MM_true(!forwardHeader.isForwardedPointer());
 #endif /* defined(OMR_GC_MODRON_SCAVENGER_STRICT) */
 			/* When slot has been scanned before, and is already copied or forwarded
@@ -1646,6 +1647,7 @@ MM_Scavenger::copyForVariant(MM_EnvironmentStandard *env, MM_ForwardedHeader* fo
 			Trc_MM_Scavenger_semispaceAllocateFailed(env->getLanguageVMThread(), objectReserveSizeInBytes, "yes");
 
 			uintptr_t spaceAvailableForObject = _activeSubSpace->getMaxSpaceForObjectInEvacuateMemory(forwardedHeader->getObject());
+			//EHSAN Error here
 			Assert_GC_true_with_message4(env, objectCopySizeInBytes <= spaceAvailableForObject,
 					"Corruption in Evacuate at %p: calculated object size %zu larger than available %zu, Forwarded Header at %p\n",
 					forwardedHeader->getObject(), objectCopySizeInBytes, spaceAvailableForObject, forwardedHeader);
@@ -3252,7 +3254,7 @@ MM_Scavenger::rescanThreadSlot(MM_EnvironmentStandard *env, omrobjectptr_t *obje
 			/* the slot is still pointing at evacuate memory. This means that it must have been left unforwarded
 			 * in the first pass so that we would process it here.
 			 */
-			MM_ForwardedHeader forwardedHeader(objectPtr, compressed);
+			MM_ForwardedHeader forwardedHeader(objectPtr, compressed,1);
 			omrobjectptr_t tenuredObjectPtr = forwardedHeader.getForwardedObject();
 
 			Trc_MM_ParallelScavenger_rescanThreadSlot_rememberedObject(env->getLanguageVMThread(), tenuredObjectPtr);
@@ -3791,7 +3793,7 @@ MM_Scavenger::backOutFixSlotWithoutCompression(volatile omrobjectptr_t *slotPtr)
 	bool const compressed = _extensions->compressObjectReferences();
 
 	if(NULL != objectPtr) {
-		MM_ForwardedHeader forwardHeader(objectPtr, compressed);
+		MM_ForwardedHeader forwardHeader(objectPtr, compressed, 63);
 		Assert_MM_false(forwardHeader.isForwardedPointer());
 		if (forwardHeader.isReverseForwardedPointer()) {
 			*slotPtr = forwardHeader.getReverseForwardedPointer();
@@ -3813,7 +3815,7 @@ MM_Scavenger::backOutFixSlot(GC_SlotObject *slotObject)
 	bool const compressed = _extensions->compressObjectReferences();
 
 	if(NULL != objectPtr) {
-		MM_ForwardedHeader forwardHeader(objectPtr, compressed);
+		MM_ForwardedHeader forwardHeader(objectPtr, compressed, 64);
 		Assert_MM_false(forwardHeader.isForwardedPointer());
 		if (forwardHeader.isReverseForwardedPointer()) {
 			slotObject->writeReferenceToSlot(forwardHeader.getReverseForwardedPointer());
@@ -3946,7 +3948,7 @@ MM_Scavenger::fixupSlotWithoutCompression(volatile omrobjectptr_t *slotPtr)
 	bool const compressed = _extensions->compressObjectReferences();
 
 	if(NULL != objectPtr) {
-		MM_ForwardedHeader forwardHeader(objectPtr, compressed);
+		MM_ForwardedHeader forwardHeader(objectPtr, compressed, 65);
 		omrobjectptr_t forwardPtr = forwardHeader.getNonStrictForwardedObject();
 		if (NULL != forwardPtr) {
 			if (forwardHeader.isSelfForwardedPointer()) {
@@ -3966,7 +3968,7 @@ MM_Scavenger::fixupSlot(omrobjectptr_t *slotPtr)
 	omrobjectptr_t objectPtr = *slotPtr;
 	bool const compressed = _extensions->compressObjectReferences();
 	if (NULL != objectPtr) {
-		MM_ForwardedHeader forwardHeader(objectPtr, compressed);
+		MM_ForwardedHeader forwardHeader(objectPtr, compressed, 66);
 		if (forwardHeader.isStrictlyForwardedPointer()) {
 			*slotPtr = forwardHeader.getForwardedObject();
 			Assert_MM_false(isObjectInEvacuateMemory(*slotPtr));
