@@ -415,7 +415,7 @@ MM_MarkingScheme::fixupForwardedSlot(omrobjectptr_t *slotPtr) {
 #if defined(OMR_GC_CONCURRENT_SCAVENGER)
 	bool const compressed = _extensions->compressObjectReferences();
 	if (_extensions->getGlobalCollector()->isStwCollectionInProgress()) {
-		MM_ForwardedHeader forwardHeader(*slotPtr, compressed, 60);
+		MM_ForwardedHeader forwardHeader(*slotPtr, compressed);
 		omrobjectptr_t forwardPtr = forwardHeader.getNonStrictForwardedObject();
 
 		if (NULL != forwardPtr) {

@@ -450,19 +450,11 @@ public:
 	{
 		ForwardedHeaderAssert(compressObjectReferences());
 		uintptr_t result = _preserved;
-		uint32_t type = 0;
 #if defined(OMR_ENV_LITTLE_ENDIAN)
-		type += 1;
 		result >>= 32;
 #else /* defined(OMR_ENV_LITTLE_ENDIAN) */
-		type +=2;
 		result &= 0xFFFFFFFF;
 #endif /* defined(OMR_ENV_LITTLE_ENDIAN) */
-		uint32_t logLimit = (uint32_t)atoi(std::getenv("TR_LogLimit"));
-		if(result > logLimit)
-		{
-			printf("EHSAN5: result: %zu, type: %u, castResult: %u, _preserved: %zu \n", result, type, (uint32_t)result, _preserved);
-		}
 		return (uint32_t)result;
 	}
 
@@ -555,29 +547,6 @@ public:
 	 * @param[in] objectPtr pointer to the object, which may or may not have been forwarded
 	 * @param[in] compressed bool describing whether object references are compressed or not
 	 */
-	MM_ForwardedHeader(omrobjectptr_t objectPtr, bool compressed, int location)
-	: _objectPtr(objectPtr)
-	, _preserved(*(volatile uintptr_t *)_objectPtr)
-#if defined(OMR_GC_COMPRESSED_POINTERS) && defined(OMR_GC_FULL_POINTERS)
-	, _compressObjectReferences(compressed)
-#endif /* defined(OMR_GC_COMPRESSED_POINTERS) && defined(OMR_GC_FULL_POINTERS) */
-	{
-		uint32_t logLimit = (uint32_t)atoi(std::getenv("TR_LogLimit"));
-		J9Class* objClazz = (J9Class*)((compressed ? (UDATA)(((J9ObjectCompressed*)((objectPtr)))->clazz) : (UDATA)(((J9ObjectFull*)((objectPtr)))->clazz)) & (~((UDATA)((UDATA)(0x100 - 1)))));
-		bool isIndexable = ((((UDATA)(objClazz)->classDepthAndFlags) & 0x10000) != 0);
-		//if((_preserved & 0xFFFFFFFF) > logLimit)
-		if(isIndexable && (((J9IndexableObjectContiguousFull*)objectPtr)->size > logLimit))
-		{
-			printf("EHSAN6: Preserved= %zu, caller= %u, size= %u\n", _preserved, location, ((J9IndexableObjectContiguousFull*)objectPtr)->size);
-		}
-	}
-
-	/**
-	 * Constructor.
-	 *
-	 * @param[in] objectPtr pointer to the object, which may or may not have been forwarded
-	 * @param[in] compressed bool describing whether object references are compressed or not
-	 */
 	MM_ForwardedHeader(omrobjectptr_t objectPtr, bool compressed)
 	: _objectPtr(objectPtr)
 	, _preserved(*(volatile uintptr_t *)_objectPtr)
@@ -585,11 +554,6 @@ public:
 	, _compressObjectReferences(compressed)
 #endif /* defined(OMR_GC_COMPRESSED_POINTERS) && defined(OMR_GC_FULL_POINTERS) */
 	{
-		uint32_t logLimit = (uint32_t)atoi(std::getenv("TR_LogLimit"));
-		if((_preserved & 0xFFFFFFFF) > logLimit)
-		{
-			//printf("EHSAN7: Preserved= %zu\n", _preserved);
-		}
 	}
 
 protected:
