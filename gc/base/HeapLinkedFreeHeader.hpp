@@ -25,7 +25,7 @@
 
 #include "omrcomp.h"
 #include "modronbase.h"
-/* #include "ModronAssertions.h" -- removed for now because it causes a compile error in TraceOutput.cpp on xlC */
+#include "ModronAssertions.h"
 
 #include "AtomicOperations.hpp"
 
