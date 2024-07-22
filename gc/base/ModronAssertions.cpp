@@ -41,7 +41,7 @@ extern "C" {
 void
 omrGcDebugAssertionOutput(OMRPortLibrary *portLibrary, OMR_VMThread *omrVMThread, const char *format, ...)
 {
-	char *buffer="EHSAN assertError";
+	char buffer[]="EHSAN assertError";
 
 	/*
 	va_list args;
