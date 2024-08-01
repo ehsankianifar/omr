@@ -39,6 +39,7 @@ UDATA getUserExtendedPrivateAreaMemoryType(void);
 #if defined(LINUX) && defined(S390)
 /* _j9Z10Zero() is defined in j9memclrz10_31.s and j9memclrz10_64.s */
 extern "C" void _j9Z10Zero(void *ptr, uintptr_t length);
+extern "C" void _zosZero(void *ptr, uintptr_t length);
 #elif defined(J9ZOS390)
 extern "C" void J9ZERZ10(void *ptr, uintptr_t length);
 #endif
@@ -61,6 +62,7 @@ OMRZeroMemory(void *ptr, uintptr_t length)
 {
 #if defined(J9ZOS390) || (defined(LINUX) && defined(S390))
 	static BOOLEAN useJ9zerz10Assembly = (NULL != getenv("OMR_USE_J9ZERZ10"));
+	static BOOLEAN useZosAssembly = (NULL != getenv("OMR_USE_ZOS"));
 #endif /* defined(J9ZOS390) || (defined(LINUX) && defined(S390)) */
 
 #if defined(AIXPPC) || defined(LINUXPPC)
@@ -135,9 +137,10 @@ OMRZeroMemory(void *ptr, uintptr_t length)
 		memset(ptr, 0, (size_t)length);
 	}
 #elif (defined(LINUX) && defined(S390)) && !defined(OMRZTPF)
-	static BOOLEAN isZ10orGreater = (Z10 <= get390zLinuxMachineType());
-	if (useJ9zerz10Assembly && isZ10orGreater) {
+	if (useJ9zerz10Assembly) {
 		_j9Z10Zero(ptr, length);
+	} else if (useZosAssembly) {
+		_zosZero(ptr, length);
 	} else {
 		memset(ptr, 0, (size_t)length);
 	}

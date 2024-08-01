@@ -79,7 +79,7 @@ if(OMR_ARCH_S390)
 	else()
 		if(OMR_ENV_DATA64)
 			list(APPEND OBJECTS j9memclrz10_64.s)
-
+			list(APPEND OBJECTS cleanLikeZos.s)
 			list(APPEND VPATH unix/linux/s390/64)
 			target_include_directories(omrutil_obj PRIVATE unix/linux/s390/64)
 		else()
