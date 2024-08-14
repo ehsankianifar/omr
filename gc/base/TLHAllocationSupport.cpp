@@ -218,7 +218,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 					void *base = getBase();
 					void *top = getTop();
 					std::thread zeroingThread (OMRZeroMemory, base, (uintptr_t)top - (uintptr_t)base);
-					zeroingThread.join();
+					zeroingThread.detach();
 					//OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 				}
 			}
