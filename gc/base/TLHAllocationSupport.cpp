@@ -216,7 +216,9 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 				if (0 != extensions->batchClearTLH) {
 					void *base = getBase();
 					void *top = getTop();
-					OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
+					std::thread zeroingThread (OMRZeroMemory, base, (uintptr_t)top - (uintptr_t)base);
+					zeroingThread.join();
+					//OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 				}
 			}
 #endif /* defined(OMR_GC_BATCH_CLEAR_TLH) */
