@@ -49,6 +49,7 @@
 #include "MemorySubSpace.hpp"
 #include "ObjectAllocationInterface.hpp"
 #include "ObjectHeapIteratorAddressOrderedList.hpp"
+#include <thread>
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
