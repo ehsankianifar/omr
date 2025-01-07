@@ -7733,6 +7733,7 @@ void OMR::ValuePropagation::doDelayedTransformations()
       if (getComponentCallNode->getNumChildren() > 1)
          {
          TR_ASSERT((getComponentCallNode->getNumChildren() == 2), "Only expect two children for call\n");
+         printf("\nEHSAN K %p\n", getComponentCallNode);
          TR::Node *vftLoadChild = getComponentCallNode->getFirstChild();
          getComponentCallNode->setChild(0, getComponentCallNode->getSecondChild());
          vftLoadChild->recursivelyDecReferenceCount();

@@ -199,6 +199,7 @@ OMR::Optimization::anchorAllChildren(TR::Node * node, TR::TreeTop *anchorTree)
    for (int i = 0; i <node->getNumChildren(); i++)
       {
       TR::TreeTop *tt = TR::TreeTop::create(self()->comp(), TR::Node::create(TR::treetop, 1, node->getChild(i)));
+      printf("EHSAN ANC N=%p T=%p\n", node, tt);
       if (self()->trace())
          traceMsg(self()->comp(), "TreeTop [" POINTER_PRINTF_FORMAT "] is created to anchor child [" POINTER_PRINTF_FORMAT "]\n", tt, node->getChild(i));
       anchorTree->insertBefore(tt);
