@@ -832,7 +832,6 @@ int32_t TR::DeadTreesElimination::process(TR::TreeTop *startTree, TR::TreeTop *e
             optimizer()->prepareForNodeRemoval(child);
          child->recursivelyDecReferenceCount();
          recursivelyDecFutureUseCount(child);
-         printf("EHSAN ELPT N=%p NC=%p C=%p\n", node, newChild, child);
          child = newChild;
          }
 
@@ -991,7 +990,6 @@ int32_t TR::DeadTreesElimination::process(TR::TreeTop *startTree, TR::TreeTop *e
             //
             if (performTransformation(comp(), "%sRemove tree : [" POINTER_PRINTF_FORMAT "] ([" POINTER_PRINTF_FORMAT "] = %s)\n", optDetailString(), node, node->getFirstChild(), node->getFirstChild()->getOpCode().getName()))
                {
-               int path=0;
                prevTree->join(nextTree);
                optimizer()->prepareForNodeRemoval(node);
                ///child->recursivelyDecReferenceCount();
@@ -999,22 +997,17 @@ int32_t TR::DeadTreesElimination::process(TR::TreeTop *startTree, TR::TreeTop *e
                recursivelyDecFutureUseCount(child);
                iter.jumpTo(prevTree);
                if (child->getReferenceCount() == 1)
-                  {
                   requestOpt(OMR::treeSimplification, true, block);
-                  path++;
-                  }
 
                if (nextTree->getNode()->getOpCodeValue() == TR::Goto
                    && prevTree->getNode()->getOpCodeValue() == TR::BBStart
                    && !prevTree->getNode()->getBlock()->isExtensionOfPreviousBlock())
                   {
-                  path+=10;
                   requestOpt(
                      OMR::redundantGotoElimination,
                      true,
                      prevTree->getNode()->getBlock());
                   }
-               printf("EHSAN RM N=%p P=%x\n", node, path);
                }
             }
          else
@@ -1049,8 +1042,6 @@ int32_t TR::DeadTreesElimination::process(TR::TreeTop *startTree, TR::TreeTop *e
 
                TR::Node *lastNode = lastTree->getNode();
                TR::Node *prevLastNode = prevLastTree->getNode();
-
-               printf("EHSAN MV N=%p L=%p P=%p\n", node, lastNode, prevLastNode);
 
                // If the node being moved is volatile, the order of the trees cannot
                // be changed because that is the order containsNode used to check if

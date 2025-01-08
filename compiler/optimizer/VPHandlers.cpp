@@ -11515,7 +11515,6 @@ TR::Node *constrainNullChk(OMR::ValuePropagation *vp, TR::Node *node)
       // If the child of the nullchk is normally a treetop node, replace the
       // nullchk with that node
       TR::Node *child = node->getFirstChild();
-      printf("EHSAN NL N=%p C=%p\n", node, child);
       //
       if (child->getOpCode().isTreeTop())
          {
