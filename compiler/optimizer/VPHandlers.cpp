@@ -11539,7 +11539,15 @@ TR::Node *constrainNullChk(OMR::ValuePropagation *vp, TR::Node *node)
          TR::Node::recreate(node, TR::treetop);
          }
       vp->setChecksRemoved();
+
+      if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
+         {
+         FILE *fptr = fopen("EHSAN.log","a");
+         fprintf(fptr, "Ehsan Remove Null N=%p C=%p\n", node, child);
+         fclose(fptr);
+         }
       }
+
    return node;
    }
 
