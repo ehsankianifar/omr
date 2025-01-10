@@ -11515,6 +11515,7 @@ TR::Node *constrainNullChk(OMR::ValuePropagation *vp, TR::Node *node)
       // If the child of the nullchk is normally a treetop node, replace the
       // nullchk with that node
       TR::Node *child = node->getFirstChild();
+      int path =0;
       //
       if (child->getOpCode().isTreeTop())
          {
@@ -11522,6 +11523,7 @@ TR::Node *constrainNullChk(OMR::ValuePropagation *vp, TR::Node *node)
                child->getOpCode().isStoreIndirect())
             {
             TR::Node::recreate(node, TR::treetop);
+            path=1;
             }
          else
             {
@@ -11532,18 +11534,21 @@ TR::Node *constrainNullChk(OMR::ValuePropagation *vp, TR::Node *node)
             //
             child->setReferenceCount(0);
             vp->_curTree->setNode(child);
+            path=2;
             }
          }
       else
          {
          TR::Node::recreate(node, TR::treetop);
+         path=3;
          }
       vp->setChecksRemoved();
 
       if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
          {
+         rcount_t count = node->getReferenceCount();
          std::FILE *fptr = fopen("EHSAN.log","a");
-         fprintf(fptr, "Ehsan Remove Null N=%p C=%p\n", node, child);
+         fprintf(fptr, "Ehsan Remove Null N=%p C=%p Path=%x\n", node, child, path);
          fclose(fptr);
          }
       }

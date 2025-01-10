@@ -990,12 +990,12 @@ int32_t TR::DeadTreesElimination::process(TR::TreeTop *startTree, TR::TreeTop *e
             //
             if (performTransformation(comp(), "%sRemove tree : [" POINTER_PRINTF_FORMAT "] ([" POINTER_PRINTF_FORMAT "] = %s)\n", optDetailString(), node, node->getFirstChild(), node->getFirstChild()->getOpCode().getName()))
                {
-               if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
-                  {
-                  std::FILE *fptr = fopen("EHSAN.log","a");
-                  fprintf(fptr, "Ehsan Remove Dead N=%p C=%p P=%p Nx=%p\n", node, node->getFirstChild(), prevTree, nextTree);
-                  fclose(fptr);
-                  }
+               // if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
+               //    {
+               //    std::FILE *fptr = fopen("EHSAN.log","a");
+               //    fprintf(fptr, "Ehsan Remove Dead N=%p C=%p P=%p Nx=%p\n", node, node->getFirstChild(), prevTree, nextTree);
+               //    fclose(fptr);
+               //    }
                prevTree->join(nextTree);
                optimizer()->prepareForNodeRemoval(node);
                ///child->recursivelyDecReferenceCount();
