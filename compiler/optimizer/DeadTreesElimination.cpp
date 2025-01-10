@@ -992,7 +992,7 @@ int32_t TR::DeadTreesElimination::process(TR::TreeTop *startTree, TR::TreeTop *e
                {
                if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
                   {
-                  FILE *fptr = fopen("EHSAN.log","a");
+                  std::FILE *fptr = fopen("EHSAN.log","a");
                   fprintf(fptr, "Ehsan Remove Dead N=%p C=%p P=%p Nx=%p\n", node, node->getFirstChild(), prevTree, nextTree);
                   fclose(fptr);
                   }
