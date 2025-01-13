@@ -1093,19 +1093,19 @@ OMR::Z::TreeEvaluator::sselectEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    return TR::TreeEvaluator::selectEvaluator(node, cg);
    }
 
-static void recursiveLog(std::FILE *fptr, TR::Node *node)
+static void recursiveLog(std::FILE *fptr, TR::Node *node, TR::Node *parent)
 {
-   fprintf(fptr, "AS N=%p RC=%d\n", node, node->getReferenceCount());
+   fprintf(fptr, "AS N=%p P= %p RC=%d\n", node, parent, node->getReferenceCount());
    for (int32_t childCount = 0; childCount < node->getNumChildren(); childCount++)
    {
-      recursiveLog(fptr, node->getChild(childCount));
+      recursiveLog(fptr, node->getChild(childCount), node);
    }
 }
 TR::Register*
 OMR::Z::TreeEvaluator::aselectEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    {
    std::FILE *fptr = fopen("EHSAN.log","a");
-   recursiveLog(fptr, node);
+   recursiveLog(fptr, node, NULL);
    fclose(fptr);
    return TR::TreeEvaluator::selectEvaluator(node, cg);
    }

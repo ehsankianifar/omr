@@ -203,9 +203,14 @@ OMR::Z::TreeEvaluator::iabsEvaluator(TR::Node * node, TR::CodeGenerator * cg)
 TR::Register *
 OMR::Z::TreeEvaluator::l2aEvaluator(TR::Node * node, TR::CodeGenerator * cg)
    {
+   std::FILE *fptr = fopen("EHSAN.log","a");
    TR::Compilation *comp = cg->comp();
+   int32_t path=0;
+   int32_t rc1 = node->getReferenceCount();
    if (!comp->useCompressedPointers())
       {
+      fprintf(fptr, "l2a2 n=%p RC=%d\n", node, node->getReferenceCount());
+      fclose(fptr);
       return TR::TreeEvaluator::addressCastEvaluator<64, true>(node, cg);
       }
 
@@ -249,12 +254,16 @@ OMR::Z::TreeEvaluator::l2aEvaluator(TR::Node * node, TR::CodeGenerator * cg)
    // latter case, we may need to make a copy if the register
    // is shared across the decompression sequence
    if (comp->useCompressedPointers() && (TR::Compiler->om.compressedReferenceShift() == 0 || firstChild->containsCompressionSequence()) && !node->isl2aForCompressedArrayletLeafLoad())
+   {
       source->setContainsCollectedReference();
+      path=2;
+   }
 
    node->setRegister(source);
 
    cg->decReferenceCount(firstChild);
-
+   fprintf(fptr, "l2a n=%p RC1=%d RC2=%d path=%d\n", node, rc1, node->getReferenceCount(), path);
+   fclose(fptr);
    return source;
    }
 
