@@ -1093,7 +1093,7 @@ OMR::Z::TreeEvaluator::sselectEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    return TR::TreeEvaluator::selectEvaluator(node, cg);
    }
 
-void recursiveLog(std::FILE *fptr, TR::Node *node)
+static void recursiveLog(std::FILE *fptr, TR::Node *node)
 {
    fprintf(fptr, "AS N=%p RC=%d\n", node, node->getReferenceCount());
    for (int32_t childCount = 0; childCount < node->getNumChildren(); childCount++)
