@@ -215,7 +215,7 @@ OMR::Z::TreeEvaluator::l2aEvaluator(TR::Node * node, TR::CodeGenerator * cg)
    }
    if (!comp->useCompressedPointers())
       {
-      fprintf(fptr, "l2a2 n=%p RC=%d\n", node, node->getReferenceCount());
+      //fprintf(fptr, "l2a2 n=%p RC=%d\n", node, node->getReferenceCount());
       fclose(fptr);
       return TR::TreeEvaluator::addressCastEvaluator<64, true>(node, cg);
       }
@@ -268,7 +268,7 @@ OMR::Z::TreeEvaluator::l2aEvaluator(TR::Node * node, TR::CodeGenerator * cg)
    node->setRegister(source);
 
    cg->decReferenceCount(firstChild);
-   fprintf(fptr, "l2a n=%p RC1=%d RC2=%d path=%d\n", node, rc1, node->getReferenceCount(), path);
+   //fprintf(fptr, "l2a n=%p RC1=%d RC2=%d path=%d\n", node, rc1, node->getReferenceCount(), path);
    fclose(fptr);
    return source;
    }

@@ -11546,10 +11546,10 @@ TR::Node *constrainNullChk(OMR::ValuePropagation *vp, TR::Node *node)
 
       if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
          {
-         rcount_t count = node->getReferenceCount();
-         std::FILE *fptr = fopen("EHSAN.log","a");
-         fprintf(fptr, "Ehsan Remove Null N=%p C=%p Path=%x\n", node, child, path);
-         fclose(fptr);
+         //rcount_t count = node->getReferenceCount();
+         //std::FILE *fptr = fopen("EHSAN.log","a");
+         //fprintf(fptr, "Ehsan Remove Null N=%p C=%p Path=%x\n", node, child, path);
+         //fclose(fptr);
          }
       }
 

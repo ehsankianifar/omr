@@ -4738,9 +4738,9 @@ void OMR::ValuePropagation::launchNode(TR::Node *node, TR::Node *parent, int32_t
 
          if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
             {
-            std::FILE *fptr = fopen("EHSAN.log","a");
-            fprintf(fptr, "Ehsan Replace PT N=%p NN=%p P=%p C=%p\n", node, newNode, parent, child);
-            fclose(fptr);
+            //std::FILE *fptr = fopen("EHSAN.log","a");
+            //fprintf(fptr, "Ehsan Replace PT N=%p NN=%p P=%p C=%p\n", node, newNode, parent, child);
+            //fclose(fptr);
             }
          }
       }

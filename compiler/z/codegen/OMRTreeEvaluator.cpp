@@ -1104,9 +1104,9 @@ static void recursiveLog(std::FILE *fptr, TR::Node *node, TR::Node *parent)
 TR::Register*
 OMR::Z::TreeEvaluator::aselectEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    {
-   std::FILE *fptr = fopen("EHSAN.log","a");
-   recursiveLog(fptr, node, NULL);
-   fclose(fptr);
+   //std::FILE *fptr = fopen("EHSAN.log","a");
+   //recursiveLog(fptr, node, NULL);
+   //fclose(fptr);
    return TR::TreeEvaluator::selectEvaluator(node, cg);
    }
 
