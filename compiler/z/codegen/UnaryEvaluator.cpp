@@ -210,7 +210,7 @@ OMR::Z::TreeEvaluator::l2aEvaluator(TR::Node * node, TR::CodeGenerator * cg)
    static const bool assertRC = feGetEnv("TR_AssertRCMinValue") != NULL;
    if(assertRC)
    {
-      int32_t asserVal = std::stoi(feGetEnv("TR_AssertRCMinValue"));
+      static const int32_t asserVal = std::stoi(feGetEnv("TR_AssertRCMinValue"));
       TR_ASSERT_FATAL(rc1>=asserVal, "Wrong ref count on %p", node);
    }
    if (!comp->useCompressedPointers())

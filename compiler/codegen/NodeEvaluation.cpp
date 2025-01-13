@@ -350,6 +350,7 @@ rcount_t
 OMR::CodeGenerator::decReferenceCount(TR::Node * node)
    {
    TR::Register *reg = node->getRegister();
+   TR_ASSERT_FATAL(node->getReferenceCount() > 0, "Decrementing zero ref count on node %p", node);
 
    if ((node->getReferenceCount() == 1) &&
        reg && self()->getLiveRegisters(reg->getKind()))
