@@ -114,6 +114,7 @@ namespace TR { class SymbolReferenceTable; }
 namespace TR { class TreeTop; }
 namespace TR { class TypeLayout; }
 typedef TR::SparseBitVector SharedSparseBitVector;
+int ehsanStartLogging = 0;
 
 #if _AIX
    #define STRTOK(a,b,c) strtok_r(a,b,c)
