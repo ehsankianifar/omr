@@ -207,6 +207,12 @@ OMR::Z::TreeEvaluator::l2aEvaluator(TR::Node * node, TR::CodeGenerator * cg)
    TR::Compilation *comp = cg->comp();
    int32_t path=0;
    int32_t rc1 = node->getReferenceCount();
+   static const bool assertRC = feGetEnv("TR_AssertRCMinValue") != NULL;
+   if(assertRC)
+   {
+      int32_t asserVal = std::stoi(feGetEnv("TR_AssertRCMinValue"));
+      TR_ASSERT_FATAL(rc1>=asserVal, "Wrong ref count on %p", node);
+   }
    if (!comp->useCompressedPointers())
       {
       fprintf(fptr, "l2a2 n=%p RC=%d\n", node, node->getReferenceCount());
