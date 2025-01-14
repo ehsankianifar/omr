@@ -50,6 +50,8 @@ TR_LocalReordering::TR_LocalReordering(TR::OptimizationManager *manager)
    : TR::Optimization(manager)
    {}
 
+static bool startLogging = false;
+
 int32_t TR_LocalReordering::perform()
    {
    if (trace())
@@ -261,6 +263,10 @@ void TR_LocalReordering::collectUses(TR::Block *block)
    int32_t currentStoreIndex = 0;
    TR::TreeTop *currentTree = block->getEntry();
    vcount_t visitCount1 = comp()->incVisitCount();
+   if(!strcmp(TR::comp()->getMethodBeingCompiled()->nameChars(), "integrate"))
+            {
+            startLogging = true;
+            }
    while (!(currentTree == exitTree))
       {
       TR::Node *currentNode = currentTree->getNode();
@@ -324,14 +330,25 @@ void TR_LocalReordering::moveStoresEarlierIfRhsAnchored(TR::Block *block, TR::Tr
                   {
                   _seenUnpinnedInternalPointer = true;
                   }
-
+               if(startLogging)
+                  {
+                  std::FILE *fptr = fopen("EHSAN.log","a");
+                  fprintf(fptr, "attempt reorder1 %p\n", treeTop);
+                  fclose(fptr);
+                  }
                insertEarlierIfPossible(_storeTreesAsArray[i], treeTop, true);
                _storeTreesAsArray[i] = NULL;
                }
             }
          }
       }
-
+   std::FILE *fptr;
+   if(startLogging)
+      {
+      std::FILE *fptr = fopen("EHSAN.log","a");
+      //fprintf(fptr, "attempt reorder1 %p", treeTop);
+      //fclose(fptr);
+      }
    _stopNodes->empty();
    int32_t numDeadChildren = 0;
    for (int32_t j=0;j<node->getNumChildren();j++)
@@ -347,6 +364,12 @@ void TR_LocalReordering::moveStoresEarlierIfRhsAnchored(TR::Block *block, TR::Tr
         _stopNodes->set(child->getGlobalIndex());
 
         numDeadChildren++;
+        if(startLogging)
+            {
+            //std::FILE *fptr = fopen("EHSAN.log","a");
+            fprintf(fptr, "deadChild %p li=%d rc=%d tt=%p\n", child, child->getLocalIndex(), child->getReferenceCount(), treeTop);
+            //fclose(fptr);
+            }
         }
       }
 
@@ -384,7 +407,22 @@ void TR_LocalReordering::moveStoresEarlierIfRhsAnchored(TR::Block *block, TR::Tr
       vcount_t visitCount3 = comp()->incVisitCount();
       collectSymbolsUsedAndDefinedInNode(node, visitCount3);
       //dumpOptDetails(comp(), "Trying to insert node %p earlier\n", node);
+      if(startLogging)
+            {
+            //std::FILE *fptr = fopen("EHSAN.log","a");
+            fprintf(fptr, "MOVE CHILD %p\n", node);
+            fclose(fptr);
+            }
       insertEarlierIfPossible(anchorTreeTop, block->getEntry(), false);
+      }
+   else
+      {
+         if(startLogging)
+            {
+            //std::FILE *fptr = fopen("EHSAN.log","a");
+            fprintf(fptr, "No move!\n");
+            fclose(fptr);
+            }
       }
    }
 
