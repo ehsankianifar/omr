@@ -390,7 +390,13 @@ void TR_LocalReordering::moveStoresEarlierIfRhsAnchored(TR::Block *block, TR::Tr
 
 
 
-
+static TR::Node *GetLastChildParrent(TR::Node *node)
+{
+   TR::Node * child = node->getFirstChild();
+   if(child->getFirstChild() == NULL)
+      return node;
+   return GetLastChildParrent(child);
+}
 
 bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::TreeTop *treeTop, bool strictCheck)
    {
@@ -440,6 +446,23 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
    if (!foundInsertionSpot &&
        performTransformation(comp(), "\n%sInserting Definition @ 2 : [%p] between %p and %p (earlier between %p and %p)\n", OPT_DETAILS, storeTree->getNode(), currentTree->getNode(), currentTree->getNextTreeTop()->getNode(), storeTree->getPrevTreeTop()->getNode(), storeTree->getNextTreeTop()->getNode()))
       {
+      TR::Node *myNode = storeTree->getNode();
+      if(myNode->getOpCodeValue() == TR::treetop)
+      {
+         myNode = myNode->getFirstChild();
+         if(myNode->getOpCodeValue() == TR::aselect)
+         {
+            myNode = GetLastChildParrent(myNode);
+            if(myNode->getOpCodeValue() == TR::aloadi)
+            {
+               TR::Node * nextNode = currentTree->getNextTreeTop()->getNode();
+               if(nextNode->getFirstChild() == myNode)
+               {
+                  TR_ASSERT_FATAL(false, "Node in Wrong location! cmp=%p node=%p nodeChild=%p next=%p", myNode, storeTree->getNode(), storeTree->getNode()->getFirstChild(), nextNode);
+               }
+            }
+         }
+      }
       TR::TreeTop *origPrevTree = storeTree->getPrevTreeTop();
       TR::TreeTop *origNextTree = storeTree->getNextTreeTop();
       origPrevTree->setNextTreeTop(origNextTree);
@@ -452,6 +475,9 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
       storeTree->setPrevTreeTop(currentTree);
       storeTree->setNextTreeTop(nextTree);
       nextTree->setPrevTreeTop(storeTree);
+
+
+
       }
 
    return foundInsertionSpot;
