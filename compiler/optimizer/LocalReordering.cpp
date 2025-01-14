@@ -342,10 +342,10 @@ void TR_LocalReordering::moveStoresEarlierIfRhsAnchored(TR::Block *block, TR::Tr
             }
          }
       }
-   std::FILE *fptr;
+   std::FILE *fptr = NULL;
    if(startLogging)
       {
-      std::FILE *fptr = fopen("EHSAN.log","a");
+      fptr = fopen("EHSAN.log","a");
       //fprintf(fptr, "attempt reorder1 %p", treeTop);
       //fclose(fptr);
       }
