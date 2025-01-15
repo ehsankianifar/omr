@@ -436,7 +436,7 @@ static TR::Node *GetLastChildParrent(TR::Node *node)
       return node;
    return GetLastChildParrent(child);
 }
-
+bool ifItWasTheOther = false;
 bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::TreeTop *treeTop, bool strictCheck)
    {
    vcount_t visitCount2 = comp()->incVisitCount();
@@ -459,9 +459,9 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
       {
       TR::Node *currentNode = currentTree->getNode();
       bool stopHere;
-      bool ifItWasTheOther = isAnySymInDefinedOrUsedBy(currentNode, visitCount2);
+      
       if (strictCheck)
-        stopHere = ifItWasTheOther;
+        stopHere = isAnySymInDefinedOrUsedBy(currentNode, visitCount2);
       else
         stopHere = isAnySymInDefinedBy(currentNode, visitCount2);
 
@@ -503,6 +503,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
             fprintf(fptr, "NF c=%p iiwto=%d\n", currentNode, ifItWasTheOther);
             }
          }
+         ifItWasTheOther = false;
       currentTree = currentTree->getPrevTreeTop();
       }
    
@@ -809,6 +810,13 @@ bool TR_LocalReordering::isAnySymInDefinedBy(TR::Node *node, vcount_t visitCount
         if (symReference->getUseDefAliasesIncludingGCSafePoint(isCallDirect).containsAny(*_seenSymbols, comp()))
            return true;
          }
+         
+      if ((!(node->getOpCode().isLoadVar() || node->getOpCode().isStore() || (node->getOpCodeValue() == TR::loadaddr))))
+         {
+         if (symReference->getUseonlyAliases().containsAny(*_seenSymbols, comp()))
+            ifItWasTheOther = true;
+         }
+
       }
 
    if (node->canCauseGC() && _seenUnpinnedInternalPointer)
