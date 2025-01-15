@@ -459,8 +459,9 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
       {
       TR::Node *currentNode = currentTree->getNode();
       bool stopHere;
+      bool ifItWasTheOther = isAnySymInDefinedOrUsedBy(currentNode, visitCount2);
       if (strictCheck)
-        stopHere = isAnySymInDefinedOrUsedBy(currentNode, visitCount2);
+        stopHere = ifItWasTheOther;
       else
         stopHere = isAnySymInDefinedBy(currentNode, visitCount2);
 
@@ -491,7 +492,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
          foundInsertionSpot = true;
          if(fptr)
             {
-            fprintf(fptr, "F c=%p\n", currentNode);
+            fprintf(fptr, "F c=%p iiwto=%d\n", currentNode, ifItWasTheOther);
             }
          break;
          }
@@ -499,7 +500,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
          {
             if(fptr)
             {
-            fprintf(fptr, "NF c=%p\n", currentNode);
+            fprintf(fptr, "NF c=%p iiwto=%d\n", currentNode, ifItWasTheOther);
             }
          }
       currentTree = currentTree->getPrevTreeTop();
