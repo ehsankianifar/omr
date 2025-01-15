@@ -411,6 +411,7 @@ void TR_LocalReordering::moveStoresEarlierIfRhsAnchored(TR::Block *block, TR::Tr
             {
             //std::FILE *fptr = fopen("EHSAN.log","a");
             fprintf(fptr, "MOVE CHILD %p\n", node);
+            
             fclose(fptr);
             }
       insertEarlierIfPossible(anchorTreeTop, block->getEntry(), false);
@@ -441,6 +442,18 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
    vcount_t visitCount2 = comp()->incVisitCount();
    TR::TreeTop *currentTree = storeTree->getPrevTreeTop();
    bool foundInsertionSpot = false;
+   std::FILE *fptr = NULL;
+
+   TR::Node *myNode = storeTree->getNode();
+   if(startLogging && myNode->getOpCodeValue() == TR::treetop)
+   {
+      myNode = myNode->getFirstChild();
+      if(myNode->getOpCodeValue() == TR::aselect)
+      {
+         fptr = fopen("EHSAN2.log","a");
+         fprintf(fptr, "S n=%p s=%d c=%d\n", myNode, strictCheck, currentTree->getNode());
+      }
+   }
 
    while (currentTree != treeTop)
       {
@@ -452,10 +465,10 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
         stopHere = isAnySymInDefinedBy(currentNode, visitCount2);
 
       if (!stopHere)
-   {
-   if (currentNode->getOpCode().isCheckCast()) // Moving a store earlier than a checkcast usually results in suboptimal type info (because of the way store constraints work, they only pick up the type info when the store was encountered)
-      stopHere = true;
-   }
+         {
+         if (currentNode->getOpCode().isCheckCast()) // Moving a store earlier than a checkcast usually results in suboptimal type info (because of the way store constraints work, they only pick up the type info when the store was encountered)
+            stopHere = true;
+         }
 
       if (stopHere)
          {
@@ -474,33 +487,48 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
             storeTree->setPrevTreeTop(currentTree);
             storeTree->setNextTreeTop(nextTree);
             nextTree->setPrevTreeTop(storeTree);
-      }
+            }
          foundInsertionSpot = true;
+         if(fptr)
+            {
+            fprintf(fptr, "F c=%p\n", currentNode);
+            }
          break;
+         }
+      else
+         {
+            if(fptr)
+            {
+            fprintf(fptr, "NF c=%p\n", currentNode);
+            }
          }
       currentTree = currentTree->getPrevTreeTop();
       }
-
+   
+   if(fptr)
+            {
+            fprintf(fptr, "AW c=%p n=%p f=%d\n", currentTree->getNode(), myNode, foundInsertionSpot);
+            }
    if (!foundInsertionSpot &&
        performTransformation(comp(), "\n%sInserting Definition @ 2 : [%p] between %p and %p (earlier between %p and %p)\n", OPT_DETAILS, storeTree->getNode(), currentTree->getNode(), currentTree->getNextTreeTop()->getNode(), storeTree->getPrevTreeTop()->getNode(), storeTree->getNextTreeTop()->getNode()))
       {
-      TR::Node *myNode = storeTree->getNode();
-      if(myNode->getOpCodeValue() == TR::treetop)
-      {
-         myNode = myNode->getFirstChild();
-         if(myNode->getOpCodeValue() == TR::aselect)
-         {
-            myNode = GetLastChildParrent(myNode);
-            if(myNode->getOpCodeValue() == TR::aloadi)
-            {
-               TR::Node * nextNode = currentTree->getNextTreeTop()->getNode();
-               if(nextNode->getFirstChild() == myNode)
-               {
-                  TR_ASSERT_FATAL(false, "Node in Wrong location! cmp=%p node=%p nodeChild=%p next=%p", myNode, storeTree->getNode(), storeTree->getNode()->getFirstChild(), nextNode);
-               }
-            }
-         }
-      }
+      // TR::Node *myNode = storeTree->getNode();
+      // if(myNode->getOpCodeValue() == TR::treetop)
+      // {
+      //    myNode = myNode->getFirstChild();
+      //    if(myNode->getOpCodeValue() == TR::aselect)
+      //    {
+      //       myNode = GetLastChildParrent(myNode);
+      //       if(myNode->getOpCodeValue() == TR::aloadi)
+      //       {
+      //          TR::Node * nextNode = currentTree->getNextTreeTop()->getNode();
+      //          if(nextNode->getFirstChild() == myNode)
+      //          {
+      //             TR_ASSERT_FATAL(false, "Node in Wrong location! cmp=%p node=%p nodeChild=%p next=%p", myNode, storeTree->getNode(), storeTree->getNode()->getFirstChild(), nextNode);
+      //          }
+      //       }
+      //    }
+      // }
       TR::TreeTop *origPrevTree = storeTree->getPrevTreeTop();
       TR::TreeTop *origNextTree = storeTree->getNextTreeTop();
       origPrevTree->setNextTreeTop(origNextTree);
@@ -514,10 +542,18 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
       storeTree->setNextTreeTop(nextTree);
       nextTree->setPrevTreeTop(storeTree);
 
-
+      if(fptr)
+            {
+            fprintf(fptr, "AP c=%p n=%p opt=%p ont=%p nt=%p \n", currentTree->getNode(), myNode, origPrevTree->getNode(), origNextTree->getNode(), nextTree->getNode());
+            }
 
       }
-
+   if(fptr)
+            {
+            //std::FILE *fptr = fopen("EHSAN.log","a");
+            //fprintf(fptr, "No move!\n");
+            fclose(fptr);
+            }
    return foundInsertionSpot;
    }
 
