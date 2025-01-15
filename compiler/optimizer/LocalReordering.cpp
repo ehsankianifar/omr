@@ -451,7 +451,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
       if(myNode->getOpCodeValue() == TR::aselect)
       {
          fptr = fopen("EHSAN2.log","a");
-         fprintf(fptr, "S n=%p s=%d c=%d\n", myNode, strictCheck, currentTree->getNode());
+         fprintf(fptr, "S n=%p s=%d c=%p\n", myNode, strictCheck, currentTree->getNode());
       }
    }
 
