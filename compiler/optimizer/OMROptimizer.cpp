@@ -349,7 +349,7 @@ const OptimizationStrategy earlyGlobalOpts[] =
 const OptimizationStrategy earlyLocalOpts[] =
    {
    { localValuePropagation                },
-   //{ localValuePropagationGroup           },
+   { localValuePropagationGroup           },
    { localReordering                      },
    { switchAnalyzer,                      },
    { treeSimplification,        IfEnabled }, // simplify any exprs created by LCP/LCSE
