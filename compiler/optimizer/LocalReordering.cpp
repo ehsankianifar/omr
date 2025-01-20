@@ -454,7 +454,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
          fprintf(fptr, "S n=%p s=%d c=%p\n", myNode, strictCheck, currentTree->getNode());
       }
    }
-
+   static const bool useCheck = feGetEnv("TR_UseCheck") != NULL;
    while (currentTree != treeTop)
       {
       TR::Node *currentNode = currentTree->getNode();
@@ -467,7 +467,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
 
       if (!stopHere)
          {
-         static const bool useCheck = feGetEnv("TR_UseCheck") != NULL;
+         
          if (currentNode->getOpCode().isCheckCast() || (useCheck && currentNode->getOpCode().isCheck())) // Moving a store earlier than a checkcast usually results in suboptimal type info (because of the way store constraints work, they only pick up the type info when the store was encountered)
             stopHere = true;
          }
@@ -501,7 +501,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
          {
             if(fptr)
             {
-            fprintf(fptr, "NF c=%p iiwto=%d ischeck=%d isNullCheck=%d\n", currentNode, ifItWasTheOther, currentNode->getOpCode().isCheck(), currentNode->getOpCode().isNullCheck());
+            fprintf(fptr, "NF c=%p iiwto=%d ischeck=%d isNullCheck=%d usecheck=%d stop=%d\n", currentNode, ifItWasTheOther, currentNode->getOpCode().isCheck(), currentNode->getOpCode().isNullCheck(), useCheck, stopHere);
             }
          }
          ifItWasTheOther = false;
