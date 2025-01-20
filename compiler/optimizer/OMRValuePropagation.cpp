@@ -2900,7 +2900,6 @@ TR::VPConstraint *OMR::ValuePropagation::mergeDefConstraints(TR::Node *node, int
 
 void OMR::ValuePropagation::replaceByConstant(TR::Node *node, TR::VPConstraint *constraint, bool isGlobal)
    {
-      return;
    if (isGlobal)
       addGlobalConstraint(node, constraint);
    else
