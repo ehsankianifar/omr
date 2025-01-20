@@ -501,7 +501,7 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
          {
             if(fptr)
             {
-            fprintf(fptr, "NF c=%p iiwto=%d\n", currentNode, ifItWasTheOther);
+            fprintf(fptr, "NF c=%p iiwto=%d ischeck=%d isNullCheck=%d\n", currentNode, ifItWasTheOther, currentNode->getOpCode().isCheck(), currentNode->getOpCode().isNullCheck());
             }
          }
          ifItWasTheOther = false;
