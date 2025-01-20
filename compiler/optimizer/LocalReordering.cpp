@@ -467,7 +467,8 @@ bool TR_LocalReordering::insertEarlierIfPossible(TR::TreeTop *storeTree, TR::Tre
 
       if (!stopHere)
          {
-         if (currentNode->getOpCode().isCheckCast()) // Moving a store earlier than a checkcast usually results in suboptimal type info (because of the way store constraints work, they only pick up the type info when the store was encountered)
+         static const bool useCheck = feGetEnv("TR_UseCheck") != NULL;
+         if (currentNode->getOpCode().isCheckCast() || (useCheck && currentNode->getOpCode().isCheck())) // Moving a store earlier than a checkcast usually results in suboptimal type info (because of the way store constraints work, they only pick up the type info when the store was encountered)
             stopHere = true;
          }
 
