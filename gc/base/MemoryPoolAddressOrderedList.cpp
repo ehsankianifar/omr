@@ -912,14 +912,22 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 {
 	bool const compressed = compressObjectReferences();
 	MM_HeapLinkedFreeHeader *previousFreeEntry, *nextFreeEntry;
+	FILE *fptr = fopen("HEAP.log","a");
+	fprintf(fptr, "Expand low:%p high:%p size:%lx coalesce:%d name:%s\n", lowAddress, highAddress, expandSize, canCoalesce, getPoolName());	
+
 
 	if(0 == expandSize) {
+		fprintf(fptr, "Zero expand size!\n");
+		fclose(fptr);
 		return ;
+		
 	}
 
 	/* Handle the entries that are too small to make the free list */
 	if(expandSize < _minimumFreeEntrySize) {
 		abandonHeapChunk(lowAddress, highAddress);
+		fprintf(fptr, "Too small!\n");
+		fclose(fptr);
 		return ;
 	}
 
@@ -946,6 +954,8 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(previousFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
+			fprintf(fptr, "Added tail to %p\n",previousFreeEntry);
+			fclose(fptr);
 			return ;
 		}
 		/* Check if the range can be fused to the head of the next free entry */
@@ -971,6 +981,8 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(newFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
+			fprintf(fptr, "Added head to %p\n",nextFreeEntry);
+			fclose(fptr);
 			return ;
 		}
 	}
@@ -1003,7 +1015,8 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	if (freeEntry->getSize() > _largestFreeEntry) {
 		_largestFreeEntry = freeEntry->getSize(); 
 	}
-
+	fprintf(fptr, "New entry:%p size:%lx\n",freeEntry, freeEntry->getSize());
+	fclose(fptr);
 	assume0(isMemoryPoolValid(env, true));
 }
 

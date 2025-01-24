@@ -186,8 +186,12 @@ MM_TLHAllocationInterface::allocateObject(MM_EnvironmentBase *env, MM_AllocateDe
 			if (NULL != ac) {
 				result = ac->allocateObject(env, allocDescription, shouldCollectOnFailure);
 			} else {
+				//omr/gc/base/MemorySubSpaceGeneric.cpp:278 -> MM_MemoryPoolAddressOrderedList::internalAllocate
 				result = memorySpace->getDefaultMemorySubSpace()->allocateObject(env, allocDescription, NULL, NULL, shouldCollectOnFailure);
 			}
+			FILE *fptr = fopen("HEAP.log","a");
+			fprintf(fptr, "FAIL alloc ac:%p obJ:%p size:%lx\n", ac, result, allocDescription->getBytesRequested());
+			fclose(fptr);
 		}
 
 	}
