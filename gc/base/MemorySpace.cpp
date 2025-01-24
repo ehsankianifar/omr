@@ -67,6 +67,7 @@ MM_MemorySpace::kill(MM_EnvironmentBase *env)
 bool
 MM_MemorySpace::initialize(MM_EnvironmentBase *env, MM_MemorySubSpace *memorySubSpace)
 {
+	std::FILE *fptr = fopen("HEAP.log","a");
 	_heap->registerMemorySpace(this);
 	
 	registerMemorySubSpace(memorySubSpace);
@@ -74,10 +75,14 @@ MM_MemorySpace::initialize(MM_EnvironmentBase *env, MM_MemorySubSpace *memorySub
 	if(NULL != _physicalArena) {
 		_physicalArena->setMemorySpace(this);
 	}
-
-	setDefaultMemorySubSpace(memorySubSpace->getDefaultMemorySubSpace());
-	setTenureMemorySubSpace(memorySubSpace->getTenureMemorySubSpace());
-
+	MM_MemorySubSpace * def = memorySubSpace->getDefaultMemorySubSpace();
+	MM_MemorySubSpace * ten = memorySubSpace->getTenureMemorySubSpace();
+	setDefaultMemorySubSpace(def);
+	setTenureMemorySubSpace(ten);
+	MM_MemoryPool * pool = def->getMemoryPool();
+	
+	fprintf(fptr, "  INIT memory default=%p Tenure=%p pool=%p\n",def, ten, pool);
+	fclose(fptr);
 	return true;
 }
 
