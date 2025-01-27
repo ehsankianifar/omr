@@ -918,9 +918,9 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	FILE *fptr = fopen("HEAP.log","a");
 
 	if(isDefault)
-		fprintf(fptr, "*Expand low:%p high:%p size:%p coalesce:%d subSpace:%p\n", lowAddress, highAddress, expandSize, canCoalesce, currentSubSpace);
+		fprintf(fptr, "*Expand low:%p high:%p size:%lx coalesce:%d subSpace:%p\n", lowAddress, highAddress, expandSize, canCoalesce, currentSubSpace);
 	else
-		fprintf(fptr, "*Expand low:%p high:%p size:%p coalesce:%d subSpace:%p default:%p\n", lowAddress, highAddress, expandSize, canCoalesce, currentSubSpace, defaultSubSpace);
+		fprintf(fptr, "*Expand low:%p high:%p size:%lx coalesce:%d subSpace:%p default:%p\n", lowAddress, highAddress, expandSize, canCoalesce, currentSubSpace, defaultSubSpace);
 	
 
 	if(0 == expandSize) {
@@ -1022,7 +1022,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	if (freeEntry->getSize() > _largestFreeEntry) {
 		_largestFreeEntry = freeEntry->getSize(); 
 	}
-	fprintf(fptr, "New entry:%p size:%p\n",freeEntry, freeEntry->getSize());
+	fprintf(fptr, "New entry:%p size:%lx\n",freeEntry, freeEntry->getSize());
 	fclose(fptr);
 	assume0(isMemoryPoolValid(env, true));
 }
