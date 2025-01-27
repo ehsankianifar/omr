@@ -912,16 +912,9 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 {
 	bool const compressed = compressObjectReferences();
 	MM_HeapLinkedFreeHeader *previousFreeEntry, *nextFreeEntry;
-	MM_MemorySubSpace *defaultSubSpace = env->getDefaultMemorySubSpace();
-	MM_MemorySubSpace *currentSubSpace = this->getSubSpace();
-	bool isDefault = defaultSubSpace == currentSubSpace;
 	FILE *fptr = fopen("HEAP.log","a");
+	fprintf(fptr, "Expand low:%p high:%p size:%lx coalesce:%d name:%s\n", lowAddress, highAddress, expandSize, canCoalesce, getPoolName());	
 
-	if(isDefault)
-		fprintf(fptr, "*Expand low:%p high:%p size:%lx coalesce:%d subSpace:%p\n", lowAddress, highAddress, expandSize, canCoalesce, currentSubSpace);
-	else
-		fprintf(fptr, "*Expand low:%p high:%p size:%lx coalesce:%d subSpace:%p default:%p\n", lowAddress, highAddress, expandSize, canCoalesce, currentSubSpace, defaultSubSpace);
-	
 
 	if(0 == expandSize) {
 		fprintf(fptr, "Zero expand size!\n");
