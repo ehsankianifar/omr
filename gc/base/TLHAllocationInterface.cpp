@@ -188,6 +188,9 @@ MM_TLHAllocationInterface::allocateObject(MM_EnvironmentBase *env, MM_AllocateDe
 			} else {
 				result = memorySpace->getDefaultMemorySubSpace()->allocateObject(env, allocDescription, NULL, NULL, shouldCollectOnFailure);
 			}
+			FILE *fptr = fopen("HEAP.log","a");
+			fprintf(fptr, "FAIL alloc ac:%d obJ:%p size:%lx\n", ac, result, allocDescription->_bytesRequested);
+			fclose(fptr);
 		}
 
 	}
