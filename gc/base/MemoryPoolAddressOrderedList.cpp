@@ -641,8 +641,6 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 	MM_HeapLinkedFreeHeader *freeEntry = NULL;
 	uintptr_t consumedSize = 0;
 	uintptr_t recycleEntrySize = 0;
-	std::FILE *fptr = fopen("HEAP.log","a");
-	fprintf(fptr, "Start internal alloc for %p base %p top %p subspace %p freeList %p maxRequired %lx\n", this, addrBase, addrTop, _memorySubSpace, _heapFreeList, maximumSizeInBytesRequired);
 	
 	if (lockingRequired) {
 		_heapLock.acquire();
@@ -655,7 +653,6 @@ retry:
 	/* Check if an entry was found */
 	if(!freeEntry) {
 		if(_memorySubSpace->replenishPoolForAllocate(env, this, _minimumFreeEntrySize)) {
-			fprintf(fptr, "Replanish and retry.\n");
 			goto retry;
 		}
 		goto fail_allocate;
@@ -671,7 +668,6 @@ retry:
 	if (doesNeedCardAlignment(env, freeEntry)) {
 		freeEntry = doFreeEntryCardAlignmentUpTo(env, freeEntry);
 		if (NULL == freeEntry) {
-			fprintf(fptr, "Retry for card alignment.\n");
 			goto retry;
 		}
 	}
@@ -681,7 +677,6 @@ retry:
 	_largeObjectAllocateStats->decrementFreeEntrySizeClassStats(freeEntrySize);
 
 	if (0 == (consumedSize = getConsumedSizeForTLH(env, freeEntry, maximumSizeInBytesRequired))) {
-		fprintf(fptr, "Retry because of size.\n");
 		goto retry;
 	}
 
@@ -689,7 +684,6 @@ retry:
 	 * ensure we don't require alignment first. */
 	recycleEntrySize = freeEntrySize - consumedSize;
 	if (recycleEntrySize && (recycleEntrySize < _minimumFreeEntrySize) && !isAlignmentForParallelGCRequired()) {
-		fprintf(fptr, "Handout leftover chunck recycleEntrySize %lx freeEnrtySize %lx consumed %lx\n", recycleEntrySize, freeEntrySize, consumedSize);
 		consumedSize += recycleEntrySize;
 		recycleEntrySize = 0;
 	}
@@ -714,7 +708,6 @@ retry:
 		if (recycleHeapChunk(addrTop, topOfRecycledChunk, NULL, entryNext)) {
 			updatePrevCardUnalignedFreeEntry(entryNext, (MM_HeapLinkedFreeHeader *)addrTop);
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-			fprintf(fptr, "Recycled heap chunk recycleEntrySize %lx freeEnrtySize %lx consumed %lx top %p topChunk %p next %p\n", recycleEntrySize, freeEntrySize, consumedSize, addrTop, topOfRecycledChunk, entryNext);
 		} else {
 			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
 			/* Adjust the free memory size and count */
@@ -722,7 +715,6 @@ retry:
 			_freeEntryCount -= 1;
 
 			_allocDiscardedBytes += recycleEntrySize;
-			fprintf(fptr, "Failed recycling heap chunk recycleEntrySize %lx freeEnrtySize %lx consumed %lx top %p topChunk %p next %p\n", recycleEntrySize, freeEntrySize, consumedSize, addrTop, topOfRecycledChunk, entryNext);
 		}
 	} else {
 		updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
@@ -730,14 +722,12 @@ retry:
 		_heapFreeList = entryNext;
 		/* also update the freeEntryCount as recycleHeapChunk would do this */
 		_freeEntryCount -= 1;
-		fprintf(fptr, "No recycle recycleEntrySize %lx freeEnrtySize %lx consumed %lx top %p next %p\n", recycleEntrySize, freeEntrySize, consumedSize, addrTop, entryNext);
 	}
 
 	if (lockingRequired) {
 		_heapLock.release();
 	}
 
-	fclose(fptr);
 	return true;
 
 fail_allocate:
@@ -746,8 +736,6 @@ fail_allocate:
 	if(lockingRequired) {
 		_heapLock.release();
 	}
-	fprintf(fptr, "Total Failure!\n");
-	fclose(fptr);
 	return false;
 }
 
