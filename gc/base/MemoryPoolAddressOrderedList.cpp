@@ -1015,7 +1015,14 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	if (freeEntry->getSize() > _largestFreeEntry) {
 		_largestFreeEntry = freeEntry->getSize(); 
 	}
-	fprintf(fptr, "New entry:%p size:%lx\n",freeEntry, freeEntry->getSize());
+
+	MM_MemorySubSpace *subspace = getSubSpace();
+	MM_MemorySpace *mainSpace = subspace->getMemorySpace();
+	MM_MemorySubSpace *defaultSubspace = mainSpace->getDefaultMemorySubSpace();
+	bool isDefault = subspace == defaultSubspace;
+
+
+	fprintf(fptr, "New entry:%p size:%lx isDefault:%d\n",freeEntry, freeEntry->getSize(), isDefault);
 	fclose(fptr);
 	assume0(isMemoryPoolValid(env, true));
 }
