@@ -35,6 +35,7 @@
 #include "GCExtensionsBase.hpp"
 #include "Collector.hpp"
 #include "MemoryPool.hpp"
+#include "MemorySpace.hpp"
 #include "MemorySubSpace.hpp"
 //#include "mmhook_internal.h"
 #include "HeapRegionDescriptor.hpp"
