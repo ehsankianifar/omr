@@ -266,7 +266,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	}
 
 	FILE *fptr = fopen("HEAP.log","a");
-	fprintf(fptr, "Refresh TLH from:%p to:%p size:%lx didRefresh:%d\n", getBase(), getTop(), getSize(), didRefresh);
+	fprintf(fptr, "Refresh TLH from:%p to:%p size:%lx didRefresh:%d name:%s\n", getBase(), getTop(), getSize(), didRefresh, poolName);
 	fclose(fptr);
 
 	return didRefresh;
