@@ -1015,10 +1015,11 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	if (freeEntry->getSize() > _largestFreeEntry) {
 		_largestFreeEntry = freeEntry->getSize(); 
 	}
-
+	
+	MM_MemorySpace *mainSpace;
 	MM_MemorySubSpace *subspace = getSubSpace();
-	//MM_MemorySpace *mainSpace = subspace->getMemorySpace()->getDefaultMemorySubSpace();
-	MM_MemorySubSpace *defaultSubspace = subspace->getMemorySpace()->getDefaultMemorySubSpace();
+	mainSpace = subspace->getMemorySpace();
+	MM_MemorySubSpace *defaultSubspace = mainSpace->getDefaultMemorySubSpace();
 	bool isDefault = subspace == defaultSubspace;
 
 
