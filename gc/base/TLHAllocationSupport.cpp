@@ -126,6 +126,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	uintptr_t tlhMinimumSize = extensions->tlhMinimumSize;
 	uintptr_t tlhMaximumSize = extensions->tlhMaximumSize;
 	uintptr_t halfRefreshSize = getRefreshSize() >> 1;
+	const char* poolName="N";
 	uintptr_t abandonSize = (tlhMinimumSize > halfRefreshSize ? tlhMinimumSize : halfRefreshSize);
 	if (sizeInBytesRequired > abandonSize) {
 		/* increase thread hungriness if we did not refresh */
@@ -207,6 +208,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure));
 		} else {
 			MM_MemorySubSpace *subspace = memorySpace->getDefaultMemorySubSpace();
+			poolName = subspace->getMemoryPool()->getPoolName();
 			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure));
 		}
 
