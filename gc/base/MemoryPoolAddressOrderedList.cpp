@@ -915,7 +915,11 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	MM_HeapLinkedFreeHeader *previousFreeEntry, *nextFreeEntry;
 	FILE *fptr = fopen("HEAP.log","a");
 	fprintf(fptr, "Expand low:%p high:%p size:%lx coalesce:%d name:%s\n", lowAddress, highAddress, expandSize, canCoalesce, getPoolName());	
-
+	MM_MemorySpace *mainSpace;
+	MM_MemorySubSpace *subspace = getSubSpace();
+	mainSpace = subspace->getMemorySpace();
+	MM_MemorySubSpace *defaultSubspace = mainSpace->getDefaultMemorySubSpace();
+	bool isDefault = subspace == defaultSubspace;
 
 	if(0 == expandSize) {
 		fprintf(fptr, "Zero expand size!\n");
@@ -955,7 +959,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(previousFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
-			fprintf(fptr, "Added tail to %p\n",previousFreeEntry);
+			fprintf(fptr, "Added tail to %p isdeafult:%d\n",previousFreeEntry, isDefault);
 			fclose(fptr);
 			return ;
 		}
@@ -982,7 +986,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(newFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
-			fprintf(fptr, "Added head to %p\n",nextFreeEntry);
+			fprintf(fptr, "Added head to %p isdeafult:%d \n",nextFreeEntry, isDefault);
 			fclose(fptr);
 			return ;
 		}
@@ -1017,11 +1021,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 		_largestFreeEntry = freeEntry->getSize(); 
 	}
 	
-	MM_MemorySpace *mainSpace;
-	MM_MemorySubSpace *subspace = getSubSpace();
-	mainSpace = subspace->getMemorySpace();
-	MM_MemorySubSpace *defaultSubspace = mainSpace->getDefaultMemorySubSpace();
-	bool isDefault = subspace == defaultSubspace;
+	
 
 
 	fprintf(fptr, "New entry:%p size:%lx isDefault:%d\n",freeEntry, freeEntry->getSize(), isDefault);
