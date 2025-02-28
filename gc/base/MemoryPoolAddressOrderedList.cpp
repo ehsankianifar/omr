@@ -1017,8 +1017,8 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	}
 
 	MM_MemorySubSpace *subspace = getSubSpace();
-	MM_MemorySpace *mainSpace = subspace->getMemorySpace();
-	MM_MemorySubSpace *defaultSubspace = mainSpace->getDefaultMemorySubSpace();
+	//MM_MemorySpace *mainSpace = subspace->getMemorySpace()->getDefaultMemorySubSpace();
+	MM_MemorySubSpace *defaultSubspace = subspace->getMemorySpace()->getDefaultMemorySubSpace();
 	bool isDefault = subspace == defaultSubspace;
 
 
