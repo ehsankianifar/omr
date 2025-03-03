@@ -464,11 +464,13 @@ MM_MemorySubSpaceSemiSpace::tearDown(MM_EnvironmentBase *env)
 void
 MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 {
+	const char* name = "N";
 	switch (step) {
 	case set_evacuate:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "set_evacuate");
 		_memorySubSpaceEvacuate = _memorySubSpaceAllocate;
 		_memorySubSpaceEvacuate->isAllocatable(false);
+		name= "set_evacuate";
 		break;
 	case set_allocate:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "set_allocate");
@@ -476,14 +478,17 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 		_memorySubSpaceAllocate->isAllocatable(true);
 		/* Let know MemorySpace about new default MemorySubSpace */
 		getMemorySpace()->setDefaultMemorySubSpace(getDefaultMemorySubSpace());
+		name= "set_allocate";
 		break;
 	case disable_allocation:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "disable_allocation");
 		_memorySubSpaceAllocate->isAllocatable(false);
+		name= "disable_allocation";
 		break;
 	case restore_allocation:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "restore_allocation");
 		_memorySubSpaceAllocate->isAllocatable(true);
+		name= "restore_allocation";
 		break;
 	case restore_allocation_and_set_survivor:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "restore_allocation_and_set_survivor");
@@ -498,6 +503,7 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 				sqrtf(MM_Math::weightedAverage(_avgDeviationBytesAllocatedDuringConcurrent * _avgDeviationBytesAllocatedDuringConcurrent,
 												(float)_deviationBytesAllocatedDuringConcurrent * _deviationBytesAllocatedDuringConcurrent, 0.7f));
 #endif /* OMR_GC_CONCURRENT_SCAVENGER */
+		name= "restore_allocation_and_set_survivor";
 		break;
 #if defined(OMR_GC_CONCURRENT_SCAVENGER)
 	case backout:
@@ -532,7 +538,7 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 		/* disable potentially successful allocation (in case of forced abort) to trigger another (percolate) GC */
 		_memorySubSpaceAllocate->isAllocatable(false);
 		getMemorySpace()->getTenureMemorySubSpace()->isAllocatable(false);
-
+		name= "backout";
 		break;
 	case restore_tilt_after_percolate:
 	{
@@ -584,6 +590,7 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 
 		_extensions->setScavengerBackOutState(backOutFlagCleared);
 	}
+		name= "restore_tilt_after_percolate";
 		break;
 #endif /* OMR_GC_CONCURRENT_SCAVENGER */
 	default:
@@ -592,14 +599,9 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 
 	MM_MemorySubSpace *subspace = getDefaultMemorySubSpace();
 	MM_MemoryPool* pool = subspace->getMemoryPool();
-	const char* thisName= "N";
-	MM_MemoryPool* thisPool = getMemoryPool();
-	if (thisPool)
-	{
-		thisName=thisPool->getPoolName();
-	}
+	
 	FILE *fptr = fopen("HEAP.log","a");
-	fprintf(fptr, "Flip default: %s, current:%s\n", pool->getPoolName(), thisName);
+	fprintf(fptr, "Flip default: %s, case: %s\n", pool->getPoolName(), name);
 	fclose(fptr);
 }
 
