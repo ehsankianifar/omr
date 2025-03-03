@@ -592,8 +592,14 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 
 	MM_MemorySubSpace *subspace = getDefaultMemorySubSpace();
 	MM_MemoryPool* pool = subspace->getMemoryPool();
+	const char* thisName= "N";
+	MM_MemoryPool* thisPool = getMemoryPool();
+	if (thisPool)
+	{
+		thisName=thisPool->getPoolName();
+	}
 	FILE *fptr = fopen("HEAP.log","a");
-	fprintf(fptr, "Flip default: %s, current:%s\n", pool->getPoolName(), getMemoryPool()->getPoolName());
+	fprintf(fptr, "Flip default: %s, current:%s\n", pool->getPoolName(), thisName);
 	fclose(fptr);
 }
 
