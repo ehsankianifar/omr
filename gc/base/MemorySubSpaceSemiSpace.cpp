@@ -589,6 +589,12 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 	default:
 		Assert_MM_unreachable();
 	}
+
+	MM_MemorySubSpace *subspace = getDefaultMemorySubSpace();
+	MM_MemoryPool* pool = subspace->getMemoryPool();
+	FILE *fptr = fopen("HEAP.log","a");
+	fprintf(fptr, "Flip default: %s\n", pool->getPoolName());
+	fclose(fptr);
 }
 
 void
