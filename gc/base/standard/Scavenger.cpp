@@ -4330,6 +4330,24 @@ MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateD
 					}
 				}
 			}
+
+
+			MM_MemoryPool * pool = _activeSubSpace->getMemoryPool();
+			const char* name = "N";
+			MM_HeapLinkedFreeHeader *header = NULL;
+			if (pool)
+			{
+				header = pool->getLastFreeEntry();
+				name = pool->getPoolName();
+			}
+			uintptr_t size = 0;
+			if(header)
+				size = header->getSize();
+			FILE *fptr = fopen("HEAP.log","a");
+			fprintf(fptr, "Scavenged memory base:%p size:%lx name:%s\n", header, size, name);
+			fclose(fptr);
+
+
 		} else {
 			/* Build free list in survivor profile - the scavenge was unsuccessful, so rebuild the free list */
 			_activeSubSpace->mainTeardownForAbortedGC(env);
@@ -4376,6 +4394,8 @@ MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateD
 		/* Done doing GC, reset the category back to the old one */
 		omrthread_set_category(env->getOmrVMThread()->_os_thread, 0, J9THREAD_TYPE_SET_GC);
 	}
+
+	env->get
 
 	Trc_MM_Scavenger_mainThreadGarbageCollect_Exit(env->getLanguageVMThread());
 }
