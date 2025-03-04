@@ -196,6 +196,14 @@ MM_PhysicalSubArenaVirtualMemorySemiSpace::inflate(MM_EnvironmentBase *env)
 
 		if (resultExpandAllocate) {
 			subSpaceAllocate->heapReconfigured(env, HEAP_RECONFIG_EXPAND, subSpaceAllocate, lowAddress, highAddress);
+
+			MM_MemoryPool * pool = subSpaceAllocate->getMemoryPool();
+			const char* name = pool->getName();
+			MM_HeapLinkedFreeHeader *header = pool->getLastFreeEntry();
+			uintptr_t size = header->getSize();
+			FILE *fptr = fopen("HEAP.log","a");
+			fprintf(fptr, "New memory base:%p size:%lx name:%s\n", header, size, name);
+			fclose(fptr);
 		} else {
 			subSpaceAllocate->heapReconfigured(env, HEAP_RECONFIG_EXPAND);
 		}
