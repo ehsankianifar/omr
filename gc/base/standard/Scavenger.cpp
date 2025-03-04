@@ -4395,8 +4395,6 @@ MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateD
 		omrthread_set_category(env->getOmrVMThread()->_os_thread, 0, J9THREAD_TYPE_SET_GC);
 	}
 
-	env->get
-
 	Trc_MM_Scavenger_mainThreadGarbageCollect_Exit(env->getLanguageVMThread());
 }
 
