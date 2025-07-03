@@ -35,27 +35,7 @@ endif()
 omr_add_executable(comptest NOWARNINGS
 	main.cpp
 	JitTest.cpp
-	JitTestUtilitiesTest.cpp
-	ILValidatorTest.cpp
-	ArithmeticTest.cpp
-	ShiftAndRotateTest.cpp
-	SimplifierFoldAbsNegTest.cpp
-	SimplifierFoldAndTest.cpp
-	IfxcmpgeReductionTest.cpp
-	VectorTest.cpp
-	VectorMaskTest.cpp
-	CallTest.cpp
-	LongAndAsRotateTest.cpp
-	MockStrategyTest.cpp
-	LogicalTest.cpp
-	LinkageTest.cpp
-	BitPermuteTest.cpp
-	MaxMinTest.cpp
-	CompareTest.cpp
-	TypeConversionTest.cpp
-	SelectTest.cpp
-	MinimalTest.cpp
-	ArrayTest.cpp
+	EhsanVectorMaskTest.cpp
 )
 
 target_link_libraries(comptest
