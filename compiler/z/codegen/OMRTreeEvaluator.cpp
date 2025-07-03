@@ -1139,13 +1139,77 @@ OMR::Z::TreeEvaluator::mAllTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 TR::Register*
 OMR::Z::TreeEvaluator::mmAnyTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    {
-   return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+   TR::Node *firstChild = node->getFirstChild();
+   TR::Node *secondChild = node->getSecondChild();
+   TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getDataType().getVectorLength() == TR::VectorLength128,
+                   "Only 128-bit vectors are supported %s", firstChild->getDataType().toString());
+   TR::Register *maskReg = cg->clubber(firstChild);
+   TR::Register *mask2Reg = cg->evaluate(secondChild);
+   TR::Register *resultReg = cg->allocateRegister(TR_GPR);
+   TR::Register *tmpReg = maskReg;
+   if(firstChild->getReferenceCount() > 1)
+      tmpReg = cg->allocateRegister(TR_VRF);
+
+   //TODO: Remove after testing.
+   static bool breakBeforeTest = feGetEnv("TR_breakBeforeTest") != NULL;
+   if (breakBeforeTest)
+      generateS390EInstruction(cg, TR::InstOpCode::BREAK, node);
+   // Merge vectors by OR.
+   generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, tmpReg, maskReg, mask2Reg, 0, 0, 0);
+   // Checksum is zero only if all words are zero.
+   generateVRRcInstruction(cg, TR::InstOpCode::VCKSM, node, tmpReg, tmpReg, tmpReg, 0, 0, 0);
+   // Extract the checksum to result reg.
+   generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, tmpReg, generateS390MemoryReference(1, cg), 2);
+
+   generateRILInstruction(cg, TR::InstOpCode::ALFI, node, resultReg, -1);
+   // If the resultReg is non zero, the 32nd bit is 1.
+   generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultReg, resultReg, 32);
+
+   if(tmpReg != maskReg)
+      cg->stopUsingRegister(tmpReg)
+   node->setRegister(resultReg);
+   cg->decReferenceCount(firstChild);
+   cg->decReferenceCount(secondChild);
+
+   return resultReg;
    }
 
 TR::Register*
 OMR::Z::TreeEvaluator::mmAllTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    {
-   return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+   TR::Node *firstChild = node->getFirstChild();
+   TR::Node *secondChild = node->getSecondChild();
+   TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getDataType().getVectorLength() == TR::VectorLength128,
+                   "Only 128-bit vectors are supported %s", firstChild->getDataType().toString());
+   TR::Register *maskReg = cg->clubber(firstChild);
+   TR::Register *mask2Reg = cg->evaluate(secondChild);
+   TR::Register *resultReg = cg->allocateRegister(TR_GPR);
+   TR::Register *tmpReg = maskReg;
+   if(firstChild->getReferenceCount() > 1)
+      tmpReg = cg->allocateRegister(TR_VRF);
+
+   //TODO: Remove after testing.
+   static bool breakBeforeTest = feGetEnv("TR_breakBeforeTest") != NULL;
+   if (breakBeforeTest)
+      generateS390EInstruction(cg, TR::InstOpCode::BREAK, node);
+   // Merge vectors by NAND. tmpReg must be zero if mask registers are all true!
+   generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, tmpReg, maskReg, mask2Reg, 0, 0, 0);
+   // Checksum is zero only if all words are zero.
+   generateVRRcInstruction(cg, TR::InstOpCode::VCKSM, node, tmpReg, tmpReg, tmpReg, 0, 0, 0);
+   // Extract the checksum to result reg.
+   generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, tmpReg, generateS390MemoryReference(1, cg), 2);
+
+   generateRILInstruction(cg, TR::InstOpCode::AGFI, node, resultReg, -1);
+   // If the resultReg was zero, the sign bit is 1.
+   generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultReg, resultReg, 63);
+
+   if(tmpReg != maskReg)
+      cg->stopUsingRegister(tmpReg)
+   node->setRegister(resultReg);
+   cg->decReferenceCount(firstChild);
+   cg->decReferenceCount(secondChild);
+
+   return resultReg;
    }
 
 TR::Register*
