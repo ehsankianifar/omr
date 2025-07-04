@@ -1143,7 +1143,7 @@ OMR::Z::TreeEvaluator::mmAnyTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    TR::Node *secondChild = node->getSecondChild();
    TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getDataType().getVectorLength() == TR::VectorLength128,
                    "Only 128-bit vectors are supported %s", firstChild->getDataType().toString());
-   TR::Register *maskReg = cg->clubber(firstChild);
+   TR::Register *maskReg = cg->evaluate(firstChild);
    TR::Register *mask2Reg = cg->evaluate(secondChild);
    TR::Register *resultReg = cg->allocateRegister(TR_GPR);
    TR::Register *tmpReg = maskReg;
@@ -1166,7 +1166,7 @@ OMR::Z::TreeEvaluator::mmAnyTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultReg, resultReg, 32);
 
    if(tmpReg != maskReg)
-      cg->stopUsingRegister(tmpReg)
+      cg->stopUsingRegister(tmpReg);
    node->setRegister(resultReg);
    cg->decReferenceCount(firstChild);
    cg->decReferenceCount(secondChild);
@@ -1181,7 +1181,7 @@ OMR::Z::TreeEvaluator::mmAllTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    TR::Node *secondChild = node->getSecondChild();
    TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getDataType().getVectorLength() == TR::VectorLength128,
                    "Only 128-bit vectors are supported %s", firstChild->getDataType().toString());
-   TR::Register *maskReg = cg->clubber(firstChild);
+   TR::Register *maskReg = cg->evaluate(firstChild);
    TR::Register *mask2Reg = cg->evaluate(secondChild);
    TR::Register *resultReg = cg->allocateRegister(TR_GPR);
    TR::Register *tmpReg = maskReg;
@@ -1204,7 +1204,7 @@ OMR::Z::TreeEvaluator::mmAllTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
    generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultReg, resultReg, 63);
 
    if(tmpReg != maskReg)
-      cg->stopUsingRegister(tmpReg)
+      cg->stopUsingRegister(tmpReg);
    node->setRegister(resultReg);
    cg->decReferenceCount(firstChild);
    cg->decReferenceCount(secondChild);
