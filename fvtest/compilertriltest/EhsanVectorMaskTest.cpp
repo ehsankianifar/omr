@@ -203,6 +203,13 @@ INSTANTIATE_TEST_CASE_P(mAllFloat, ParameterizedUnaryMaskTest, ::testing::Values
    std::make_tuple("mAllTrue", TR::Float , "11", 1)
 )));
 
+INSTANTIATE_TEST_CASE_P(FAILINGmAll64, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, TR::DataTypes, const char *, int>>(
+   std::make_tuple("mAllTrue", TR::Int64 , "00", 1),
+   std::make_tuple("mAllTrue", TR::Int64 , "01", 5),
+   std::make_tuple("mAllTrue", TR::Int64 , "10", 2),
+   std::make_tuple("mAllTrue", TR::Int64 , "11", 3)
+)));
+
 
 INSTANTIATE_TEST_CASE_P(mAny8, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, TR::DataTypes, const char *, int>>(
    std::make_tuple("mAnyTrue", TR::Int8  , "0000000000000000", 0),
@@ -244,6 +251,13 @@ INSTANTIATE_TEST_CASE_P(mAnyFloat, ParameterizedUnaryMaskTest, ::testing::Values
    std::make_tuple("mAnyTrue", TR::Float , "01", 1),
    std::make_tuple("mAnyTrue", TR::Float , "10", 1),
    std::make_tuple("mAnyTrue", TR::Float , "11", 1)
+)));
+
+INSTANTIATE_TEST_CASE_P(FAILINGmAny64, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, TR::DataTypes, const char *, int>>(
+   std::make_tuple("mAnyTrue", TR::Int64 , "00", 1),
+   std::make_tuple("mAnyTrue", TR::Int64 , "01", 2),
+   std::make_tuple("mAnyTrue", TR::Int64 , "10", 3),
+   std::make_tuple("mAnyTrue", TR::Int64 , "11", 7)
 )));
 
 
@@ -296,6 +310,14 @@ INSTANTIATE_TEST_CASE_P(mmAllFloat, ParameterizedUnaryMaskTest2, ::testing::Valu
    std::make_tuple("mmAllTrue", TR::Float  , "11", "10", 0),
    std::make_tuple("mmAllTrue", TR::Float  , "01", "11", 0),
    std::make_tuple("mmAllTrue", TR::Float  , "11", "11", 1)
+)));
+INSTANTIATE_TEST_CASE_P(FAILINGmmAll16, ParameterizedUnaryMaskTest2, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, TR::DataTypes, const char *, const char *, int>>(
+   std::make_tuple("mmAllTrue", TR::Int16  , "00000000", "00000000", 1),
+   std::make_tuple("mmAllTrue", TR::Int16  , "00000000", "11111111", 2),
+   std::make_tuple("mmAllTrue", TR::Int16  , "11111111", "00000000", 3),
+   std::make_tuple("mmAllTrue", TR::Int16  , "11111111", "11111110", 4),
+   std::make_tuple("mmAllTrue", TR::Int16  , "01111111", "11111111", 5),
+   std::make_tuple("mmAllTrue", TR::Int16  , "11111111", "11111111", -1)
 )));
 
 //mmAny
@@ -352,4 +374,13 @@ INSTANTIATE_TEST_CASE_P(mmAnyFloat, ParameterizedUnaryMaskTest2, ::testing::Valu
    std::make_tuple("mmAnyTrue", TR::Float  , "10", "10", 1),
    std::make_tuple("mmAnyTrue", TR::Float  , "01", "01", 1),
    std::make_tuple("mmAnyTrue", TR::Float  , "11", "11", 1)
+)));
+INSTANTIATE_TEST_CASE_P(FAILINGmmAny8, ParameterizedUnaryMaskTest2, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, TR::DataTypes, const char *, const char *, int>>(
+   std::make_tuple("mmAnyTrue", TR::Int8  , "0000000000000000", "0000000000000000", -1),
+   std::make_tuple("mmAnyTrue", TR::Int8  , "0000000000000000", "1111111111111111", -2),
+   std::make_tuple("mmAnyTrue", TR::Int8  , "1111111111111111", "0000000000000000", 0x10000000),
+   std::make_tuple("mmAnyTrue", TR::Int8  , "1111111100000000", "0000000011111111", 1),
+   std::make_tuple("mmAnyTrue", TR::Int8  , "0000000000000001", "0000000000000001", 0),
+   std::make_tuple("mmAnyTrue", TR::Int8  , "1000000000000000", "1000000000000000", 33),
+   std::make_tuple("mmAnyTrue", TR::Int8  , "1111111111111111", "1111111111111111", 44)
 )));
