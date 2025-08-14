@@ -854,6 +854,7 @@ TR::TreeTop *TR_PartialRedundancy::placeComputationsOptimally(TR::Block *block, 
 
     TR::TreeTop *placeToInsertOptimalComputations = block->getEntry();
     TR::TreeTop *placeToInsertUnanticipatableOptimalComputations = NULL;
+    static bool testPrecision = feGetEnv("TR_TestPrecision") != NULL;
 
     if (trace())
         traceMsg(comp(), "Placing computations optimally in block number %d\n", block->getStructureOf()->getNumber());
@@ -1023,7 +1024,7 @@ TR::TreeTop *TR_PartialRedundancy::placeComputationsOptimally(TR::Block *block, 
                                 convertedOptimalNode, newSymbolReference);
 
 #ifdef J9_PROJECT_SPECIFIC
-                                static bool testPrecision = feGetEnv("TR_TestPrecision") != NULL;
+                                
                                 if(testPrecision)
                                 {
                                     setDecimalPrecision(convertedOptimalNode, storeForCommonedNode);
