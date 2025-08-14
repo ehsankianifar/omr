@@ -106,6 +106,10 @@ static void resetChildrensVisitCounts(TR::Node *node, vcount_t count)
 }
 
 #ifdef J9_PROJECT_SPECIFIC
+static void setDecimalPrecision(TR::Node *source, TR::Node *dest){
+    if (source->hasDecimalPrecision())
+        dest->setDecimalPrecision(source->getDecimalPrecision());
+}
 static void correctDecimalPrecision(TR::Node *store, TR::Node *child, TR::Compilation *comp)
 {
     if (child->getType().isBCD() && child->getDecimalPrecision() != store->getDecimalPrecision()) {
@@ -1022,8 +1026,7 @@ TR::TreeTop *TR_PartialRedundancy::placeComputationsOptimally(TR::Block *block, 
                                 static bool testPrecision = feGetEnv("TR_TestPrecision") != NULL;
                                 if(testPrecision)
                                 {
-                                    if (convertedOptimalNode->hasDecimalPrecision())
-                                        storeForCommonedNode->setDecimalPrecision(convertedOptimalNode->getDecimalPrecision());
+                                    setDecimalPrecision(convertedOptimalNode, storeForCommonedNode);
                                 }
                                 else
                                 {
