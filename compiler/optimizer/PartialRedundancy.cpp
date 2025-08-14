@@ -107,7 +107,7 @@ static void resetChildrensVisitCounts(TR::Node *node, vcount_t count)
 
 #ifdef J9_PROJECT_SPECIFIC
 static void setDecimalPrecision(TR::Node *source, TR::Node *dest){
-    if (source->hasDecimalPrecision())
+    if (source->getType().isBCD())
         dest->setDecimalPrecision(source->getDecimalPrecision());
 }
 static void correctDecimalPrecision(TR::Node *store, TR::Node *child, TR::Compilation *comp)
