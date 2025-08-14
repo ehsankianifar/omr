@@ -1019,8 +1019,16 @@ TR::TreeTop *TR_PartialRedundancy::placeComputationsOptimally(TR::Block *block, 
                                 convertedOptimalNode, newSymbolReference);
 
 #ifdef J9_PROJECT_SPECIFIC
-                            if (convertedOptimalNode->hasDecimalPrecision())
-                                storeForCommonedNode->setDecimalPrecision(convertedOptimalNode->getDecimalPrecision());
+                                static bool testPrecision = feGetEnv("TR_TestPrecision") != NULL;
+                                if(testPrecision)
+                                {
+                                    if (convertedOptimalNode->hasDecimalPrecision())
+                                        storeForCommonedNode->setDecimalPrecision(convertedOptimalNode->getDecimalPrecision());
+                                }
+                                else
+                                {
+                                    correctDecimalPrecision(storeForCommonedNode, convertedOptimalNode, comp());
+                                }
 #endif
 
                             TR::TreeTop *duplicateOptimalTree = TR::TreeTop::create(comp(), storeForCommonedNode);
