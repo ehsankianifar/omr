@@ -186,6 +186,12 @@ initializeJitWithOptions(char *options)
    {
    return initializeTestJit(0, 0, 0, options);
    }
+extern "C"
+bool
+initializeJitWithOptions2(char *options)
+   {
+   return initializeTestJit(0, 0, 0, options);
+   }
 
 extern "C"
 bool
