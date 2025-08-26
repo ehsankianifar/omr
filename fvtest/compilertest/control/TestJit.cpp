@@ -155,7 +155,7 @@ initializeTestJit(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t n
       {
       // Allocate the host environment structure
       //
-      TR::Compiler = new (rawAllocator) TR::CompilerEnv(rawAllocator, TR::PersistentAllocatorKit(rawAllocator));
+      TR::Compiler = new (rawAllocator) OMR::CompilerEnv(rawAllocator, TR::PersistentAllocatorKit(rawAllocator), privateOmrPortLibrary);
       }
    catch (const std::bad_alloc&)
       {
