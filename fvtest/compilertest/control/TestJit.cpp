@@ -133,15 +133,7 @@ initializeCodeCache(TR::CodeCacheManager & codeCacheManager)
 
 
 
-// helperIDs is an array of helper id corresponding to the addresses passed in "helpers"
-// helpers is an array of pointers to helpers that compiled code for tests needs to reference
-// options is any JIT option string passed in to globally influence compilation
-extern "C"
-bool
-initializeTestJit(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t numHelpers, char *options)
-   {
-    return initializeTestJit2(helperIDs, helperAddresses, numHelpers, options, 0);
-   }
+
 
 // helperIDs is an array of helper id corresponding to the addresses passed in "helpers"
 // helpers is an array of pointers to helpers that compiled code for tests needs to reference
@@ -188,6 +180,16 @@ initializeTestJit2(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t 
    initializeCodeCache(fe.codeCacheManager());
 
    return true;
+   }
+
+// helperIDs is an array of helper id corresponding to the addresses passed in "helpers"
+// helpers is an array of pointers to helpers that compiled code for tests needs to reference
+// options is any JIT option string passed in to globally influence compilation
+extern "C"
+bool
+initializeTestJit(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t numHelpers, char *options)
+   {
+    return initializeTestJit2(helperIDs, helperAddresses, numHelpers, options, 0);
    }
 
 extern "C"
