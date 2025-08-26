@@ -140,7 +140,7 @@ extern "C"
 bool
 initializeTestJit(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t numHelpers, char *options)
    {
-    return initializeTestJit(helperIDs, helperAddresses, numHelpers, options, 0);
+    return initializeTestJit2(helperIDs, helperAddresses, numHelpers, options, 0);
    }
 
 // helperIDs is an array of helper id corresponding to the addresses passed in "helpers"
@@ -165,7 +165,7 @@ initializeTestJit2(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t 
       {
       // Allocate the host environment structure
       //
-      TR::Compiler = new (rawAllocator) OMR::CompilerEnv(rawAllocator, TR::PersistentAllocatorKit(rawAllocator), (OMRPortLibrary *)portLib);
+      TR::Compiler = (TR::CompilerEnv*)(new (rawAllocator) OMR::CompilerEnv(rawAllocator, TR::PersistentAllocatorKit(rawAllocator), (OMRPortLibrary *)portLib));
       }
    catch (const std::bad_alloc&)
       {
