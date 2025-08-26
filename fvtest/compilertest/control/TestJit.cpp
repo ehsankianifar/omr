@@ -140,6 +140,16 @@ extern "C"
 bool
 initializeTestJit(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t numHelpers, char *options)
    {
+    return initializeTestJit(helperIDs, helperAddresses, numHelpers, options, 0);
+   }
+
+// helperIDs is an array of helper id corresponding to the addresses passed in "helpers"
+// helpers is an array of pointers to helpers that compiled code for tests needs to reference
+// options is any JIT option string passed in to globally influence compilation
+extern "C"
+bool
+initializeTestJit2(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t numHelpers, char *options, void *portLib)
+   {
     // Force enable tree verifier
     std::string optionsWithVerifier = options;
     if(optionsWithVerifier == "-Xjit")
@@ -155,7 +165,7 @@ initializeTestJit(TR_RuntimeHelper *helperIDs, void **helperAddresses, int32_t n
       {
       // Allocate the host environment structure
       //
-      TR::Compiler = new (rawAllocator) OMR::CompilerEnv(rawAllocator, TR::PersistentAllocatorKit(rawAllocator), privateOmrPortLibrary);
+      TR::Compiler = new (rawAllocator) OMR::CompilerEnv(rawAllocator, TR::PersistentAllocatorKit(rawAllocator), (OMRPortLibrary *)portLib);
       }
    catch (const std::bad_alloc&)
       {
@@ -188,9 +198,9 @@ initializeJitWithOptions(char *options)
    }
 extern "C"
 bool
-initializeJitWithOptions2(char *options)
+initializeJitWithOptions2(char *options, void *portLib)
    {
-   return initializeTestJit(0, 0, 0, options);
+   return initializeTestJit2(0, 0, 0, options, portLib);
    }
 
 extern "C"
