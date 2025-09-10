@@ -31,7 +31,7 @@ class ParameterizedUnaryMaskTest : public VectorTest, public ::testing::WithPara
 
 
 uint8_t *convertResultCharToArray(const char *input) {
-   uint8_t result[16];
+   uint8_t *result =(uint8_t*)malloc(16);
    for (int i=0; i<16; i++) {
       if (input[i]=='0')
          result[i] = 0;
@@ -42,7 +42,7 @@ uint8_t *convertResultCharToArray(const char *input) {
 }
 
 uint8_t *convertInputCharToArray(const char *input) {
-   uint8_t result[8];
+   uint8_t *result =(uint8_t*)malloc(8);
    for (int i=0; i<8; i++) {
       if (input[i]=='0')
          result[i] = 0;
@@ -91,6 +91,8 @@ TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
     for (int i = 0; i < 16; i++) {
         EXPECT_EQ(expectedOutput[i], output[i]);
     }
+    free(inputA);
+    free(expectedOutput);
 }
 
 INSTANTIATE_TEST_CASE_P(qq, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *, const char *>>(
