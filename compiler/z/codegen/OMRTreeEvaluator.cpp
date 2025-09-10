@@ -1151,7 +1151,7 @@ TR::Register *toMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uint8
     TR::Register *maskRegister = cg->allocateRegister(TR_VRF);
     TR::InstOpCode::Mnemonic opCode = TR::InstOpCode::bad;
     int8_t mask3Field = 0;
-    const TR::ILOpCode expectedLoadOpcode = TR::BadILOp;
+    const TR::ILOpCodes expectedLoadOpcode = TR::BadILOp;
     switch (elementSizeMask) {
         case 0:
             opCode = TR::InstOpCode::VLREP;
