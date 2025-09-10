@@ -134,7 +134,7 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
    {
       value[valueIndex] = '0';
       valueIndex++;
-      value[valueIndex] = (char)((unit8_t)'0'+input[i]);
+      value[valueIndex] = (char)((uint8_t)'0'+input[i]);
       valueIndex++;
    }
 
