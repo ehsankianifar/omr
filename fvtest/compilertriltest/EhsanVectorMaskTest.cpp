@@ -102,9 +102,9 @@ TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
     auto entry_point = compiler.getEntryPoint<void (*)(int8_t[],int8_t[])>();
     // This test currently assumes 128bit SIMD
 
-    int8_t output[] =  {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
-    int8_t *inputA =  convertInputCharToArray(inputChar);
-    int8_t *expectedOutput = convertResultCharToArray(resultChar);
+    uint8_t output[] =  {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+    uint8_t *inputA =  convertInputCharToArray(inputChar);
+    uint8_t *expectedOutput = convertResultCharToArray(resultChar);
 
     entry_point(output,inputA);
 
