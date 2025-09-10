@@ -1149,26 +1149,32 @@ TR::Register *toMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uint8
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *maskRegister = cg->allocateRegister(TR_VRF);
-    if ((sourceNode->getRegister() == NULL) && sourceNode->getOpCode().isLoad() && (sourceNode->getReferenceCount() == 1)) {
-        TR::InstOpCode::Mnemonic opCode = TR::InstOpCode::bad;
-        int8_t mask3Field = 0;
-        switch (elementSizeMask) {
-            case 0:
-                opCode = TR::InstOpCode::VLREP;
-                break ;
-            case 1:
-                opCode = TR::InstOpCode::VLEG;
-                mask3Field = 1;
-                break ;
-            case 2:
-                opCode = TR::InstOpCode::VLEF;
-                mask3Field = 3;
-                break ;
-            case 3:
-                opCode = TR::InstOpCode::VLEH;
-                mask3Field = 7;
-                break ; 
-        }
+    TR::InstOpCode::Mnemonic opCode = TR::InstOpCode::bad;
+    int8_t mask3Field = 0;
+    OMR::ILOpCode expectedLoadOpcode = TR::BadILOp;
+    switch (elementSizeMask) {
+        case 0:
+            opCode = TR::InstOpCode::VLREP;
+            expectedLoadOpcode = TR::bloadi;
+            break ;
+        case 1:
+            opCode = TR::InstOpCode::VLEG;
+            expectedLoadOpcode = TR::lloadi;
+            mask3Field = 1;
+            break ;
+        case 2:
+            opCode = TR::InstOpCode::VLEF;
+            expectedLoadOpcode = TR::iloadi;
+            mask3Field = 3;
+            break ;
+        case 3:
+            opCode = TR::InstOpCode::VLEH;
+            expectedLoadOpcode = TR::sloadi;
+            mask3Field = 7;
+            break ; 
+    }
+    if ((sourceNode->getRegister() == NULL) && (sourceNode->getOpCode() == expectedLoadOpcode)
+        && (sourceNode->getReferenceCount() == 1)) {
         // If the node is load and it is not evaluated already, directly load to vector register.
         TR::MemoryReference *srcMemRef = new (cg->trHeapMemory()) TR::MemoryReference(sourceNode, cg);
         generateVRXInstruction(cg, opCode, node, maskRegister, srcMemRef, mask3Field);
