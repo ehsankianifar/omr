@@ -112,17 +112,30 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
    const char *typeString = std::get<1>(GetParam());
    const char *inputChar = std::get<2>(GetParam());
    const char *resultChar = std::get<3>(GetParam());
-   uint64_t *input =  (uint64_t *)convertInputCharToArray(inputChar);
+   uint8_t *input =  convertInputCharToArray(inputChar);
+   char *value = "0x                ";
+   int bytesToSet = 0;
    switch (size[0]) {
       case 'b':
-         *input >> 7;
+         bytesToSet = 1;
          break;
       case 's':
-         *input >> 6;
+         bytesToSet = 2;
          break;
       case 'i':
-         *input >> 4;
+         bytesToSet = 4;
          break;
+      case 'l':
+         bytesToSet = 8;
+         break;
+   }
+   int valueIndex=2;
+   for (int i=0; i<bytesToSet; i++)
+   {
+      value[valueIndex] = '0';
+      valueIndex++;
+      value[valueIndex] = (char)(48+input[i]);
+      valueIndex++;
    }
 
    char inputTrees[1024];
@@ -131,14 +144,14 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
                      "     (vstoreiVector128Int8 offset=0                             "
                      "         (aload parm=0)                                         "
                      "         (%s2m%s                                                "
-                     "              (%sconst %ll)))                        "
+                     "              (%sconst %s)))                        "
                      "     (return)))                                                 ";
 
    sprintf(inputTrees, formatStr,
            size,
            typeString,
            size,
-           *input);
+           value);
     auto trees = parseString(inputTrees);
 
     ASSERT_NOTNULL(trees);
@@ -146,14 +159,14 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
     Tril::DefaultCompiler compiler(trees);
     ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
 
-    auto entry_point = compiler.getEntryPoint<void (*)(uint8_t*,uint64_t*)>();
+    auto entry_point = compiler.getEntryPoint<void (*)(uint8_t*)>();
     // This test currently assumes 128bit SIMD
 
     uint8_t output[] =  {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
     
     uint8_t *expectedOutput = convertResultCharToArray(resultChar);
 
-    entry_point(output,input);
+    entry_point(output);
 
     for (int i = 0; i < 16; i++) {
         EXPECT_EQ(expectedOutput[i], output[i]);
