@@ -113,7 +113,7 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
    const char *inputChar = std::get<2>(GetParam());
    const char *resultChar = std::get<3>(GetParam());
    uint8_t *input =  convertInputCharToArray(inputChar);
-   char value[18] = {'0', 'x', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'};
+   char value[19] = {'0', 'x', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'};
    int bytesToSet = 0;
    switch (size[0]) {
       case 'b':
