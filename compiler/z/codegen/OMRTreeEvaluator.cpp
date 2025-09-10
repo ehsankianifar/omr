@@ -1173,7 +1173,7 @@ TR::Register *toMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uint8
             mask3Field = 7;
             break ; 
     }
-    if ((sourceNode->getRegister() == NULL) && (sourceNode->getOpCode() == expectedLoadOpcode)
+    if ((sourceNode->getRegister() == NULL) && (sourceNode->getOpCodeValue() == expectedLoadOpcode)
         && (sourceNode->getReferenceCount() == 1)) {
         // If the node is load and it is not evaluated already, directly load to vector register.
         TR::MemoryReference *srcMemRef = new (cg->trHeapMemory()) TR::MemoryReference(sourceNode, cg);
