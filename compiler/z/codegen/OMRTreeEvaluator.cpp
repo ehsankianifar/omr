@@ -1187,7 +1187,7 @@ TR::Register *toMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uint8
         if (elementSizeMask == 0) {
             // Replicate byte to all elements. Resulting mask would all ones if the byte is true or all zeros if the
             //  byte is false!
-            generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, maskRegister, maskRegister, 0, 0);
+            generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, maskRegister, maskRegister, 15, 0);
         }
     }
     
