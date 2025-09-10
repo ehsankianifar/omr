@@ -146,7 +146,7 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
     Tril::DefaultCompiler compiler(trees);
     ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
 
-    auto entry_point = compiler.getEntryPoint<void (*)(uint8_t*,uint8_t*)>();
+    auto entry_point = compiler.getEntryPoint<void (*)(uint8_t*,uint64_t*)>();
     // This test currently assumes 128bit SIMD
 
     uint8_t output[] =  {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
