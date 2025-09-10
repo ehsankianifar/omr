@@ -27,27 +27,8 @@
 
 class VectorTest : public TRTest::JitTest {};
 
-class ParameterizedUnaryMaskTest : public VectorTest, public ::testing::WithParamInterface<std::tuple<const char *, TR::DataTypes, const char *, const char *>> {};
+class ParameterizedUnaryMaskTest : public VectorTest, public ::testing::WithParamInterface<std::tuple<const char *, const char *, const char *, const char *>> {};
 
-
-static char* getTypeString(TR::DataTypes type){
-   switch(type){
-      case TR::Int8 :
-         return "Vector128Int8";
-      case TR::Int16 :
-         return "Vector128Int16";
-      case TR::Int32 :
-         return "Vector128Int32";
-      case TR::Int64 :
-         return "Vector128Int64";
-      case TR::Double :
-         return "Vector128Double";
-      case TR::Float :
-         return "Vector128Float";
-      default :
-         return "WRONG TYPE";
-   }
-}
 
 uint8_t *convertResultCharToArray(const char *input) {
    uint8_t result[16];
@@ -73,10 +54,9 @@ uint8_t *convertInputCharToArray(const char *input) {
 
 TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
    const char *size = std::get<0>(GetParam());
-   TR::DataTypes type = std::get<1>(GetParam());
+   const char *typeString = std::get<1>(GetParam());
    const char *inputChar = std::get<2>(GetParam());
    const char *resultChar = std::get<3>(GetParam());
-   const char *typeString = getTypeString(type);
 
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address]                   "
@@ -113,7 +93,7 @@ TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
     }
 }
 
-INSTANTIATE_TEST_CASE_P(qq, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, TR::DataTypes, const char *, const char *>(
-   std::make_tuple("b", TR::Int8 , "00000000", "0000000000000000"),
-   std::make_tuple("b", TR::Int8 , "10000000", "1111111111111111")
+INSTANTIATE_TEST_CASE_P(qq, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *, const char *>>(
+   std::make_tuple("b", "Vector128Int64" , "00000000", "0000000000000000"),
+   std::make_tuple("b", "Vector128Int64" , "10000000", "1111111111111111")
 )));
