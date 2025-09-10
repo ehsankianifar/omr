@@ -32,22 +32,34 @@ class ParameterizedUnaryMaskTest : public VectorTest, public ::testing::WithPara
 
 uint8_t *convertResultCharToArray(const char *input) {
    uint8_t *result =(uint8_t*)malloc(16);
-   for (int i=0; i<16; i++) {
-      if (input[i]=='0')
-         result[i] = 0;
-      else
-         result[i] = 0xff;
+   memset((void*)result, 0, 16);
+   int index = 0;
+   for (int i=0; input[i]!='\0'; i++) {
+      if (input[i]=='0') {
+         result[index] = 0;
+         index++;
+      }
+      else if (input[i]=='1') {
+         result[index] = 0xff;
+         index++;
+      }
    }
    return result;
 }
 
 uint8_t *convertInputCharToArray(const char *input) {
    uint8_t *result =(uint8_t*)malloc(8);
-   for (int i=0; i<8; i++) {
-      if (input[i]=='0')
-         result[i] = 0;
-      else
-         result[i] = 1;
+   memset((void*)result, 0, 8);
+   int index = 0;
+   for (int i=0; input[i]!='\0'; i++) {
+      if (input[i]=='0') {
+         result[index] = 0;
+         index++;
+      }
+      else if (input[i]=='1') {
+         result[index] = 1;
+         index++;
+      }
    }
    return result;
 }
@@ -95,7 +107,22 @@ TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
     free(expectedOutput);
 }
 
-INSTANTIATE_TEST_CASE_P(qq, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *, const char *>>(
-   std::make_tuple("b", "Vector128Int64" , "00000000", "0000000000000000"),
-   std::make_tuple("b", "Vector128Int64" , "10000000", "1111111111111111")
+INSTANTIATE_TEST_CASE_P(indirect, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *, const char *>>(
+   std::make_tuple("b", "Vector128Int64" , "0", "00000000_00000000"),
+   std::make_tuple("b", "Vector128Int64" , "1", "11111111_11111111"),
+   std::make_tuple("s", "Vector128Int64" , "11", "11111111_11111111"),
+   std::make_tuple("s", "Vector128Int64" , "01", "00000000_11111111"),
+   std::make_tuple("s", "Vector128Int64" , "10", "11111111_00000000"),
+   std::make_tuple("s", "Vector128Int64" , "11", "11111111_11111111"),
+   std::make_tuple("i", "Vector128Int32" , "0111", "0000_1111_1111_1111"),
+   std::make_tuple("i", "Vector128Int32" , "1011", "1111_0000_1111_1111"),
+   std::make_tuple("i", "Vector128Int32" , "1101", "1111_1111_0000_1111"),
+   std::make_tuple("i", "Vector128Int32" , "1110", "1111_1111_1111_0000"),
+   std::make_tuple("i", "Vector128Int32" , "0000", "0000_0000_0000_0000"),
+   std::make_tuple("i", "Vector128Int32" , "1111", "1111_1111_1111_1111"),
+   std::make_tuple("l", "Vector128Int16" , "0000_0000", "00_00_00_00_00_00_00_00"),
+   std::make_tuple("l", "Vector128Int16" , "1111_1111", "11_11_11_11_11_11_11_11"),
+   std::make_tuple("l", "Vector128Int16" , "0111_1111", "00_11_11_11_11_11_11_11"),
+   std::make_tuple("l", "Vector128Int16" , "1111_1110", "11_11_11_11_11_11_11_00"),
+   std::make_tuple("l", "Vector128Int16" , "1010_1010", "11_00_11_00_11_00_11_00")
 )));
