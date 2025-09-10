@@ -153,7 +153,7 @@ TEST_P(ParameterizedUnaryMaskTest, loadConst) {
     
     uint8_t *expectedOutput = convertResultCharToArray(resultChar);
 
-    entry_point(output,inputA);
+    entry_point(output,input);
 
     for (int i = 0; i < 16; i++) {
         EXPECT_EQ(expectedOutput[i], output[i]);
