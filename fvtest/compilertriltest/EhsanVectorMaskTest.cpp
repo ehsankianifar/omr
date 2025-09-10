@@ -107,6 +107,61 @@ TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
     free(expectedOutput);
 }
 
+TEST_P(ParameterizedUnaryMaskTest, loadConst) {
+   const char *size = std::get<0>(GetParam());
+   const char *typeString = std::get<1>(GetParam());
+   const char *inputChar = std::get<2>(GetParam());
+   const char *resultChar = std::get<3>(GetParam());
+   uint64_t *input =  (uint64_t *)convertInputCharToArray(inputChar);
+   switch (size[0]) {
+      case 'b':
+         *input >> 7;
+         break;
+      case 's':
+         *input >> 6;
+         break;
+      case 'i':
+         *input >> 4;
+         break;
+   }
+
+   char inputTrees[1024];
+   char *formatStr = "(method return= NoType args=[Address]                   "
+                     "  (block                                                        "
+                     "     (vstoreiVector128Int8 offset=0                             "
+                     "         (aload parm=0)                                         "
+                     "         (%s2m%s                                                "
+                     "              (%sconst %ll)))                        "
+                     "     (return)))                                                 ";
+
+   sprintf(inputTrees, formatStr,
+           size,
+           typeString,
+           size,
+           *input);
+    auto trees = parseString(inputTrees);
+
+    ASSERT_NOTNULL(trees);
+
+    Tril::DefaultCompiler compiler(trees);
+    ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
+
+    auto entry_point = compiler.getEntryPoint<void (*)(uint8_t*,uint8_t*)>();
+    // This test currently assumes 128bit SIMD
+
+    uint8_t output[] =  {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
+    
+    uint8_t *expectedOutput = convertResultCharToArray(resultChar);
+
+    entry_point(output,inputA);
+
+    for (int i = 0; i < 16; i++) {
+        EXPECT_EQ(expectedOutput[i], output[i]);
+    }
+    free(input);
+    free(expectedOutput);
+}
+
 INSTANTIATE_TEST_CASE_P(indirect, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *, const char *>>(
    std::make_tuple("b", "Vector128Int64" , "0", "00000000_00000000"),
    std::make_tuple("b", "Vector128Int64" , "1", "11111111_11111111"),
