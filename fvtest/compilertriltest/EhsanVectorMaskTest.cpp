@@ -72,7 +72,7 @@ uint8_t *convertInputCharToArray(const char *input) {
 }
 
 TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
-   char *size = std::get<0>(GetParam());
+   const char *size = std::get<0>(GetParam());
    TR::DataTypes type = std::get<1>(GetParam());
    const char *inputChar = std::get<2>(GetParam());
    const char *resultChar = std::get<3>(GetParam());
@@ -103,8 +103,8 @@ TEST_P(ParameterizedUnaryMaskTest, loadIndirect) {
     // This test currently assumes 128bit SIMD
 
     int8_t output[] =  {3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3};
-    int8_t inputA[] =  convertInputCharToArray(inputChar);
-    int8_t expectedOutput = convertResultCharToArray(resultChar);
+    int8_t *inputA =  convertInputCharToArray(inputChar);
+    int8_t *expectedOutput = convertResultCharToArray(resultChar);
 
     entry_point(output,inputA);
 
