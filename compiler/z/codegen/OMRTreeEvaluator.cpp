@@ -1157,16 +1157,16 @@ TR::Register *toMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uint8
                 opCode = TR::InstOpCode::VLREP;
                 break ;
             case 1:
-                opCode = TR::InstOpCode::VLEH;
-                mask3Field = 7;
+                opCode = TR::InstOpCode::VLEG;
+                mask3Field = 1;
                 break ;
             case 2:
                 opCode = TR::InstOpCode::VLEF;
                 mask3Field = 3;
                 break ;
             case 3:
-                opCode = TR::InstOpCode::VLEG;
-                mask3Field = 1;
+                opCode = TR::InstOpCode::VLEH;
+                mask3Field = 7;
                 break ; 
         }
         // If the node is load and it is not evaluated already, directly load to vector register.
