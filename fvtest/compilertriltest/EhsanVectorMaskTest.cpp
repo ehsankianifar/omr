@@ -213,14 +213,14 @@ TEST_P(ParameterizedUnaryMaskTest2, loadVector) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address]                   "
                      "  (block                                                        "
-                     "     (vstoreiVector128Int8 offset=0                             "
+                     "     (vstorei%s offset=0                             "
                      "         (aload parm=0)                                         "
                      "         (v2m%s                                                "
                      "              (vloadi%s                                          "
                      "                 (aload parm=1))))                              "
                      "     (return)))                                                 ";
 
-   sprintf(inputTrees, formatStr, typeString, typeString);
+   sprintf(inputTrees, formatStr, typeString, typeString, typeString);
     auto trees = parseString(inputTrees);
 
     ASSERT_NOTNULL(trees);
