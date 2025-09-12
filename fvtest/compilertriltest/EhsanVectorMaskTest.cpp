@@ -206,10 +206,9 @@ INSTANTIATE_TEST_CASE_P(l2m, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TR
 
 
 TEST_P(ParameterizedUnaryMaskTest2, loadVector) {
-   const char *size = std::get<0>(GetParam());
-   const char *typeString = std::get<1>(GetParam());
-   const char *inputChar = std::get<2>(GetParam());
-   const char *resultChar = std::get<3>(GetParam());
+   const char *typeString = std::get<0>(GetParam());
+   const char *inputChar = std::get<1>(GetParam());
+   const char *resultChar = std::get<2>(GetParam());
 
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address]                   "
