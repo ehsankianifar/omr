@@ -215,12 +215,12 @@ TEST_P(ParameterizedUnaryMaskTest2, loadVector) {
                      "  (block                                                        "
                      "     (vstorei%s offset=0                             "
                      "         (aload parm=0)                                         "
-                     "         (v2m%s                                                "
+                     "         (v2m%s_%s                                               "
                      "              (vloadi%s                                          "
                      "                 (aload parm=1))))                              "
                      "     (return)))                                                 ";
 
-   sprintf(inputTrees, formatStr, typeString, typeString, typeString);
+   sprintf(inputTrees, formatStr, typeString, typeString, typeString, typeString);
     auto trees = parseString(inputTrees);
 
     ASSERT_NOTNULL(trees);
