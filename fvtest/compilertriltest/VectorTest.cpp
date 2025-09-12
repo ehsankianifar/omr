@@ -26,7 +26,11 @@
 #define MAX(x, y) (x > y) ? x : y
 #define ABS(x) (x < 0) ? -x : x
 
+#ifdef TR_TARGET_S390
+class VectorTest : public TRTest::JitWithPortTest {};
+#else
 class VectorTest : public TRTest::JitTest {};
+#endif // TR_TARGET_S390
 
 class ParameterizedBinaryVectorArithmeticTest : public VectorTest, public ::testing::WithParamInterface<std::tuple<TR::ILOpCode, TR::VectorLength>> {};
 
