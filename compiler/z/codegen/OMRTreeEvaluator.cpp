@@ -1232,8 +1232,8 @@ TR::Register *OMR::Z::TreeEvaluator::v2mEvaluator(TR::Node *node, TR::CodeGenera
     TR::Register *resultRegister = tryToReuseInputVectorRegs(node, cg);
     generateVRRaInstruction(cg, TR::InstOpCode::VLC, node, resultRegister, sourceReg, 0 /* mask5 */, 0 /* mask4 */,
         getVectorElementSizeMask(sourceNode) /* mask3 */);
-    cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
+    cg->decReferenceCount(sourceNode);
     return resultRegister;
 }
 
