@@ -244,7 +244,7 @@ TEST_P(ParameterizedUnaryMaskTest2, loadVector) {
 }
 
 
-INSTANTIATE_TEST_CASE_P(v2m, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *, const char *>>(
+INSTANTIATE_TEST_CASE_P(v2m, ParameterizedUnaryMaskTest, ::testing::ValuesIn(*TRTest::MakeVector<std::tuple<const char *, const char *, const char *>>(
    std::make_tuple("Vector128Int8" , "0000000000000000", "0000000000000000"),
    std::make_tuple("Vector128Int8" , "0000000000000001", "0000000000000001"),
    std::make_tuple("Vector128Int8" , "0000000000000010", "0000000000000010"),
