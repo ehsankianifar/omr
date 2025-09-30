@@ -102,7 +102,7 @@ TEST_P(ParameterizedUnaryMaskTest, integer) {
     entry_point(output,inputA);
 
     int sizeInt = 16;
-    switch (size) {
+    switch (size[0]) {
       case 'b':
          sizeInt = 1;
          break;
