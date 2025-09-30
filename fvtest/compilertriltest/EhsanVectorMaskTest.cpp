@@ -83,8 +83,8 @@ TEST_P(ParameterizedUnaryMaskTest, integer) {
 
    sprintf(inputTrees, formatStr,
            size,
-           typeString,
            size,
+           typeString,
            typeString);
     auto trees = parseString(inputTrees);
 
