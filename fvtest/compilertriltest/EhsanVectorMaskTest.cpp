@@ -76,13 +76,14 @@ TEST_P(ParameterizedUnaryMaskTest, integer) {
                      "  (block                                                        "
                      "     (%sstorei                             "
                      "         (aload parm=0)                                         "
-                     "         (m2%s                                                "
+                     "         (m2%s%s                                                "
                      "              (vloadi%s                                          "
                      "                 (aload parm=1))))                              "
                      "     (return)))                                                 ";
 
    sprintf(inputTrees, formatStr,
            size,
+           typeString,
            size,
            typeString);
     auto trees = parseString(inputTrees);
