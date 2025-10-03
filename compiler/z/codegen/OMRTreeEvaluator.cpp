@@ -1244,6 +1244,8 @@ TR::Register *fromMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uin
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
 
+    // More packing cycles needed for smaller element sizes. No packing for byte element size as any byte in mask
+    //  represent the whole mask.
     int packingLoops = (elementSizeMask == 0) ? 0 : (4 - elementSizeMask);
     for (; packingLoops > 0; packingLoops--) {
         // Keep packing until element size is 1 byte.
