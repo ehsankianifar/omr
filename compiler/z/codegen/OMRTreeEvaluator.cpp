@@ -15645,11 +15645,9 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
     }
 
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
-    // Zeroing the scratch register.
     generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
     if (needPreReduction) {
-        // We can not sum all lanes in one operation when the lane size is byte or halfword.
-        // Calculating the sum of byte or halfword into an intermediate word so we can add all word in the next step.
+        // Reduce the byte or halfword lane size to word size.
         TR::Register *tmpSourceReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
         generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, tmpSourceReg, sourceReg, scratchReg, 0, 0,
             elementSizeMask);
@@ -15660,8 +15658,6 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
     generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, sourceReg, scratchReg, 0, 0,
         needPreReduction ? 2 : elementSizeMask);
 
-    // Copy the portion of the reduction result corresponding to the element size into the result GPR.
-    // If the result size exceeds the element size, the excess bits will silently wrap around due to overflow.
     TR::Register *resultReg = cg->allocateRegister();
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, scratchReg,
         generateS390MemoryReference((16 >> elementSizeMask) - 1, cg), elementSizeMask);
