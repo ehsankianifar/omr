@@ -15559,7 +15559,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
     }
 }
 
-TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *sourceReg, TR::DataType type)
+TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
 {
     bool needPreReduction = false;
     uint8_t elementSizeMask = 0;
@@ -15580,7 +15580,7 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
         default:
             TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
-
+    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
     generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
     if (needPreReduction) {
@@ -15606,9 +15606,33 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
     return resultReg;
 }
 
-TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *source, TR::DataType type)
+TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0,2,cg);
+    TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+    dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
+    TR::Register *resultReg = cg->allocateRegister(TR_FPR);
+    dependencies->addPostCondition(resultReg, TR::RealRegister::FPR1);
+    // Dummy label to force allocator to allocate specific registers.
+    // It must be before we get the same real registers otherwise it will not allocate desired registers.
+    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
+    // Scratch registers are the overlaping vector and float registers with source and result registers.
+    TR::Register *scratchReg = cg->machine()->getRealRegister(TR::RealRegister::FPR0);
+    TR::Register *scratchVReg = cg->machine()->getRealRegister(TR::RealRegister::VRF1);
+    // Need the second half of the source in first half of the scratch register.
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchVReg, sourceReg, 1, 3);
+
+    if (type == TR::Double) {
+        generateRREInstruction(cg, TR::InstOpCode::ADBR, node, resultReg, scratchReg);
+    } else {
+        generateVRRcInstruction(cg, TR::InstOpCode::VFA, node, sourceReg, sourceReg, scratchVReg, 0, 0, 2);
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchVReg, sourceReg, 1, 2);
+        generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, scratchReg);
+    }
+    cg->stopUsingRegister(scratchReg);
+    cg->stopUsingRegister(scratchVReg);
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15618,16 +15642,14 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
     TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", firstChild->getDataType().toString());
 
-    TR::Register *sourceReg = cg->evaluate(firstChild);
-
     TR::DataType type = firstChild->getDataType().getVectorElementType();
 
     TR::Register *resultReg = NULL;
 
     if (type.isIntegral()) {
-        resultReg = vIntReductionAddHelper(node, cg, sourceReg, type);
-    } else if (type.isFloat()) {
-        resultReg = vFloatReductionAddHelper(node, cg, sourceReg, type);
+        resultReg = vIntReductionAddHelper(node, cg, type);
+    } else if (type.isFloatingPoint()) {
+        resultReg = vFloatReductionAddHelper(node, cg, type);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
