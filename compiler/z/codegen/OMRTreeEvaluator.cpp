@@ -15608,15 +15608,9 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
 
 TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
 {
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0,2,cg);
     TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
-    dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
-    dependencies->addPostCondition(resultReg, TR::RealRegister::AssignAny);
-    // Dummy label to force allocator to allocate specific registers.
-    // It must be before we get the same real registers otherwise it will not allocate desired registers.
-    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
-    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
+
     // Need the second half of the source in first half of the scratch register.
     generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
 
@@ -15627,6 +15621,10 @@ TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR
         generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 2);
         generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, sourceReg);
     }
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0,1,cg);
+    dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
+    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
     return resultReg;
 }
 
