@@ -15612,26 +15612,21 @@ TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR
     TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
     dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
-    dependencies->addPostCondition(resultReg, TR::RealRegister::FPR1);
+    dependencies->addPostCondition(resultReg, TR::RealRegister::AssignAny);
     // Dummy label to force allocator to allocate specific registers.
     // It must be before we get the same real registers otherwise it will not allocate desired registers.
     TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
     generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
-    // Scratch registers are the overlaping vector and float registers with source and result registers.
-    TR::Register *scratchReg = cg->machine()->getRealRegister(TR::RealRegister::FPR0);
-    TR::Register *scratchVReg = cg->machine()->getRealRegister(TR::RealRegister::VRF1);
     // Need the second half of the source in first half of the scratch register.
-    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchVReg, sourceReg, 1, 3);
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
 
     if (type == TR::Double) {
-        generateRREInstruction(cg, TR::InstOpCode::ADBR, node, resultReg, scratchReg);
+        generateRREInstruction(cg, TR::InstOpCode::ADBR, node, resultReg, sourceReg);
     } else {
-        generateVRRcInstruction(cg, TR::InstOpCode::VFA, node, sourceReg, sourceReg, scratchVReg, 0, 0, 2);
-        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchVReg, sourceReg, 1, 2);
-        generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, scratchReg);
+        generateVRRcInstruction(cg, TR::InstOpCode::VFA, node, sourceReg, sourceReg, resultReg, 0, 0, 2);
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 2);
+        generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, sourceReg);
     }
-    cg->stopUsingRegister(scratchReg);
-    cg->stopUsingRegister(scratchVReg);
     return resultReg;
 }
 
