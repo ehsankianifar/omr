@@ -1406,8 +1406,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmaddEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    // add relevant comment
-    return vandEvaluator(node, cg);
+    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VN);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpeqEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1462,12 +1461,16 @@ TR::Register *OMR::Z::TreeEvaluator::vmloadiEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::vmmaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::DataType dt = node->getDataType().getVectorElementType();
+    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg,
+        (dt == TR::Double || dt == TR::Float) ? TR::InstOpCode::VFMAX : TR::InstOpCode::VMX);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmminEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::DataType dt = node->getDataType().getVectorElementType();
+    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg,
+        (dt == TR::Double || dt == TR::Float) ? TR::InstOpCode::VFMIN : TR::InstOpCode::VMN);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmmulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1487,7 +1490,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmnotEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1557,7 +1560,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmsubEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmxorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VX);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmfirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -14055,7 +14058,6 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
         case TR::InstOpCode::VML:
             mask4 = getVectorElementSizeMask(node);
             breakInst = generateVRRcInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 0, 0, mask4);
-            supportUnderMaskOperation = true;
             break;
         /*
          * Before z14, these required mask4 = 0x3 and other values were illegal
@@ -14068,7 +14070,6 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
         case TR::InstOpCode::VFD:
             mask4 = getVectorElementSizeMask(node);
             breakInst = generateVRRcInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 0, 0, mask4);
-            supportUnderMaskOperation = true;
             break;
         case TR::InstOpCode::VFCE:
         case TR::InstOpCode::VFCH:
@@ -14090,6 +14091,7 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
                 "VFMAX/VFMIN is only supported on z14 onwards.");
             mask4 = getVectorElementSizeMask(node);
             breakInst = generateVRRcInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 1, 0, mask4);
+            supportUnderMaskOperation = true;
             break;
         case TR::InstOpCode::VMX:
         case TR::InstOpCode::VMN:
@@ -14100,10 +14102,9 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
             TR_ASSERT(false, "Binary Vector IL evaluation unimplemented for node : %s", cg->getDebug()->getName(node));
     }
 
-    TR_ASSERT_FATAL_WITH_NODE(node, supportUnderMaskOperation || !isMasked,
-                "Masked operation was requested for an opcode that does not support masking.");
-    
     if (isMasked) {
+        TR_ASSERT_FATAL_WITH_NODE(node, !supportUnderMaskOperation,
+                "Masked operation was requested for an opcode that does not support masking.");
         TR::Node *maskChild = node->getThirdChild();
         // The result should reflect the outcome of the requested operation only if the mask for that lane is true; otherwise,
         // the source1 value remains unchanged in the result register.
