@@ -14103,7 +14103,7 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
     }
 
     if (isMasked) {
-        TR_ASSERT_FATAL_WITH_NODE(node, !supportUnderMaskOperation,
+        TR_ASSERT_FATAL_WITH_NODE(node, supportUnderMaskOperation,
                 "Masked operation was requested for an opcode that does not support masking.");
         TR::Node *maskChild = node->getThirdChild();
         // The result should reflect the outcome of the requested operation only if the mask for that lane is true; otherwise,
