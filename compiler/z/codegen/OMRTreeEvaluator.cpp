@@ -14167,6 +14167,7 @@ TR::Register *OMR::Z::TreeEvaluator::vRegStoreEvaluator(TR::Node *node, TR::Code
     bool childEvaluatedPreviously = child->getRegister() != NULL;
 
     globalReg = cg->evaluate(child);
+    TR_ASSERT_FATAL_WITH_NODE(node, globalReg->getKind() == TR_VRF, "virtual reg type in not correct.");
 
     cg->decReferenceCount(child);
     return globalReg;
