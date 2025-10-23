@@ -14040,6 +14040,10 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
     TR::Register *sourceReg1 = cg->evaluate(firstChild);
     TR::Register *sourceReg2 = cg->evaluate(secondChild);
 
+    static bool breakBeforeEval = feGetEnv("TR_breakBeforeEval") != NULL;
+    if (breakBeforeEval && isMasked)
+        generateS390EInstruction(cg, TR::InstOpCode::BREAK, node);
+
     // !!! Masks change per instruction. *Ref to zPoP for masks* !!!
     uint8_t mask4 = 0;
     bool supportUnderMaskOperation = false;
