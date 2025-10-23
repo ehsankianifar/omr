@@ -2747,6 +2747,7 @@ void TR_GlobalRegisterAllocator::offerAllAutosAndRegisterParmAsCandidates(TR::Bl
                         continue;
 
                     TR::RegisterCandidate *rc = comp()->getGlobalRegisterCandidates()->findOrCreate(symRef);
+                    traceMsg(comp(), "EHSAN offered #%d reg %d\n", symRefNumber, rc->getGlobalRegisterNumber());
                     if (sym->isMethodMetaData() && rc && rc->initialBlocksWeightComputed())
                         continue;
 
@@ -2814,7 +2815,7 @@ void TR_GlobalRegisterAllocator::offerAllFPAutosAndParmsAsCandidates(TR::Block *
                         continue;
 
                     TR::RegisterCandidate *rc = comp()->getGlobalRegisterCandidates()->findOrCreate(symRef);
-
+                    traceMsg(comp(), "EHSAN offered #%d reg %d\n", symRefNumber, rc->getGlobalRegisterNumber());
                     // All interested blocks will be candidates
                     rc->getBlocks().getCandidateBlocks() |= interestedBlocks;
 

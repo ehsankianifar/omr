@@ -204,7 +204,7 @@ TR::Node *OMR::GlobalRegister::createLoadFromRegister(TR::Node *n, TR::Compilati
         dumpOptDetails(comp, "%s create load [%p] from Register %d (low word) and Register %d (high word)\n",
             OPT_DETAILS, load, rc->getLowGlobalRegisterNumber(), rc->getHighGlobalRegisterNumber());
     else
-        dumpOptDetails(comp, "%s create load [%p] %s from Register %d\n", OPT_DETAILS, load,
+        dumpOptDetails(comp, "%s create load [%p] %s from Register EHSAN %d\n", OPT_DETAILS, load,
             rc->getSymbolReference()->getSymbol()->isMethodMetaData()
                 ? rc->getSymbolReference()->getSymbol()->castToMethodMetaDataSymbol()->getName()
                 : "",
