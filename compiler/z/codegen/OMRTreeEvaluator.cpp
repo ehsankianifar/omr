@@ -14152,7 +14152,7 @@ TR::Register *OMR::Z::TreeEvaluator::vRegLoadEvaluator(TR::Node *node, TR::CodeG
         globalReg = cg->allocateRegister(TR_VRF);
         node->setRegister(globalReg);
     } else {
-        TR_ASSERT(globalReg->getKind() == TR_VRF, "virtual reg type from adjacent reg store was improperly set");
+        TR_ASSERT_FATAL_WITH_NODE(node, globalReg->getKind() == TR_VRF, "virtual reg type from adjacent reg store was improperly set");
     }
 
     return globalReg;
