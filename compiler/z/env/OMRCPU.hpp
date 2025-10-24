@@ -388,7 +388,7 @@ private:
 protected:
     CPU()
         : OMR::CPU()
-        , _supportedArch(z10)
+        , _supportedArch(z14)
     {
         _processorDescription.processor = OMR_PROCESSOR_S390_UNKNOWN;
         _processorDescription.physicalProcessor = OMR_PROCESSOR_S390_UNKNOWN;
@@ -397,7 +397,7 @@ protected:
 
     CPU(const OMRProcessorDesc &processorDescription)
         : OMR::CPU(processorDescription)
-        , _supportedArch(z10)
+        , _supportedArch(z14)
     {}
 
     enum {
