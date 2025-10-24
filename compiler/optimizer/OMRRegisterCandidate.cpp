@@ -2316,7 +2316,7 @@ bool OMR::RegisterCandidates::assign(TR::Block **cfgBlocks, int32_t numberOfBloc
             continue;
         }
 
-        if ((dt.isVector() || dt.isMask) && !comp()->cg()->hasGlobalVRF()) {
+        if ((dt.isVector() || dt.isMask()) && !comp()->cg()->hasGlobalVRF()) {
             if (trace)
                 traceMsg(comp(),
                     "Leaving candidate because it has vector type but no global vector registers provided\n");
