@@ -994,8 +994,9 @@ TR_GlobalRegisterNumber OMR::CodeGenerator::pickRegister(TR::RegisterCandidate *
 
     TR::Compilation *comp = self()->comp();
     OMR::Logger *log = comp->log();
-    bool traceSimulateTreeEvaluation = self()->traceSimulateTreeEvaluation();
-    bool terseSimulateTreeEvaluation = self()->terseSimulateTreeEvaluation();
+    TR_Debug *debug = comp->getDebug();
+    bool traceSimulateTreeEvaluation = comp->getOption(TR_TraceCG);//self()->traceSimulateTreeEvaluation();
+    bool terseSimulateTreeEvaluation = comp->getOption(TR_TraceCG);//self()->terseSimulateTreeEvaluation();
     bool traceGRA = comp->getOptions()->trace(OMR::tacticalGlobalRegisterAllocator);
 
     if (!isInitialized) {
@@ -1052,7 +1053,7 @@ TR_GlobalRegisterNumber OMR::CodeGenerator::pickRegister(TR::RegisterCandidate *
             log->prints("            Available regs: ");
             self()->getDebug()->print(log, &availableRegisters);
             log->println();
-            if (debug("dumpAllSpillKinds")) {
+            if (true) {
                 for (int32_t i = 0; i < TR_numSpillKinds; i++) {
                     TR_SpillKinds sk = (TR_SpillKinds)i;
                     log->printf("            %s regs: ", self()->getDebug()->getSpillKindName(sk));
@@ -1474,7 +1475,7 @@ TR_GlobalRegisterNumber OMR::CodeGenerator::pickRegister(TR::RegisterCandidate *
             //
             TR_GlobalRegisterNumber result = TR_BitVectorIterator(remainingRegisters).getFirstElement();
 
-            logprintf(terseSimulateTreeEvaluation, log, "         } Picked register %d (%s) for candidate #%d %s\n",
+            dumpOptDetails(comp, "Picked register %d (%s) for candidate #%d %s\n",
                 result, self()->getDebug()->getGlobalRegisterName(result),
                 rc->getSymbolReference()->getReferenceNumber(), self()->getDebug()->getName(rc->getSymbolReference()));
 

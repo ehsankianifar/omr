@@ -105,7 +105,7 @@ static const char *getRegisterName(TR::Register *reg, TR::CodeGenerator *cg)
 //  Copy Register by moving source register to target register
 ///////////////////////////////////////////////////////////////////////////////
 TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_RegisterKinds rk, TR::RealRegister *targetReg,
-    TR::RealRegister *sourceReg, TR::Instruction *precedingInstruction)
+    TR::RealRegister *sourceReg, TR::Instruction *precedingInstruction, int cnt)
 {
     // TODO: In reality we should be validating that the the source is NULL and target is non-NULL however we cannot
     // currently do this because the registerCopy and registerExchange APIs are not updating the register states as
@@ -121,7 +121,7 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
         getRegisterName(sourceReg, cg), getRegisterName(targetReg, cg));
 
     TR::Node *node = precedingInstruction->getNode();
-    TR::Instruction *cursor = NULL;
+    TR::Instruction *cursor = precedingInstruction;
 
     switch (rk) {
         case TR_GPR: {
@@ -135,10 +135,21 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
             break;
         }
         case TR_FPR:
-            cursor = generateRRInstruction(cg, TR::InstOpCode::LDR, node, targetReg, sourceReg, precedingInstruction);
-            break;
+            if (targetReg->getKind() == TR_FPR) {
+                cursor = generateRRInstruction(cg, TR::InstOpCode::LDR, node, targetReg, sourceReg, precedingInstruction);
+                break;
+            }
+            /*
+            FPR and VRF registers are overlapping, so it is possible to have an FPR source and a VRF target.
+            To ensure the correct load instruction is chosen, allow execution to fall through to the TR_VRF case
+            when the target kind is not FPR.
+            */
+            printf("CALLER: %d\n",cnt);
+            static bool breakBefore = feGetEnv("TR_breakBefore2") != NULL;
+            if (breakBefore)
+                cursor = generateS390EInstruction(cg, TR::InstOpCode::BREAK, node, cursor);
         case TR_VRF:
-            cursor = generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, targetReg, sourceReg, precedingInstruction);
+            cursor = generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, targetReg, sourceReg, cursor);
             break;
         default:
             break;
@@ -182,7 +193,6 @@ TR::Instruction *OMR::Z::Machine::registerExchange(TR::CodeGenerator *cg, TR_Reg
     if (rk == TR_FPR) {
         if (middleReg != NULL) {
             middleReg->setHasBeenAssignedInMethod(true);
-
             currentInstruction = machine->registerCopy(cg, rk, sourceReg, middleReg, precedingInstruction);
             cg->traceRAInstruction(currentInstruction);
             currentInstruction = machine->registerCopy(cg, rk, targetReg, sourceReg, precedingInstruction);
@@ -848,7 +858,7 @@ TR::RealRegister *OMR::Z::Machine::shuffleOrSpillRegister(TR::Instruction *currI
         self()->spillRegister(currInst, toFreeReg);
     else {
         TR::Instruction *cursor
-            = self()->registerCopy(self()->cg(), toFreeReg->getKind(), assignedRegister, bestRegister, currInst);
+            = self()->registerCopy(self()->cg(), toFreeReg->getKind(), assignedRegister, bestRegister, currInst, 9);
         toFreeReg->setAssignedRegister(bestRegister);
         bestRegister->setAssignedRegister(toFreeReg);
         bestRegister->setState(TR::RealRegister::Assigned);
@@ -886,7 +896,7 @@ TR::Register *OMR::Z::Machine::assignBestRegisterSingle(TR::Register *targetRegi
             TR::RealRegister *newAssignedRegister
                 = self()->findBestRegisterForShuffle(currInst, targetRegister, availRegMask);
             TR::Instruction *cursor = self()->registerCopy(self()->cg(), kindOfRegister,
-                toRealRegister(assignedRegister), newAssignedRegister, currInst);
+                toRealRegister(assignedRegister), newAssignedRegister, currInst, 10);
             targetRegister->setAssignedRegister(newAssignedRegister);
             newAssignedRegister->setAssignedRegister(targetRegister);
             newAssignedRegister->setState(TR::RealRegister::Assigned);
@@ -903,7 +913,7 @@ TR::Register *OMR::Z::Machine::assignBestRegisterSingle(TR::Register *targetRegi
             = self()->findBestRegisterForShuffle(currInst, targetRegister, availRegMask);
         assignedRegister->unblock();
         TR::Instruction *cursor
-            = self()->registerCopy(self()->cg(), kindOfRegister, assignedRegister, newAssignedRegister, currInst);
+            = self()->registerCopy(self()->cg(), kindOfRegister, assignedRegister, newAssignedRegister, currInst, 11);
         self()->cg()->setRegisterAssignmentFlag(TR_IndirectCoercion);
         self()->cg()->traceRegAssigned(targetRegister, assignedRegister);
         targetRegister->setAssignedRegister(newAssignedRegister);
@@ -1772,6 +1782,9 @@ void OMR::Z::Machine::freeBestRegisterPair(TR::RealRegister **firstReg, TR::Real
     *lastReg = bestCandidateLow;
 }
 
+void ehsanTest(){
+    printf("EH\n");
+}
 ////////////////////////////////////////////////////////////////////////////////
 // SINGLE REGISTER assignment methods
 ////////////////////////////////////////////////////////////////////////////////
@@ -2082,10 +2095,20 @@ TR::RealRegister *OMR::Z::Machine::findBestFreeRegister(TR::Instruction *current
         freeRegister->setState(TR::RealRegister::Free);
     }
 
-    if (freeRegister != NULL)
+    
+
+    if (freeRegister != NULL) {
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is %R", virtualReg, freeRegister);
-    else
+        if (preference == 0x12 && freeRegister->getRegisterNumber() == 0x22) {
+            printf("**** HIT THE PROBLEM %p ****\n", virtualReg);
+            ehsanTest();
+            printf("**** end ****\n");
+        }
+    }
+    else {
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is NULL (could not find one)", virtualReg);
+        //printf("**** NO REGISTER! ****\n");
+    }
 
     return freeRegister;
 }
@@ -2679,7 +2702,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             // virtual register is currently assigned to a different register,
             // override it with the target reg
             cursor
-                = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister, currentInstruction);
+                = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister, currentInstruction, 1);
 
             currentAssignedRegister->setState(TR::RealRegister::Free);
             currentAssignedRegister->setAssignedRegister(NULL);
@@ -2730,10 +2753,9 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                             "Abort compilation as we can not find a spareReg for blocked target real register");
                     }
                     self()->cg()->traceRegAssigned(currentTargetVirtual, spareReg);
-
-                    cursor = self()->registerCopy(self()->cg(), rk, targetRegister, spareReg, currentInstruction);
+                    cursor = self()->registerCopy(self()->cg(), rk, targetRegister, spareReg, currentInstruction, 2);
                     cursor = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister,
-                        currentInstruction);
+                        currentInstruction, 22);
 
                     spareReg->setState(TR::RealRegister::Assigned);
                     currentTargetVirtual->setAssignedRegister(spareReg);
@@ -2759,7 +2781,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             self()->cg()->traceRegAssigned(currentTargetVirtual, spareReg);
 
             // virtual register is not assigned yet, copy register
-            cursor = self()->registerCopy(self()->cg(), rk, targetRegister, spareReg, currentInstruction);
+            cursor = self()->registerCopy(self()->cg(), rk, targetRegister, spareReg, currentInstruction, 3);
 
             spareReg->setState(TR::RealRegister::Assigned);
             spareReg->setAssignedRegister(currentTargetVirtual);
@@ -2795,10 +2817,15 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                 return cursor;
             }
         }
+
+        // Because VRF and FPR registers overlap, the current assignment may belong to a
+        // different register kind. In such cases, we must ensure that we choose a
+        // destination register of the correct kind to hold the old value.
+        TR_RegisterKinds targetRegKind = currentTargetVirtual->getKind();
         uint64_t regMask = 0xffffffff;
         if (currentTargetVirtual->isUsedInMemRef())
             regMask = ~TR::RealRegister::GPR0Mask;
-        spareReg = self()->findBestFreeRegister(currentInstruction, rk, currentTargetVirtual, regMask);
+        spareReg = self()->findBestFreeRegister(currentInstruction, targetRegKind, currentTargetVirtual, regMask);
 
         self()->cg()->setRegisterAssignmentFlag(TR_IndirectCoercion);
 
@@ -2809,35 +2836,26 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
         // In case we do need to spill, we let the spill policy defined in freeBestReg
         // choose the best spill candidate.
         if (currentAssignedRegister != NULL) {
-            //  We may not be able to do an exchange as the target virtReg is not
-            //  allowed to be assigned to the source's realReg (e.g. GPR0).
-            if (!self()->isAssignable(currentTargetVirtual, currentAssignedRegister)
-                || (rk != TR_FPR && rk != TR_VRF)) {
+            // It is cheaper to move the value from the blocked register into the spare
+            // register than to perform a full exchange. We already apply this approach for
+            // GPRs, so we should do the same for VRFs and FPRs.
+            static bool noRegExchange = feGetEnv("TR_noRegExchange") != NULL;
+            // An exchange may not be possible if the target virtual register is not allowed
+            // to use the source’s real register (e.g., GPR0). Additionally, an exchange
+            // cannot be performed when the virtualRegister and currentTargetVirtual belong
+            // to different kinds and their target registers overlap.
+            if (noRegExchange || !self()->isAssignable(currentTargetVirtual, currentAssignedRegister)
+                || (rk != TR_FPR && rk != TR_VRF) || (targetRegKind != rk)) {
                 // There is an alternative to blindly spilling because:
                 //   1. there was a FREE reg
                 //   2. freeBestReg found a better choice to be spilled
                 if (spareReg == NULL) {
                     self()->cg()->setRegisterAssignmentFlag(TR_RegisterSpilled);
-
                     //  The current source reg's assignment is automatically blocked out
                     virtualRegister->block();
-                    if (virtualRegister->is64BitReg()) {
-                        // TODO: Can we allow a null return here? Why are the two paths different?
-                        spareReg = self()->freeBestRegister(currentInstruction, currentTargetVirtual,
-                            currentTargetVirtual->getKind());
-                    } else {
-                        spareReg = self()->freeBestRegister(currentInstruction, currentTargetVirtual,
-                            currentTargetVirtual->getKind(), true);
-                    }
-
-                    // For some reason (blocked/locked regs etc), we couldn't find a spare reg so spill the virtual in
-                    // the target and use it for coercion
-                    if (spareReg == NULL) {
-                        self()->spillRegister(currentInstruction, currentTargetVirtual);
-                        targetRegister->setAssignedRegister(virtualRegister);
-                        virtualRegister->setAssignedRegister(targetRegister);
-                        targetRegister->setState(TR::RealRegister::Assigned);
-                    }
+                    // spareReg cannot be NULL because the next condition dereferences it
+                    // (spareReg->getRegisterNumber()), which would cause a segmentation fault.
+                    spareReg = self()->freeBestRegister(currentInstruction, currentTargetVirtual, targetRegKind);
 
                     virtualRegister->unblock();
                 }
@@ -2846,19 +2864,21 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                 // to the spareReg, and move the source reg to the target.
                 if (targetRegister->getRegisterNumber() != spareReg->getRegisterNumber() && !doNotRegCopy) {
                     self()->cg()->traceRegAssigned(currentTargetVirtual, spareReg);
+                    cursor = self()->registerCopy(self()->cg(), targetRegKind, targetRegister, spareReg, currentInstruction, 4);
 
-                    cursor = self()->registerCopy(self()->cg(), rk, targetRegister, spareReg, currentInstruction);
-
+                    // The target now holds the correct value. Since the final association is made
+                    // at the end of the function, it must be unlatched and unassociated here.
                     targetRegister->setState(TR::RealRegister::Unlatched);
                     targetRegister->setAssignedRegister(NULL);
 
+                    // currentTargetVirtual and spareReg are now associated with each other.
                     spareReg->setState(TR::RealRegister::Assigned);
                     spareReg->setAssignedRegister(currentTargetVirtual);
                     currentTargetVirtual->setAssignedRegister(spareReg);
                 }
-
                 cursor = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister,
-                    currentInstruction);
+                    currentInstruction, 5);
+                // The currentAssignedRegister is now free and available!
                 currentAssignedRegister->setState(TR::RealRegister::Unlatched);
                 currentAssignedRegister->setAssignedRegister(NULL);
             } else {
@@ -2881,9 +2901,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
 
                     self()->cg()->traceRegAssigned(currentTargetVirtual, currentAssignedRegister);
                     self()->cg()->setRegisterAssignmentFlag(TR_RegisterSpilled);
-
                     cursor = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister,
-                        currentInstruction);
+                        currentInstruction, 6);
                     currentAssignedRegister->setState(TR::RealRegister::Unlatched);
                     currentAssignedRegister->setAssignedRegister(NULL);
                 } else {
@@ -2910,26 +2929,11 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                 // The worst case situation is that only the target is left to spill.
                 if (spareReg == NULL) {
                     self()->cg()->setRegisterAssignmentFlag(TR_RegisterSpilled);
-
+                    //  The current source reg's assignment is automatically blocked out
                     virtualRegister->block();
-                    if (virtualRegister->is64BitReg()) {
-                        // TODO: Can we allow a null return here? Why are the two paths different? There is a similar
-                        // case above.
-                        spareReg = self()->freeBestRegister(currentInstruction, currentTargetVirtual,
-                            currentTargetVirtual->getKind());
-                    } else {
-                        spareReg = self()->freeBestRegister(currentInstruction, currentTargetVirtual,
-                            currentTargetVirtual->getKind(), true);
-                    }
-
-                    // For some reason (blocked/locked regs etc), we couldn't find a spare reg so spill the virtual in
-                    // the target and use it for coercion
-                    if (spareReg == NULL) {
-                        self()->spillRegister(currentInstruction, currentTargetVirtual);
-                        targetRegister->setAssignedRegister(virtualRegister);
-                        virtualRegister->setAssignedRegister(targetRegister);
-                        targetRegister->setState(TR::RealRegister::Assigned);
-                    }
+                    // spareReg cannot be NULL because the next condition dereferences it
+                    // (spareReg->getRegisterNumber()), which would cause a segmentation fault.
+                    spareReg = self()->freeBestRegister(currentInstruction, currentTargetVirtual, targetRegKind);
 
                     virtualRegister->unblock();
                 }
@@ -2939,16 +2943,18 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                 if (targetRegister->getRegisterNumber() != spareReg->getRegisterNumber() && !doNotRegCopy) {
                     self()->cg()->resetRegisterAssignmentFlag(TR_RegisterSpilled);
                     self()->cg()->traceRegAssigned(currentTargetVirtual, spareReg);
+                    cursor = self()->registerCopy(self()->cg(), targetRegKind, targetRegister, spareReg, currentInstruction, 7);
 
-                    cursor = self()->registerCopy(self()->cg(), rk, targetRegister, spareReg, currentInstruction);
-
+                    // currentTargetVirtual and spareReg are now associated with each other.
                     spareReg->setState(TR::RealRegister::Assigned);
                     spareReg->setAssignedRegister(currentTargetVirtual);
+                    currentTargetVirtual->setAssignedRegister(spareReg);
 
+                    // The target now holds the correct value. Since the final association is made
+                    // at the end of the function, it must be unlatched and unassociated here.
                     targetRegister->setState(TR::RealRegister::Unlatched);
                     targetRegister->setAssignedRegister(NULL);
 
-                    currentTargetVirtual->setAssignedRegister(spareReg);
                     self()->cg()->recordRegisterAssignment(spareReg, currentTargetVirtual);
                 }
 
@@ -2999,7 +3005,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             // virtual register is currently assigned to a different register,
             // override it with the target reg
             cursor
-                = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister, currentInstruction);
+                = self()->registerCopy(self()->cg(), rk, currentAssignedRegister, targetRegister, currentInstruction, 8);
 
             currentAssignedRegister->setState(TR::RealRegister::Free);
             currentAssignedRegister->setAssignedRegister(NULL);

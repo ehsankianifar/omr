@@ -57,6 +57,11 @@ omr_add_executable(comptest NOWARNINGS
 	SelectTest.cpp
 	MinimalTest.cpp
 	ArrayTest.cpp
+	EhsanTest.cpp
+	EhsanCmpTest.cpp
+	EhsanBinTest.cpp
+	EhsanUniTest.cpp
+	VectorUnaryTest.cpp
 )
 
 target_link_libraries(comptest

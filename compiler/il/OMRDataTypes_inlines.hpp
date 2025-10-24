@@ -48,6 +48,10 @@ bool OMR::DataType::isFloatingPoint() { return self()->isBFPorHFP(); }
 
 bool OMR::DataType::isVector() { return _type >= TR::FirstVectorType && _type <= TR::LastVectorType; }
 
+bool OMR::DataType::isMask() { return _type >= TR::FirstMaskType && _type <= TR::LastMaskType; }
+
+bool OMR::DataType::isVectorOrMask() { return _type >= TR::FirstVectorType && _type <= TR::LastMaskType; }
+
 bool OMR::DataType::isVectorElement() { return (_type > TR::NoType) && (_type <= TR::NumVectorElementTypes); }
 
 bool OMR::DataType::isBFPorHFP() { return self()->getDataType() == TR::Float || self()->getDataType() == TR::Double; }
@@ -112,7 +116,7 @@ TR::DataTypes OMR::DataType::createVectorType(TR::DataType elementType, TR::Vect
 
 TR::DataType OMR::DataType::getVectorElementType()
 {
-    TR_ASSERT_FATAL(isVector() || isMask(), "getVectorElementType() is called on non-vector and oon non-mask type\n");
+    TR_ASSERT_FATAL(isVectorOrMask(), "getVectorElementType() is called on non-vector and oon non-mask type\n");
 
     if (isVector())
         return static_cast<TR::DataTypes>((_type - TR::FirstVectorType) % TR::NumVectorElementTypes + 1);
@@ -122,7 +126,7 @@ TR::DataType OMR::DataType::getVectorElementType()
 
 TR::VectorLength OMR::DataType::getVectorLength()
 {
-    TR_ASSERT_FATAL(isVector() || isMask(), "getVectorLength() is called on non-vector and non-mask type\n");
+    TR_ASSERT_FATAL(isVectorOrMask(), "getVectorLength() is called on non-vector and non-mask type\n");
 
     if (isVector())
         return static_cast<TR::VectorLength>((_type - TR::FirstVectorType) / TR::NumVectorElementTypes + 1);
@@ -151,8 +155,6 @@ TR::VectorLength OMR::DataType::bitsToVectorLength(int32_t bits)
     return length;
 }
 
-bool OMR::DataType::isMask() { return _type >= TR::FirstMaskType && _type <= TR::LastMaskType; }
-
 TR::DataTypes OMR::DataType::createMaskType(TR::DataType elementType, TR::VectorLength length)
 {
     TR::DataTypes et = elementType.getDataType();
@@ -179,5 +181,12 @@ TR::DataTypes OMR::DataType::vectorFromMaskType(TR::DataType maskType)
 
     return static_cast<TR::DataTypes>(maskType - TR::NumVectorTypes);
 }
+
+template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int8_t>() { return TR::Int8; }
+template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int16_t>() { return TR::Int16; }
+template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int32_t>() { return TR::Int32; }
+template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int64_t>() { return TR::Int64; }
+template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<float>() { return TR::Float; }
+template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<double>() { return TR::Double; }
 
 #endif // OMR_DATATYPES_INLINES_INCL

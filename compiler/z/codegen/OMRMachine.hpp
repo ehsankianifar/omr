@@ -205,7 +205,7 @@ public:
 
     TR::RealRegister *findBestSwapRegister(TR::Register *reg1, TR::Register *reg2);
     TR::Instruction *registerCopy(TR::CodeGenerator *cg, TR_RegisterKinds rk, TR::RealRegister *targetReg,
-        TR::RealRegister *sourceReg, TR::Instruction *precedingInstruction);
+        TR::RealRegister *sourceReg, TR::Instruction *precedingInstruction, int cnt=0);
     TR::Instruction *registerExchange(TR::CodeGenerator *cg, TR_RegisterKinds rk, TR::RealRegister *targetReg,
         TR::RealRegister *sourceReg, TR::RealRegister *middleReg, TR::Instruction *precedingInstruction);
 
