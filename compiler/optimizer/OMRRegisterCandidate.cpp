@@ -1940,7 +1940,7 @@ bool OMR::RegisterCandidates::assign(TR::Block **cfgBlocks, int32_t numberOfBloc
     int32_t *blockStructureWeight
         = (int32_t *)trMemory()->allocateStackMemory(comp()->getFlowGraph()->getNextNodeNumber() * sizeof(int32_t));
     memset(blockStructureWeight, 0, comp()->getFlowGraph()->getNextNodeNumber() * sizeof(int32_t));
-    bool trace = comp()->getOptions()->trace(OMR::tacticalGlobalRegisterAllocator);
+    bool trace = comp()->getOption(TR_TraceCG);//comp()->getOptions()->trace(OMR::tacticalGlobalRegisterAllocator);
 
     bool catchBlockLiveLocalsExist = false;
 
