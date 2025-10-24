@@ -161,6 +161,7 @@ TR::Register *generateS390CompareBranch(TR::Node *node, TR::CodeGenerator *cg, T
     bool isUnorderedOK = false);
 
 int32_t getVectorElementSize(TR::Node *node);
+int32_t getVectorElementLength(TR::Node *node);
 int32_t getVectorElementSizeMask(TR::Node *node);
 int32_t getVectorElementSizeMask(int8_t size);
 

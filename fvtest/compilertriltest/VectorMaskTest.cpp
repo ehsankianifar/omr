@@ -219,8 +219,8 @@ TEST_P(ParameterizedMaskTest, mLoadStore) {
    TR::DataTypes et = std::get<1>(GetParam());
 
    SKIP_IF(vl > TR::NumVectorLengths, MissingImplementation) << "Vector length is not supported by the target platform";
-   SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
-   SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
 
    TR::DataType vt = TR::DataType::createMaskType(et, vl);
    TR::ILOpCode loadOp = TR::ILOpCode::createVectorOpCode(TR::mloadi, vt);
@@ -273,8 +273,8 @@ TEST_P(ParameterizedBinaryMaskTest, bitwiseMaskTests) {
    uint64_t (*refFunc)(uint64_t, uint64_t, int32_t) = std::get<3>(GetParam());
 
    SKIP_IF(vl > TR::NumVectorLengths, MissingImplementation) << "Vector length is not supported by the target platform";
-   SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
-   SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
 
    TR::DataType vt = TR::DataType::createVectorType(et, vl);
    TR::DataType mt = TR::DataType::createMaskType(et, vl);
@@ -285,7 +285,7 @@ TEST_P(ParameterizedBinaryMaskTest, bitwiseMaskTests) {
    TR::ILOpCode a2m = getMaskConvOpcode(arrayToMask, mt);
    TR::CPU cpu = TR::CPU::detect(privateOmrPortLibrary);
    bool platformSupport = isSupported(&cpu, loadOp, maskOpcode, a2m, m2LongOpcode);
-   SKIP_IF(!platformSupport, MissingImplementation) << "Opcode is not supported by the target platform";
+   //SKIP_IF(!platformSupport, MissingImplementation) << "Opcode is not supported by the target platform";
 
    const size_t inputTreesSize = 1024;
    char inputTrees[inputTreesSize];
@@ -359,8 +359,8 @@ TEST_P(ParameterizedMaskTest, boolToMaskToBool) {
    TR::DataTypes et = std::get<1>(GetParam());
 
    SKIP_IF(vl > TR::NumVectorLengths, MissingImplementation) << "Vector length is not supported by the target platform";
-   SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
-   SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
 
    TR::DataType vt = TR::DataType::createVectorType(et, vl);
    TR::DataType mt = TR::DataType::createMaskType(et, vl);
@@ -450,8 +450,8 @@ TEST_P(ParameterizedUnaryMaskTest, unaryTest) {
    auto refFunc = std::get<3>(GetParam());
 
    SKIP_IF(vl > TR::NumVectorLengths, MissingImplementation) << "Vector length is not supported by the target platform";
-   SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
-   SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
 
    TR::DataType vt = TR::DataType::createVectorType(et, vl);
    TR::DataType mt = TR::DataType::createMaskType(et, vl);
@@ -534,8 +534,8 @@ TEST_P(ParameterizedVBlendTest, vblend) {
    TR::DataTypes et = std::get<1>(GetParam());
 
    SKIP_IF(vl > TR::NumVectorLengths, MissingImplementation) << "Vector length is not supported by the target platform";
-   SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
-   SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
+   //SKIP_ON_S390X(KnownBug) << "This test is currently disabled on Z platforms because not all Z platforms have vector support (issue #1843)";
 
    TR::DataType vt = TR::DataType::createVectorType(et, vl);
    TR::DataType mt = TR::DataType::createMaskType(et, vl);

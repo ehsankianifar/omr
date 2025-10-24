@@ -4319,14 +4319,20 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
 
     TR::DataType ot = opcode.getVectorResultDataType();
 
-    if (ot.getVectorLength() != TR::VectorLength128)
+    TR::VectorLength vt = ot.getVectorLength();
+
+    TR_ASSERT_FATAL(vt == TR::VectorLength128 || vt == TR::VectorLength64 || vt == TR::VectorLength256 || vt == TR::VectorLength512,
+        "Unexpected vector size: %s\n", ot.toString());
+
+    if (ot.getVectorLength() != TR::VectorLength128) {
         return false;
+    }
 
     TR::DataType et = opcode.getVectorResultDataType().getVectorElementType();
 
     TR_ASSERT_FATAL(et == TR::Int8 || et == TR::Int16 || et == TR::Int32 || et == TR::Int64 || et == TR::Float
             || et == TR::Double,
-        "Unexpected vector element type\n");
+        "Unexpected vector element type: %s\n", ot.toString());
 
     /*
      * Prior to z14, vector operations that operated on floating point numbers only supported
@@ -4347,12 +4353,25 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vloadi:
         case TR::vstore:
         case TR::vstorei:
+        case TR::vRegLoad:
+        case TR::vRegStore:
+        case TR::mRegLoad:
+        case TR::mRegStore:
+        case TR::mload:
+        case TR::mloadi:
+        case TR::mstore:
+        case TR::mstorei:
         case TR::vneg:
+        case TR::vnot:
         case TR::vmneg:
         case TR::vsplats:
         case TR::msplats:
         case TR::vabs:
         case TR::vmabs:
+        case TR::vbitselect:
+        case TR::vblend:
+        case TR::vcompress:
+        case TR::vexpand:
         case TR::vpopcnt:
         case TR::vmpopcnt:
         case TR::vbitselect:
@@ -4381,8 +4400,6 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::mor:
         case TR::vmor:
         case TR::vand:
-        case TR::mand:
-        case TR::vmand:
         case TR::vnotz:
         case TR::vnolz:
         case TR::vmnotz:
@@ -4408,7 +4425,6 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmax:
         case TR::vmmax:
         case TR::vmin:
-        case TR::vmmin:
             if ((et == TR::Float || et == TR::Double)
                 && !cpu->supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1))
                 return false;
@@ -4417,6 +4433,14 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vconv:
             return (et == TR::Double && opcode.getVectorSourceDataType().getVectorElementType() == TR::Int64);
         case TR::vcast:
+            return true;
+        case TR::mmAnyTrue:
+        case TR::mmAllTrue:
+        case TR::mAnyTrue:
+        case TR::mAllTrue:
+        case TR::mLastTrue:
+        case TR::mFirstTrue:
+        case TR::mTrueCount:
             return true;
         case TR::vcmpeq:
         case TR::vmcmpeq:
@@ -4433,10 +4457,6 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
             // Since these opcodes return a mask, verify the source type and CPU feature support.
             return (opcode.getVectorSourceDataType().getVectorElementType() != TR::Float)
                 || cpu->supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1);
-        case TR::mmAnyTrue:
-        case TR::mmAllTrue:
-        case TR::mAnyTrue:
-        case TR::mAllTrue:
         case TR::m2v:
         case TR::m2l:
         case TR::m2i:
@@ -4461,9 +4481,26 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmshl:
         case TR::vrol:
         case TR::vmrol:
+        case TR::vorUnchecked:
+        case TR::vmorUnchecked:
+        case TR::vreductionAdd:
+        case TR::vreductionMul:
+        case TR::vmreductionAdd:
+        case TR::vmreductionMul:
+        case TR::mLongBitsToMask:
+        case TR::vreductionOrUnchecked:
+        case TR::vmreductionOrUnchecked:
+        case TR::mToLongBits:
+            return true;
+        // TODO: check type for the following opcodes!
+        case TR::vbyteswap:
+        case TR::vmbyteswap:
+        case TR::vbitswap:
+        case TR::vmbitswap:
             return true;
         default:
-            return false;
+            static const char *enableAllVectors = feGetEnv("TR_EnableAllVectors");
+            return enableAllVectors != NULL;
     }
 
     return false;

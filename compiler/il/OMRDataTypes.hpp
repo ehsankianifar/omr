@@ -149,6 +149,21 @@ enum TR_YesNoMaybe {
     TR_maybe
 };
 
+// Commonly used constant values for operations, including masked reductions.
+enum TR_IdentityValues {
+    Universal_0,
+    Int_1,
+    Int_Negative1,
+    Int_Max,
+    Int_Min,
+    Float_Max,
+    Float_Min,
+    Float_1,
+    Double_Max,
+    Double_Min,
+    Double_1
+};
+
 // NOTE : update these tables when adding/modifying enum TR_RawBCDSignCode
 // OMRDataTypes.cpp
 //    bcdToRawSignCodeMap
@@ -460,6 +475,22 @@ public:
     inline bool isVector();
     inline bool isVectorElement();
 
+    /** \brief
+     *     Checks if the type is a Mask type
+     *
+     *  \return
+     *     true if is a Mask type
+     */
+    inline bool isMask();
+
+    /** \brief
+     *     Checks if the type is a vector or Mask type
+     *
+     *  \return
+     *     true if is a vector or Mask type
+     */
+    inline bool isVectorOrMask();
+
     inline bool isBFPorHFP();
     inline bool isDouble();
     inline bool isFloat();
@@ -476,7 +507,7 @@ public:
      *  \return
      *     True if OMR type and false otherwise
      */
-    bool isOMRDataType() { return (_type < TR::NumOMRTypes) || isVector() || isMask(); }
+    bool isOMRDataType() { return (_type < TR::NumOMRTypes) || isVectorOrMask(); }
 
     /** \brief
      *     Returns vector type with integral element type of the same size as the original element type
@@ -545,14 +576,6 @@ public:
     TR::DataType scalarToVector(TR::VectorLength length);
 
     /** \brief
-     *     Checks if the type is a Mask type
-     *
-     *  \return
-     *     true iff is a Mask type
-     */
-    inline bool isMask();
-
-    /** \brief
      *     Creates mask type based on element type and vector length
      *
      *  \param elementType
@@ -619,6 +642,7 @@ public:
 
     static int32_t getSize(TR::DataType dt);
     static void setSize(TR::DataType dt, int32_t newValue);
+    static int32_t getElementSize(TR::DataType dt);
 
     template<typename T> static bool isSignedInt8() { return false; }
 
@@ -647,6 +671,8 @@ public:
     {
         return isUnsignedInt8<T>() || isUnsignedInt16<T>() || isUnsignedInt32<T>() || isUnsignedInt64<T>();
     }
+
+    template<typename T> static TR::DataTypes mapPrimitiveType() { return TR::Int16; }
 
 protected:
     inline TR::DataType *self();
