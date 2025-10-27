@@ -15677,29 +15677,22 @@ TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
-    if ((sourceNode->getRegister() == NULL) && sourceNode->getOpCode().isLoadIndirect()
-        && (sourceNode->getReferenceCount() == 1)) {
-        // If the node is load and it is not evaluated already, directly load to vector register.
-        TR::MemoryReference *srcMemRef = new (cg->trHeapMemory()) TR::MemoryReference(sourceNode, cg);
-        generateRXInstruction(cg, (compressedObjectHeaders ? TR::InstOpCode::LD : TR::InstOpCode::LE), node, resultReg, srcMemRef);
-        srcMemRef->stopUsingMemRefRegister(cg);
-    } else {
-        TR::Register *sourceReg = cg->gprClobberEvaluate(sourceNode);
-        // Need the second half of the source in first half of the scratch register.
-        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
 
-        if (type == TR::Double) {
-            generateRREInstruction(cg, TR::InstOpCode::ADBR, node, resultReg, sourceReg);
-        } else {
-            generateVRRcInstruction(cg, TR::InstOpCode::VFA, node, sourceReg, sourceReg, resultReg, 0, 0, 2);
-            generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 2);
-            generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, sourceReg);
-        }
-        TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0,1,cg);
-        dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
-        TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
-        generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
+    TR::Register *sourceReg = cg->gprClobberEvaluate(sourceNode);
+    // Need the second half of the source in first half of the scratch register.
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
+
+    if (type == TR::Double) {
+        generateRREInstruction(cg, TR::InstOpCode::ADBR, node, resultReg, sourceReg);
+    } else {
+        generateVRRcInstruction(cg, TR::InstOpCode::VFA, node, sourceReg, sourceReg, resultReg, 0, 0, 2);
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 2);
+        generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, sourceReg);
     }
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0,1,cg);
+    dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
+    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
     return resultReg;
 }
 
