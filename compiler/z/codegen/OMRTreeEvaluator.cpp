@@ -1501,7 +1501,8 @@ TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::
 static TR::Register *reductionOperationHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
     bool instructionNeedsElementSizeMask)
 {
-    TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+    TR::Node *firstChild = node->getFirstChild();
+    TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
     TR::DataType type = firstChild->getDataType().getVectorElementType();
     uint8_t elementSizeMask = 0;
     switch (type) {
@@ -1536,7 +1537,7 @@ static TR::Register *reductionOperationHelper(TR::Node *node, TR::CodeGenerator 
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(0, cg),
         elementSizeMask);
 
-    cg->decReferenceCount(node->getFirstChild());
+    cg->decReferenceCount(firstChild);
     cg->stopUsingRegister(scratchReg);
     node->setRegister(resultReg);
     return resultReg;
