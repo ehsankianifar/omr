@@ -993,9 +993,10 @@ bool OMR::CodeGenerator::canClobberNodesRegister(TR::Node *node, uint16_t count,
         return true;
 
     TR::Register *reg = node->getRegister();
+    TR_ASSERT_FATAL_WITH_NODE(node, reg != NULL, "Node should have been evaluated\n");
     TR::RegisterPair *regPair = reg->getRegisterPair();
 
-    TR_ASSERT(reg != NULL, "Node should have been evaluated\n");
+    
 
     if (!regPair) {
         bool clobber = self()->isRegisterClobberable(reg, count);
