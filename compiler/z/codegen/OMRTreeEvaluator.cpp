@@ -15524,7 +15524,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpeqEvaluator(TR::Node *node, TR::CodeGen
         case TR::Double:
             return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
         default:
-            TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "unrecognized vector type %s\n", node->getDataType().toString());
             return NULL;
     }
 }
