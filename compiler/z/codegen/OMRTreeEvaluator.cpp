@@ -14209,12 +14209,13 @@ TR::Register *OMR::Z::TreeEvaluator::vRegStoreEvaluator(TR::Node *node, TR::Code
 
 TR::Register *OMR::Z::TreeEvaluator::vstoreEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
-        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+    TR::InstOpCode::Mnemonic opcode = TR::InstOpCode::bad;
 
-    TR_ASSERT_FATAL_WITH_NODE(node, node->getOpCode().isStore(), "vstoreEvaluator called with non-store opcode");
-
-    TR::InstOpCode::Mnemonic opcode = TR::InstOpCode::VST;
+    if (node->getOpCode().getVectorOperation() == TR::vstore || node->getOpCode().getVectorOperation() == TR::vstorei) {
+        opcode = TR::InstOpCode::VST;
+    } else {
+        TR_ASSERT(false, "Unknown vector store IL\n");
+    }
 
     TR::Node *valueChild = node->getOpCode().isStoreDirect() ? node->getFirstChild() : node->getSecondChild();
     TR::Register *valueReg = cg->evaluate(valueChild);
