@@ -15147,9 +15147,11 @@ TR::Register *OMR::Z::TreeEvaluator::vnegEvaluator(TR::Node *node, TR::CodeGener
 
 TR::Register *OMR::Z::TreeEvaluator::vconvEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR_ASSERT_FATAL(node->getOpCode().getVectorSourceDataType().getVectorElementType() == TR::Int64
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getOpCode().getVectorSourceDataType().getVectorElementType() == TR::Int64
             && node->getOpCode().getVectorResultDataType().getVectorElementType() == TR::Double,
-        "Only vector Long to vector Double is currently supported\n");
+        "Only vector Long to vector Double is currently supported. %d %d\n",
+        node->getOpCode().getVectorSourceDataType(),
+        node->getOpCode().getVectorResultDataType());
 
     return TR::TreeEvaluator::inlineVectorUnaryOp(node, cg, TR::InstOpCode::VCDG);
 }
