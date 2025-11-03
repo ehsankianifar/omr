@@ -15148,7 +15148,7 @@ TR::Register *OMR::Z::TreeEvaluator::vnegEvaluator(TR::Node *node, TR::CodeGener
 TR::Register *OMR::Z::TreeEvaluator::vconvEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     if (node->getOpCode().getVectorSourceDataType() == node->getOpCode().getVectorResultDataType()) {
-        TR::Register res = cg->evaluate(node->getFirstChild());
+        TR::Register *res = cg->evaluate(node->getFirstChild());
         node->setRegister(res);
         return res;
     }
