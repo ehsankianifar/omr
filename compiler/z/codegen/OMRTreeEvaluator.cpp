@@ -14088,7 +14088,7 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
 
     // !!! Masks change per instruction. *Ref to zPoP for masks* !!!
     uint8_t mask4 = getVectorElementSizeMask(node);
-    bool supportUnderMaskOperation = false;
+    bool supportUnderMaskOperation = true;//TEMPORARY SET TO TRUE
     bool isCompare = false;
 
     switch (op) {
