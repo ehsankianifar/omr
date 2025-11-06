@@ -1077,17 +1077,73 @@ TR::Register *OMR::Z::TreeEvaluator::msplatsEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::Node *sourceNode = node->getFirstChild();
+    TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
+        "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
+    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
+    // Reduce the size of the mask to 64 bits so it fits inside a GPR.
+    generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
+    TR::Register *resultRegister = cg->allocateRegister();
+    // Move the mask to a GPR.
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0, cg), 3);
+    // Count the number of bits set to 1
+    generateRRFInstruction(cg, TR::InstOpCode::POPCNT, node, resultRegister, resultRegister, static_cast<uint8_t>(0x8),
+        static_cast<uint8_t>(0x0), NULL);
+    // Shift right to account for the number of bits set to 1 in each lane.
+    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
+    generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultRegister);
+    return resultRegister;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mFirstTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::Node *sourceNode = node->getFirstChild();
+    TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
+        "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
+    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
+    // Reduce the size of the mask to 64 bits so it fits inside a GPR.
+    generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
+    // Count the leading zeroes in a 64bit lane:
+    generateVRRcInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, maskRegister, 1);
+    TR::Register *resultRegister = cg->allocateRegister();
+    // Move the mask to a GPR.
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0, cg), 3);
+    // Shift right to account for the number of bits set to 1 in each lane.
+    // resultRegister will be equal to vector length if no mask is true (this is expected behaviour).
+    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
+    generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultRegister);
+    return resultRegister;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::Node *sourceNode = node->getFirstChild();
+    TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
+        "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
+    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
+    // Reduce the size of the mask to 64 bits so it fits inside a GPR.
+    generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
+    // Count the leading zeroes in a 64bit lane:
+    generateVRRcInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, maskRegister, 1);
+    TR::Register *resultRegister = cg->allocateRegister();
+    // Move the mask to a GPR.
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0, cg), 3);
+    // Shift right to account for the number of bits set to 1 in each lane.
+    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
+    generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
+    // We have the element index from right. use (numberOfLanes - indexFromRight - 1) to calculate the last true index.
+    // resultRegister will be equal to -1 if no mask is true (this is expected behaviour).
+    // Negate the result.
+    generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
+    // Add last lane index
+    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, (16 / TR::DataType::getSize(node->getDataType())) - 1);
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultRegister);
+    return resultRegister;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1441,6 +1497,9 @@ TR::Register *OMR::Z::TreeEvaluator::vmcmpleEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    if(node->getType().isFloatingPoint()) {
+        return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
+    }
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
 }
 
@@ -1475,7 +1534,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmminEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmmulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vmulEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmnegEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15387,6 +15446,15 @@ TR::Register *OMR::Z::TreeEvaluator::vmulEvaluator(TR::Node *node, TR::CodeGener
                 generateS390MemoryReference(32, cg), 3);
             generateVRRcInstruction(cg, TR::InstOpCode::VML, node, multLow, tempReg, firstChildReg, 2);
             generateVRRcInstruction(cg, TR::InstOpCode::VA, node, returnReg, multLow, returnReg, 3);
+
+            if(node->getOpCode().isVectorMasked()) {
+                TR::Node *maskChild = node->getThirdChild();
+                // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+                // otherwise, the source1 value remains unchanged in the result register.
+                generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, returnReg, returnReg, firstChildReg,
+                    cg->evaluate(maskChild), 0, 0);
+                cg->decReferenceCount(maskChild);
+            }
 
             node->setRegister(returnReg);
 
