@@ -4404,14 +4404,19 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vloadi:
         case TR::vstore:
         case TR::vstorei:
-        case TR::vmload:
-        case TR::vmloadi:
-        case TR::vmstore:
-        case TR::vmstorei:
+        case TR::vRegLoad:
+        case TR::vRegStore:
+        case TR::mRegLoad:
+        case TR::mRegStore:
+        case TR::mload:
+        case TR::mloadi:
+        case TR::mstore:
+        case TR::mstorei:
         case TR::vneg:
         case TR::vsplats:
         case TR::msplats:
         case TR::vabs:
+        case TR::vbitselect:
             return true;
         case TR::vmul:
             if (et == TR::Int8 || et == TR::Int16 || et == TR::Int32 || et == TR::Float || et == TR::Double)
