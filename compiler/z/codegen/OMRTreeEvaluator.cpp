@@ -14242,11 +14242,11 @@ TR::Register *OMR::Z::TreeEvaluator::vstoreEvaluator(TR::Node *node, TR::CodeGen
     return NULL;
 }
 
-TR::Register *OMR::Z::TreeEvaluator::vbitselectEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+static TR::Register *vbitselectHelper(TR::Node *node, TR::CodeGenerator *cg, bool isBlend)
 {
-    TR::Node *selectorChild = node->getFirstChild();
+    TR::Node *selectorChild = isBlend ? node->getThirdChild() : node->getFirstChild();
     TR::Node *trueChild = node->getSecondChild();
-    TR::Node *falseChild = node->getThirdChild();
+    TR::Node *falseChild = isBlend ? node->getFirstChild() : node->getThirdChild();
 
     TR::Register *falseVecReg = cg->evaluate(falseChild);
     TR::Register *trueVecReg = cg->evaluate(trueChild);
@@ -14267,9 +14267,14 @@ TR::Register *OMR::Z::TreeEvaluator::vbitselectEvaluator(TR::Node *node, TR::Cod
     return returnVecReg;
 }
 
+TR::Register *OMR::Z::TreeEvaluator::vbitselectEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+{
+    return vbitselectHelper(node, cg, /* isBlend */ false);
+}
+
 TR::Register *OMR::Z::TreeEvaluator::vblendEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return vbitselectHelper(node, cg, /* isBlend */ true);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::arraytranslateDecodeSIMDEvaluator(TR::Node *node, TR::CodeGenerator *cg,
