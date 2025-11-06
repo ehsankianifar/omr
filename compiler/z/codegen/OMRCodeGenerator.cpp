@@ -4491,6 +4491,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::i2m:
         case TR::l2m:
         case TR::vorUnchecked:
+        case TR::vmorUnchecked:
         case TR::vreductionAdd:
             return true;
         default:
