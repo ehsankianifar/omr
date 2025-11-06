@@ -1386,7 +1386,7 @@ TR::Register *OMR::Z::TreeEvaluator::vindexVectorEvaluator(TR::Node *node, TR::C
 
 TR::Register *OMR::Z::TreeEvaluator::vorUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vfirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1401,7 +1401,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmabsEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmaddEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vaddEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1411,32 +1411,32 @@ TR::Register *OMR::Z::TreeEvaluator::vmandEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpeqEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcmpeqEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpneEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcmpneEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpgtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcmpgtEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpgeEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcmpgeEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpltEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcmpltEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpleEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcmpleEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1600,7 +1600,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmstoreiEvaluator(TR::Node *node, TR::CodeG
 
 TR::Register *OMR::Z::TreeEvaluator::vmsubEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vsubEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmxorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -14089,6 +14089,7 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
     // !!! Masks change per instruction. *Ref to zPoP for masks* !!!
     uint8_t mask4 = getVectorElementSizeMask(node);
     bool supportUnderMaskOperation = false;
+    bool isCompare = false;
 
     switch (op) {
         // These don't use mask
@@ -14119,12 +14120,16 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
         case TR::InstOpCode::VFCH:
         case TR::InstOpCode::VFCHE:
             breakInst = generateVRRcInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 0, 0, mask4);
+            isCompare = true;
+            supportUnderMaskOperation = true;
             break;
         // These are VRRb
         case TR::InstOpCode::VCH:
         case TR::InstOpCode::VCHL:
         case TR::InstOpCode::VCEQ:
             breakInst = generateVRRbInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 0, mask4);
+            isCompare = true;
+            supportUnderMaskOperation = true;
             break;
         case TR::InstOpCode::VFMAX:
         case TR::InstOpCode::VFMIN:
@@ -14146,10 +14151,16 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
         TR_ASSERT_FATAL_WITH_NODE(node, supportUnderMaskOperation,
             "Masked operation was requested for an opcode that does not support masking.");
         TR::Node *maskChild = node->getThirdChild();
-        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
-        // otherwise, the source1 value remains unchanged in the result register.
-        generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, targetReg, sourceReg1,
-            cg->evaluate(maskChild), 0, 0);
+        if(isCompare) {
+            // Zero any lane that is not covered by mask.
+            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, targetReg, cg->evaluate(maskChild), 0, 0,
+                0);
+        } else {
+            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+            // otherwise, the source1 value remains unchanged in the result register.
+            generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, targetReg, sourceReg1,
+                cg->evaluate(maskChild), 0, 0);
+        }
         cg->decReferenceCount(maskChild);
     }
 
@@ -15262,7 +15273,8 @@ TR::Register *OMR::Z::TreeEvaluator::vaddEvaluator(TR::Node *node, TR::CodeGener
     if ((node->getDataType().getVectorElementType() == TR::Double
             || node->getDataType().getVectorElementType() == TR::Float)
         && (canUseNodeForFusedMultiply(node->getFirstChild()) || canUseNodeForFusedMultiply(node->getSecondChild()))
-        && generateFusedMultiplyAddIfPossible(cg, node, TR::InstOpCode::VFMA)) {
+        && generateFusedMultiplyAddIfPossible(cg, node, TR::InstOpCode::VFMA)
+        && !node->getOpCode().isVectorMasked()) {
         if (cg->comp()->getOption(TR_TraceCG))
             traceMsg(cg->comp(), "Successfully changed vadd with vmul child to fused multiply and add operation\n");
 
@@ -15296,7 +15308,8 @@ TR::Register *OMR::Z::TreeEvaluator::vsubEvaluator(TR::Node *node, TR::CodeGener
     if ((node->getDataType().getVectorElementType() == TR::Double
             || node->getDataType().getVectorElementType() == TR::Float)
         && canUseNodeForFusedMultiply(node->getFirstChild())
-        && generateFusedMultiplyAddIfPossible(cg, node, TR::InstOpCode::VFMS)) {
+        && generateFusedMultiplyAddIfPossible(cg, node, TR::InstOpCode::VFMS)
+        && !node->getOpCode().isVectorMasked()) {
         if (cg->comp()->getOption(TR_TraceCG))
             traceMsg(cg->comp(), "Successfully changed vsub with vmul child to fused multiply and sub operation\n");
 
@@ -15501,6 +15514,7 @@ TR::Register *OMR::Z::TreeEvaluator::vandEvaluator(TR::Node *node, TR::CodeGener
 
 TR::Register *OMR::Z::TreeEvaluator::vorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    //TODO: we may need to check if type is integral. 
     return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
@@ -15616,6 +15630,13 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
         generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, equalReg, firstReg, secondReg, 0, mask4);
         generateVRRbInstruction(cg, op, node, targetReg, firstReg, secondReg, 0, mask4);
         generateVRRcInstruction(cg, TR::InstOpCode::VO, node, targetReg, targetReg, equalReg, 0, 0, 0);
+        if(node->getOpCode().isVectorMasked()) {
+            TR::Node *maskChild = node->getThirdChild();
+            // Zero any lane that is not covered by mask.
+            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, targetReg, cg->evaluate(maskChild), 0, 0,
+                0);
+            cg->decReferenceCount(maskChild);
+        }
 
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);

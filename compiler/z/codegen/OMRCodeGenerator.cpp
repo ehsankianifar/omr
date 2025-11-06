@@ -4398,10 +4398,16 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
     switch (opcode.getVectorOperation()) {
         case TR::vadd:
         case TR::vsub:
+        case TR::vmadd:
+        case TR::vmsub:
         case TR::vload:
         case TR::vloadi:
         case TR::vstore:
         case TR::vstorei:
+        case TR::vmload:
+        case TR::vmloadi:
+        case TR::vmstore:
+        case TR::vmstorei:
         case TR::vneg:
         case TR::vsplats:
         case TR::msplats:
@@ -4463,6 +4469,12 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vcmple:
         case TR::vcmpgt:
         case TR::vcmpge:
+        case TR::vmcmpeq:
+        case TR::vmcmpne:
+        case TR::vmcmplt:
+        case TR::vmcmple:
+        case TR::vmcmpgt:
+        case TR::vmcmpge:
         case TR::m2v:
         case TR::m2l:
         case TR::m2i:
@@ -4473,6 +4485,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::s2m:
         case TR::i2m:
         case TR::l2m:
+        case TR::vorUnchecked:
         case TR::vreductionAdd:
             return true;
         default:
