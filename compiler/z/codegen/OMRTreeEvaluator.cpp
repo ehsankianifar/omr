@@ -15946,7 +15946,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
     if (type.isDouble()) {
         return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
     } else if (type.isIntegral()) {
-        return integralReductionHelper(node, cg, TR::InstOpCode::VMX, true /* instructionNeedsElementSizeMask */);
+        return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */);
     } else if (type.isFloat()) {
         return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */);
     } else if (type.isDouble()) {
