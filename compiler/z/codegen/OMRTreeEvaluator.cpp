@@ -1399,14 +1399,14 @@ TR::Register *OMR::Z::TreeEvaluator::vsqrtEvaluator(TR::Node *node, TR::CodeGene
 TR::Register *OMR::Z::TreeEvaluator::vminEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType dt = node->getDataType().getVectorElementType();
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg,
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg,
         (dt == TR::Double || dt == TR::Float) ? TR::InstOpCode::VFMIN : TR::InstOpCode::VMN);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType dt = node->getDataType().getVectorElementType();
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg,
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg,
         (dt == TR::Double || dt == TR::Float) ? TR::InstOpCode::VFMAX : TR::InstOpCode::VMX);
 }
 
@@ -1442,7 +1442,7 @@ TR::Register *OMR::Z::TreeEvaluator::vindexVectorEvaluator(TR::Node *node, TR::C
 
 TR::Register *OMR::Z::TreeEvaluator::vorUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vfirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1462,7 +1462,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmaddEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VN);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VN);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpeqEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1498,7 +1498,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmcmpleEvaluator(TR::Node *node, TR::CodeGe
 TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     if(node->getType().isFloatingPoint()) {
-        return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
+        return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
     }
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
 }
@@ -1521,14 +1521,14 @@ TR::Register *OMR::Z::TreeEvaluator::vmloadiEvaluator(TR::Node *node, TR::CodeGe
 TR::Register *OMR::Z::TreeEvaluator::vmmaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType dt = node->getDataType().getVectorElementType();
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg,
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg,
         (dt == TR::Double || dt == TR::Float) ? TR::InstOpCode::VFMAX : TR::InstOpCode::VMX);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmminEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType dt = node->getDataType().getVectorElementType();
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg,
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg,
         (dt == TR::Double || dt == TR::Float) ? TR::InstOpCode::VFMIN : TR::InstOpCode::VMN);
 }
 
@@ -1549,12 +1549,12 @@ TR::Register *OMR::Z::TreeEvaluator::vmnotEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
 static TR::Register *reductionOperationHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
@@ -1664,7 +1664,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmsubEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmxorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VX);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VX);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmfirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15218,7 +15218,7 @@ TR::Register *OMR::Z::TreeEvaluator::vnegEvaluator(TR::Node *node, TR::CodeGener
             return NULL;
     }
 
-    return TR::TreeEvaluator::inlineVectorUnaryOp(node, cg, opCode);
+    return OMR::Z::TreeEvaluator::inlineVectorUnaryOp(node, cg, opCode);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vconvEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15234,7 +15234,7 @@ TR::Register *OMR::Z::TreeEvaluator::vconvEvaluator(TR::Node *node, TR::CodeGene
         node->getOpCode().getVectorSourceDataType(),
         node->getOpCode().getVectorResultDataType());
 
-    return TR::TreeEvaluator::inlineVectorUnaryOp(node, cg, TR::InstOpCode::VCDG);
+    return OMR::Z::TreeEvaluator::inlineVectorUnaryOp(node, cg, TR::InstOpCode::VCDG);
 }
 
 bool canUseNodeForFusedMultiply(TR::Node *node)
@@ -15360,7 +15360,7 @@ TR::Register *OMR::Z::TreeEvaluator::vaddEvaluator(TR::Node *node, TR::CodeGener
                 TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
                 return NULL;
         }
-        return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, opCode);
+        return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, opCode);
     }
 }
 
@@ -15395,7 +15395,7 @@ TR::Register *OMR::Z::TreeEvaluator::vsubEvaluator(TR::Node *node, TR::CodeGener
                 TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
                 return NULL;
         }
-        return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, opCode);
+        return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, opCode);
     }
 }
 
@@ -15408,7 +15408,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmulEvaluator(TR::Node *node, TR::CodeGener
         case TR::Int8:
         case TR::Int16:
         case TR::Int32:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VML);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VML);
         case TR::Int64: {
             // emulated, no Z instruction available
 
@@ -15468,7 +15468,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmulEvaluator(TR::Node *node, TR::CodeGener
         }
         case TR::Float:
         case TR::Double:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFM);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFM);
         default:
             TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
             return NULL;
@@ -15573,7 +15573,7 @@ TR::Register *OMR::Z::TreeEvaluator::vdivEvaluator(TR::Node *node, TR::CodeGener
             return TR::TreeEvaluator::vDivOrRemHelper(node, cg, true);
         case TR::Float:
         case TR::Double:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
         default:
             TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
             return NULL;
@@ -15582,18 +15582,18 @@ TR::Register *OMR::Z::TreeEvaluator::vdivEvaluator(TR::Node *node, TR::CodeGener
 
 TR::Register *OMR::Z::TreeEvaluator::vandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VN);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VN);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     //TODO: we may need to check if type is integral. 
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vxorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VX);
+    return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VX);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vcmpeqEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15606,10 +15606,10 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpeqEvaluator(TR::Node *node, TR::CodeGen
         case TR::Int16:
         case TR::Int32:
         case TR::Int64:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VCEQ);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VCEQ);
         case TR::Double:
         case TR::Float:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
         default:
             TR_ASSERT_FATAL_WITH_NODE(node, false, "unrecognized vector type %s\n", node->getFirstChild()->getDataType().toString());
             return NULL;
@@ -15627,11 +15627,11 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpneEvaluator(TR::Node *node, TR::CodeGen
         case TR::Int16:
         case TR::Int32:
         case TR::Int64:
-            targetReg = TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VCEQ);
+            targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VCEQ);
             break;
         case TR::Double:
         case TR::Float:
-            targetReg = TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
+            targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
             break;
         default:
             TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
@@ -15663,10 +15663,10 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgtEvaluator(TR::Node *node, TR::CodeGen
         case TR::Int16:
         case TR::Int32:
         case TR::Int64:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, op);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, op);
         case TR::Double:
         case TR::Float:
-            return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCH);
+            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCH);
         default:
             TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
             return NULL;
@@ -15688,7 +15688,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
 
     TR::DataType dt = node->getFirstChild()->getDataType().getVectorElementType();
     if (dt == TR::Double || dt == TR::Float)
-        return TR::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCHE);
+        return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCHE);
     else {
         TR::Node *firstChild = node->getFirstChild();
         TR::Node *secondChild = node->getSecondChild();
