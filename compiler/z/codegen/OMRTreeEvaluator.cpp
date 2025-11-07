@@ -1694,12 +1694,38 @@ TR::Register *OMR::Z::TreeEvaluator::vmfirstNonZeroEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vpopcntEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+
+    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *sourceReg = cg->evaluate(sourceNode);
+    // Calculate the population count.
+    generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, resultReg, sourceReg, 0, 0,
+        getVectorElementSizeMask(sourceNode) /* mask3 */);
+    node->setRegister(resultReg);
+    cg->decReferenceCount(sourceNode);
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmpopcntEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+
+    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *sourceReg = cg->evaluate(sourceNode);
+    TR::Register *maskReg = cg->evaluate(node->getSecondChild());
+    // Zero the unmasked lanes to get zero population count;
+    generateVRRcInstruction(cg, TR::InstOpCode::VN, node, resultReg, maskReg, sourceReg, 0);
+    // Calculate the population count on masked lanes.
+    generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, resultReg, resultReg, 0, 0,
+        getVectorElementSizeMask(sourceNode) /* mask3 */);
+    node->setRegister(resultReg);
+    cg->decReferenceCount(sourceNode);
+    cg->decReferenceCount(node->getSecondChild());
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::CodeGenerator *cg)
