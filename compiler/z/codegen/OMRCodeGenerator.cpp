@@ -4413,9 +4413,11 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::mstore:
         case TR::mstorei:
         case TR::vneg:
+        case TR::vmneg:
         case TR::vsplats:
         case TR::msplats:
         case TR::vabs:
+        case TR::vmabs:
         case TR::vbitselect:
         case TR::vblend:
             return true;
@@ -4429,6 +4431,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmdiv:
         case TR::vfma:
         case TR::vsqrt:
+        case TR::vmsqrt:
             if (et == TR::Float || et == TR::Double)
                 return true;
             else
