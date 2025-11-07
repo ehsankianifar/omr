@@ -15865,10 +15865,10 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
 
     if (type.isIntegral()) {
         resultReg = vIntReductionAddHelper(node, cg, type);
-    } else if (type.isFloat()) {
-        resultReg = floatReductionHelper(node, cg, NULL, TR::InstOpCode::ADBR, false /* isDouble */);
     } else if (type.isDouble()) {
-        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::VFA, TR::InstOpCode::AEBR, true /* isDouble */);
+        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::ADBR, true /* isDouble */);
+    } else if (type.isFloat()) {
+        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::VFA, TR::InstOpCode::AEBR, false /* isDouble */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -15950,7 +15950,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
     } else if (type.isFloat()) {
         return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */);
     } else if (type.isDouble) {
-        return floatReductionHelper(node, cg, NULL, TR::InstOpCode::MDBR, true /* isDouble */);
+        return floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::MDBR, true /* isDouble */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
