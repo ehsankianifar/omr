@@ -1694,38 +1694,12 @@ TR::Register *OMR::Z::TreeEvaluator::vmfirstNonZeroEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vpopcntEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
-        "Only 128-bit vectors are supported %s", node->getDataType().toString());
-
-    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
-    TR::Node *sourceNode = node->getFirstChild();
-    TR::Register *sourceReg = cg->evaluate(sourceNode);
-    // Calculate the population count.
-    generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, resultReg, sourceReg, 0, 0,
-        getVectorElementSizeMask(sourceNode) /* mask3 */);
-    node->setRegister(resultReg);
-    cg->decReferenceCount(sourceNode);
-    return resultReg;
+    return inlineVectorUnaryOp(node, cg, TR::InstOpCode::VPOPCT);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmpopcntEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
-        "Only 128-bit vectors are supported %s", node->getDataType().toString());
-
-    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
-    TR::Node *sourceNode = node->getFirstChild();
-    TR::Register *sourceReg = cg->evaluate(sourceNode);
-    TR::Register *maskReg = cg->evaluate(node->getSecondChild());
-    // Zero the unmasked lanes to get zero population count;
-    generateVRRcInstruction(cg, TR::InstOpCode::VN, node, resultReg, maskReg, sourceReg, 0);
-    // Calculate the population count on masked lanes.
-    generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, resultReg, resultReg, 0, 0,
-        getVectorElementSizeMask(sourceNode) /* mask3 */);
-    node->setRegister(resultReg);
-    cg->decReferenceCount(sourceNode);
-    cg->decReferenceCount(node->getSecondChild());
-    return resultReg;
+    return TR::TreeEvaluator::vpopcntEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -14126,15 +14100,18 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
     TR::Register *returnReg
         = isMasked ? cg->allocateRegister(TR_VRF) : TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
     TR::Register *sourceReg1 = cg->evaluate(firstChild);
+    bool zeroUnmasked = false;
 
     switch (op) {
         case TR::InstOpCode::VCDG:
             generateVRRaInstruction(cg, op, node, returnReg, sourceReg1, 0, 0, 3);
             break;
-        case TR::InstOpCode::VLC:
-        case TR::InstOpCode::VLP:
         case TR::InstOpCode::VCTZ:
         case TR::InstOpCode::VCLZ:
+        case TR::InstOpCode::VPOPCT:
+            zeroUnmasked = true;
+        case TR::InstOpCode::VLC:
+        case TR::InstOpCode::VLP:
             generateVRRaInstruction(cg, op, node, returnReg, sourceReg1, 0, 0, getVectorElementSizeMask(node));
             break;
         case TR::InstOpCode::VFPSO: {
@@ -14174,10 +14151,16 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
 
     if (isMasked) {
         TR::Node *maskChild = node->getSecondChild();
-        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
-        // otherwise, the source1 value remains unchanged in the result register.
-        generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, returnReg, returnReg, sourceReg1,
-            cg->evaluate(maskChild), 0, 0);
+        if(zeroUnmasked) {
+            // Zero any lane that is not covered by mask.
+            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, returnReg, returnReg, cg->evaluate(maskChild), 0, 0,
+                0);
+        } else {
+            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+            // otherwise, the source1 value remains unchanged in the result register.
+            generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, returnReg, returnReg, sourceReg1,
+                cg->evaluate(maskChild), 0, 0);
+        }
         cg->decReferenceCount(maskChild);
     }
 
