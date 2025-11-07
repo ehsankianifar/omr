@@ -14109,7 +14109,7 @@ TR::Register *OMR::Z::TreeEvaluator::tryToReuseInputVectorRegs(TR::Node *node, T
 TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::CodeGenerator *cg,
     TR::InstOpCode::Mnemonic op)
 {
-    const bool isMasked = node->getOpCode().isVectorMasked();
+    bool isMasked = node->getOpCode().isVectorMasked();
     TR_ASSERT(node->getNumChildren() <= (isMasked ? 2 : 1),
         "Binary Node must contain no more than 1 children, or up to 2 if a mask is present.");
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
@@ -14130,6 +14130,8 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
         case TR::InstOpCode::VCLZ:
         case TR::InstOpCode::VPOPCT:
             zeroUnmasked = true;
+            generateVRRaInstruction(cg, op, node, returnReg, sourceReg1, 0, 0, getVectorElementSizeMask(node));
+            break;
         case TR::InstOpCode::VLC:
         case TR::InstOpCode::VLP:
             generateVRRaInstruction(cg, op, node, returnReg, sourceReg1, 0, 0, getVectorElementSizeMask(node));
@@ -14192,7 +14194,7 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
 TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::CodeGenerator *cg,
     TR::InstOpCode::Mnemonic op)
 {
-    const bool isMasked = node->getOpCode().isVectorMasked();
+    bool isMasked = node->getOpCode().isVectorMasked();
     TR_ASSERT(node->getNumChildren() <= (isMasked ? 3 : 2),
         "Binary Node must contain no more than 2 children, or up to 3 if a mask is present.");
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
@@ -15933,14 +15935,11 @@ TR::Register *floatMaxMinReductionHelper(TR::Node *node, TR::CodeGenerator *cg, 
     TR::Register *sourceReg = isDouble ? cg->evaluate(sourceNode) : cg->gprClobberEvaluate(sourceNode);
     // Need the second half of the source in first half of the scratch register.
     generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
-    generateVRRcInstruction(cg, op, node, resultReg, resultReg, resultReg, 1, 0, isDouble ? 3 : 2);
+    generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, isDouble ? 3 : 2);
     if (!isDouble) {
         generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, sourceReg, resultReg, 1, 2);
         generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, isDouble ? 3 : 2);
     }
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0, 1, cg);
-    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
-    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
 
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultReg);
