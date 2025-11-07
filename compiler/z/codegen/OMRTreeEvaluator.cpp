@@ -1359,7 +1359,16 @@ TR::Register *OMR::Z::TreeEvaluator::m2vEvaluator(TR::Node *node, TR::CodeGenera
 // vector evaluators
 TR::Register *OMR::Z::TreeEvaluator::vnotEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+
+    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
+    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
+    // NAND the source with itself to perform NOT operation.
+    generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, resultReg, sourceReg, sourceReg, 0);
+    node->setRegister(resultReg);
+    cg->decReferenceCount(node->getFirstChild());
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vfmaEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1544,7 +1553,18 @@ TR::Register *OMR::Z::TreeEvaluator::vmnegEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmnotEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+
+    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
+    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
+    TR::Register *maskReg = cg->evaluate(node->getSecondChild());
+    // XOR the source with mask to perform NOT operation on the bits selected by mask.
+    generateVRRcInstruction(cg, TR::InstOpCode::VX, node, resultReg, maskReg, sourceReg, 0);
+    node->setRegister(resultReg);
+    cg->decReferenceCount(node->getFirstChild());
+    cg->decReferenceCount(node->getSecondChild());
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
