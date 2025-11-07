@@ -1512,7 +1512,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmcmpleEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    if(node->getType().isFloatingPoint()) {
+    if(node->getDataType().getVectorElementType().isFloatingPoint()) {
         return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false,
