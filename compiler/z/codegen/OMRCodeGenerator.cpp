@@ -4501,7 +4501,8 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vreductionAdd:
             return true;
         default:
-            return false;
+            static const char *enableAllVectors = feGetEnv("TR_EnableAllVectors");
+            return enableAllVectors != NULL;
     }
 
     return false;
