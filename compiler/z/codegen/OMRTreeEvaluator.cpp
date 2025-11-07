@@ -1514,6 +1514,9 @@ TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGene
 {
     if(node->getType().isFloatingPoint()) {
         return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
+    } else {
+        TR_ASSERT_FATAL_WITH_NODE(node, false,
+            "Float failure %s", node->getDataType().toString());
     }
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
 }
