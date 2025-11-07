@@ -1097,12 +1097,8 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
     return resultRegister;
 }
 
-TR::Register *OMR::Z::TreeEvaluator::mFirstTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
 {
-    TR::Node *sourceNode = node->getFirstChild();
-    TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
-        "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
-    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
     // Reduce the size of the mask to 64 bits so it fits inside a GPR.
     generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
     // Count the leading zeroes in a 64bit lane:
@@ -1114,6 +1110,16 @@ TR::Register *OMR::Z::TreeEvaluator::mFirstTrueEvaluator(TR::Node *node, TR::Cod
     // resultRegister will be equal to vector length if no mask is true (this is expected behaviour).
     int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
+    return resultRegister;
+}
+
+TR::Register *OMR::Z::TreeEvaluator::mFirstTrueEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+{
+    TR::Node *sourceNode = node->getFirstChild();
+    TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
+        "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
+    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
+    TR::Register *resultRegister = firstTrueHelper(node, cg, maskRegister);
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
     return resultRegister;
@@ -1615,9 +1621,37 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionAndEvaluator(TR::Node *node, TR:
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
 }
 
+static TR::Register *reductionFirstNonZeroHelper(TR::Node *node, TR::CodeGenerator *cg, bool isMasked)
+{
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *sourceReg = isMasked ? cg->gprClobberEvaluate(sourceNode) : cg->evaluate(sourceNode);
+    TR::Register *scratchReg = NULL;
+    if (isMasked) {
+        // evaluate mask register.
+        scratchReg = cg->gprClobberEvaluate(node->getSecondChild());
+        // zero unmasked lanes.
+        generateVRRcInstruction(cg, TR::InstOpCode::VN, node, sourceReg, scratchReg, sourceReg, 0, 0, 0);
+    }
+    // zero scratch register.
+    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
+    int32_t mask4 = getVectorElementSizeMask(node);
+    generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, scratchReg, sourceReg, scratchReg, 0, mask4);
+    // negate scratch register to get a mask of non-zero lanes.
+    generateVRRcInstruction(cg, TR::InstOpCode::VNO, node, scratchReg, scratchReg, scratchReg, 0, 0, 0);
+    TR::Register *resultReg = firstTrueHelper(node, cg, scratchReg);
+
+    node->setRegister(resultReg);
+    cg->decReferenceCount(sourceNode);
+    if (isMasked)
+        cg->decReferenceCount(node->getSecondChild());
+    else
+        cg->stopUsingRegister(scratchReg);
+    return resultReg;
+}
+
 TR::Register *OMR::Z::TreeEvaluator::vmreductionFirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return reductionFirstNonZeroHelper(node, cg, true /* isMasked */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionMaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15883,7 +15917,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAndEvaluator(TR::Node *node, TR::
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionFirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return reductionFirstNonZeroHelper(node, cg, false /* isMasked */);
 }
 
 TR::Register *floatMaxMinReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, bool isDouble)
