@@ -1582,7 +1582,7 @@ static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *
 {
     TR::Node *firstChild = node->getFirstChild();
     TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
-    uint8_t elementSizeMask = getVectorElementSizeMask(node);
+    uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
 
     for (int i = 0; i < 4 - elementSizeMask; i++) {
