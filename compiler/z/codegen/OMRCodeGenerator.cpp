@@ -4439,6 +4439,9 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmxor:
         case TR::vmor:
         case TR::vmand:
+        case TR::mxor:
+        case TR::mor:
+        case TR::mand:
         case TR::vnotz:
         case TR::vnolz:
         case TR::vreductionAnd:
