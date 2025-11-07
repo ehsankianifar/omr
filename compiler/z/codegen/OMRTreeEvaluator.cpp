@@ -1512,7 +1512,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmcmpleEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    if(node->getDataType().getVectorElementType().isFloatingPoint()) {
+    if(node->getType().isFloatingPoint()) {
         return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false,
@@ -15339,7 +15339,7 @@ bool generateFusedMultiplyAddIfPossible(TR::CodeGenerator *cg, TR::Node *addNode
     }
 
     // if the FloatMAF option is not set and the node is not FP strict, we can't generate FMA operations
-    if ((addNode->getDataType().getVectorElementType().isFloatingPoint()
+    if ((addNode->getType().isFloatingPoint()
             || (addNode->getType().isVector()
                 && (TR::Float == addNode->getType().getVectorElementType()
                     || TR::Double == addNode->getType().getVectorElementType())))
@@ -15352,7 +15352,7 @@ bool generateFusedMultiplyAddIfPossible(TR::CodeGenerator *cg, TR::Node *addNode
     TR_ASSERT(mulNode->getOpCode().isMul(), "Unexpected op!=mul %p\n", mulNode);
 
     TR::Register *addReg
-        = (addNode->getDataType().getVectorElementType().isFloatingPoint()) ? cg->fprClobberEvaluate(addChild) : cg->gprClobberEvaluate(addChild);
+        = (addNode->getType().isFloatingPoint()) ? cg->fprClobberEvaluate(addChild) : cg->gprClobberEvaluate(addChild);
     TR::Register *mulLeftReg = cg->evaluate(mulNode->getFirstChild());
     TR::Register *mulRightReg = cg->evaluate(mulNode->getSecondChild());
 
