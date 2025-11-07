@@ -4478,6 +4478,8 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmin:
         case TR::vmmax:
         case TR::vmmin:
+        case TR::vreductionMax:
+        case TR::vreductionMin:
             if ((et == TR::Float || et == TR::Double)
                 && !cpu->supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1))
                 return false;
@@ -4519,6 +4521,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vorUnchecked:
         case TR::vmorUnchecked:
         case TR::vreductionAdd:
+        case TR::vreductionMul:
             return true;
         default:
             static const char *enableAllVectors = feGetEnv("TR_EnableAllVectors");

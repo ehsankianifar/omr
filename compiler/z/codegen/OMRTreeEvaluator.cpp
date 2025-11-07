@@ -1577,31 +1577,14 @@ TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::
     return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VO);
 }
 
-static TR::Register *reductionOperationHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
+static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
     bool instructionNeedsElementSizeMask)
 {
     TR::Node *firstChild = node->getFirstChild();
     TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
-    TR::DataType type = firstChild->getDataType().getVectorElementType();
-    uint8_t elementSizeMask = 0;
-    switch (type) {
-        case TR::Int8:
-            elementSizeMask = 0;
-            break;
-        case TR::Int16:
-            elementSizeMask = 1;
-            break;
-        case TR::Int32:
-            elementSizeMask = 2;
-            break;
-        case TR::Int64:
-            elementSizeMask = 3;
-            break;
-        default:
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
-    }
-
+    uint8_t elementSizeMask = getVectorElementSizeMask(node);
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+
     for (int i = 0; i < 4 - elementSizeMask; i++) {
         // In each iteration, the vector is split in half: the first half stays in
         // sourceReg, and the second half moves to the scratch register. The operation
@@ -15814,11 +15797,14 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
     if (needPreReduction)
         cg->stopUsingRegister(sourceReg);
     cg->stopUsingRegister(scratchReg);
+    cg->decReferenceCount(node->getFirstChild());
+    node->setRegister(resultReg);
 
     return resultReg;
 }
 
-TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
+TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic vectorOp,
+    TR::InstOpCode::Mnemonic floatOP, bool isDouble)
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
@@ -15827,17 +15813,42 @@ TR::Register *vFloatReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR
     // Need the second half of the source in first half of the scratch register.
     generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
 
-    if (type == TR::Double) {
-        generateRREInstruction(cg, TR::InstOpCode::ADBR, node, resultReg, sourceReg);
+    if (isDouble) {
+        generateRREInstruction(cg, floatOP, node, resultReg, sourceReg);
     } else {
-        generateVRRcInstruction(cg, TR::InstOpCode::VFA, node, sourceReg, sourceReg, resultReg, 0, 0, 2);
+        generateVRRcInstruction(cg, vectorOp, node, sourceReg, sourceReg, resultReg, 0, 0, 2);
         generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 2);
-        generateRREInstruction(cg, TR::InstOpCode::AEBR, node, resultReg, sourceReg);
+        generateRREInstruction(cg, floatOP, node, resultReg, sourceReg);
     }
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0,1,cg);
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0, 1, cg);
     dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
     TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
     generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
+
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultReg);
+    return resultReg;
+}
+
+TR::Register *longReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op)
+{
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *resultReg = cg->allocateRegister();
+    TR::Register *scratchReg = cg->allocateRegister();
+    TR::Register *sourceReg = cg->evaluate(sourceNode);
+
+    // Copy elements to GPRS;
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg,
+        generateS390MemoryReference(0, cg), 3);
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, scratchReg, sourceReg,
+        generateS390MemoryReference(1, cg), 3);
+
+    // Perform operation.
+    generateRREInstruction(cg, op, node, resultReg, scratchReg);
+
+    cg->stopUsingRegister(scratchReg);
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultReg);
     return resultReg;
 }
 
@@ -15854,20 +15865,20 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
 
     if (type.isIntegral()) {
         resultReg = vIntReductionAddHelper(node, cg, type);
-    } else if (type.isFloatingPoint()) {
-        resultReg = vFloatReductionAddHelper(node, cg, type);
+    } else if (type.isFloat()) {
+        resultReg = floatReductionHelper(node, cg, NULL, TR::InstOpCode::ADBR, false /* isDouble */);
+    } else if (type.isDouble()) {
+        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::VFA, TR::InstOpCode::AEBR, true /* isDouble */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
 
-    cg->decReferenceCount(firstChild);
-    node->setRegister(resultReg);
     return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionAndEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return reductionOperationHelper(node, cg, TR::InstOpCode::VN, false /* instructionNeedsElementSizeMask */);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VN, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionFirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15875,24 +15886,80 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionFirstNonZeroEvaluator(TR::Node *n
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
 }
 
+TR::Register *floatMaxMinReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, bool isDouble)
+{
+    TR_ASSERT_FATAL_WITH_NODE(node, cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1),
+        "VFMAX/VFMIN is only supported on z14 onwards.");
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *resultReg = cg->allocateRegister(TR_FPR);
+
+    TR::Register *sourceReg = isDouble ? cg->evaluate(sourceNode) : cg->gprClobberEvaluate(sourceNode);
+    // Need the second half of the source in first half of the scratch register.
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
+    generateVRRcInstruction(cg, op, node, resultReg, resultReg, resultReg, 1, 0, isDouble ? 3 : 2);
+    if (!isDouble) {
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, sourceReg, resultReg, 1, 2);
+        generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, isDouble ? 3 : 2);
+    }
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0, 1, cg);
+    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
+
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultReg);
+    return resultReg;
+}
+
 TR::Register *OMR::Z::TreeEvaluator::vreductionMaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
+    if (type.isIntegral()) {
+        return integralReductionHelper(node, cg, TR::InstOpCode::VMX, true /* instructionNeedsElementSizeMask */);
+    } else if (type.isFloat()) {
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, false /* isDouble */);
+    } else if (type.isDouble()) {
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, true /* isDouble */);
+    } else {
+        TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
+    }
+    return NULL;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
+    if (type.isIntegral()) {
+        return integralReductionHelper(node, cg, TR::InstOpCode::VMN, true /* instructionNeedsElementSizeMask */);
+    } else if (type.isFloat()) {
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, false /* isDouble */);
+    } else if (type.isDouble()) {
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, true /* isDouble */);
+    } else {
+        TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
+    }
+    return NULL;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
+    if (type.isDouble()) {
+        return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
+    } else if (type.isIntegral()) {
+        return integralReductionHelper(node, cg, TR::InstOpCode::VMX, true /* instructionNeedsElementSizeMask */);
+    } else if (type.isFloat()) {
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */);
+    } else if (type.isDouble) {
+        return floatReductionHelper(node, cg, NULL, TR::InstOpCode::MDBR, true /* isDouble */);
+    } else {
+        TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
+    }
+    return NULL;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionOrEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return reductionOperationHelper(node, cg, TR::InstOpCode::VO, false /* instructionNeedsElementSizeMask */);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VO, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionOrUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15902,7 +15969,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionOrUncheckedEvaluator(TR::Node *no
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionXorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return reductionOperationHelper(node, cg, TR::InstOpCode::VX, false /* instructionNeedsElementSizeMask */);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VX, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreturnEvaluator(TR::Node *node, TR::CodeGenerator *cg)
