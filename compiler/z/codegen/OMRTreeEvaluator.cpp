@@ -14152,7 +14152,8 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
                 "VFPSO is only supported for VectorElementDataType TR::Double on z13 and onwards and TR::Float on z14 "
                 "onwards");
             TR::ILOpCode opcode = node->getOpCode();
-            uint8_t mask5 = opcode.isVectorOpCode() && opcode.getVectorOperation() == TR::vabs ? 2 : 0;
+            uint8_t mask5 = opcode.isVectorOpCode() && (opcode.getVectorOperation() == TR::vabs
+                || opcode.getVectorOperation() == TR::vmabs) ? 2 : 0;
             breakInst = generateVRRaInstruction(cg, op, node, returnReg, sourceReg1, mask5, 0,
                 getVectorElementSizeMask(node));
             break;
