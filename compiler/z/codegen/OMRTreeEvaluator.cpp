@@ -1080,15 +1080,22 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
     TR::Node *sourceNode = node->getFirstChild();
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
+    bool supportGprPopcnt = cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z15);
+    // TODO: reduction add may be faster than this!
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
     // Reduce the size of the mask to 64 bits so it fits inside a GPR.
     generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
     TR::Register *resultRegister = cg->allocateRegister();
+    if (!supportGprPopcnt) {
+        generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, maskRegister, maskRegister, 0, 0, 3);
+    }
     // Move the mask to a GPR.
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0, cg), 3);
-    // Count the number of bits set to 1
-    generateRRFInstruction(cg, TR::InstOpCode::POPCNT, node, resultRegister, resultRegister, static_cast<uint8_t>(0x8),
-        static_cast<uint8_t>(0x0), NULL);
+    if(supportGprPopcnt) {
+        // Count the number of bits set to 1
+        generateRRFInstruction(cg, TR::InstOpCode::POPCNT, node, resultRegister, resultRegister, static_cast<uint8_t>(0x8),
+            static_cast<uint8_t>(0x0), NULL);
+    }
     // Shift right to account for the number of bits set to 1 in each lane.
     int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
