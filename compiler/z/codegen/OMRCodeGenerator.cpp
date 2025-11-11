@@ -4376,6 +4376,9 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
 
     TR::DataType ot = opcode.getVectorResultDataType();
 
+    TR_ASSERT_FATAL(ot == TR::VectorLength128 || ot == TR::VectorLength64 || ot == TR::VectorLength256 || ot == TR::VectorLength512,
+        "Unexpected vector size\n");
+
     if (ot.getVectorLength() != TR::VectorLength128)
         return false;
 
