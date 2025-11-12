@@ -1208,6 +1208,10 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
             u_int64_t int64BitMask[2] = {2, 1};
             bitMask = int64BitMask;
             break;
+        default :
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "The provided element size (%d) is not supported!", elementSizeMask);
+            bitMask = 0;
+            break;
     }
     TR::MemoryReference *bitMaskMemRef
         = generateS390MemoryReference(cg->findOrCreateConstant(node, bitMask, 16), cg, 0, node);
