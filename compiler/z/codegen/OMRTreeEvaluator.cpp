@@ -1689,10 +1689,8 @@ static TR::Register *reductionFirstNonZeroHelper(TR::Node *node, TR::CodeGenerat
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *sourceReg = isMasked ? cg->gprClobberEvaluate(sourceNode) : cg->evaluate(sourceNode);
-    TR::Register *scratchReg = NULL;
+    TR::Register *scratchReg = isMasked ? cg->gprClobberEvaluate(node->getSecondChild()) : cg->allocateRegister(TR_VRF);
     if (isMasked) {
-        // evaluate mask register.
-        scratchReg = cg->gprClobberEvaluate(node->getSecondChild());
         // zero unmasked lanes.
         generateVRRcInstruction(cg, TR::InstOpCode::VN, node, sourceReg, scratchReg, sourceReg, 0, 0, 0);
     }
@@ -1702,8 +1700,8 @@ static TR::Register *reductionFirstNonZeroHelper(TR::Node *node, TR::CodeGenerat
     generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, scratchReg, sourceReg, scratchReg, 0, mask4);
     // negate scratch register to get a mask of non-zero lanes.
     generateVRRcInstruction(cg, TR::InstOpCode::VNO, node, scratchReg, scratchReg, scratchReg, 0, 0, 0);
+    // TODO: This is index. we want value!
     TR::Register *resultReg = firstTrueHelper(node, cg, scratchReg);
-
     node->setRegister(resultReg);
     cg->decReferenceCount(sourceNode);
     if (isMasked)
@@ -14337,20 +14335,14 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
             TR_ASSERT(false, "Binary Vector IL evaluation unimplemented for node : %s", cg->getDebug()->getName(node));
     }
 
-    if (isMasked) {
+    if (isMasked && !isCompare) {
         TR_ASSERT_FATAL_WITH_NODE(node, supportUnderMaskOperation,
             "Masked operation was requested for an opcode that does not support masking.");
         TR::Node *maskChild = node->getThirdChild();
-        if(isCompare) {
-            // Zero any lane that is not covered by mask.
-            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, targetReg, cg->evaluate(maskChild), 0, 0,
-                0);
-        } else {
-            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
-            // otherwise, the source1 value remains unchanged in the result register.
-            generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, targetReg, sourceReg1,
-                cg->evaluate(maskChild), 0, 0);
-        }
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        // otherwise, the source1 value remains unchanged in the result register.
+        generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, targetReg, sourceReg1,
+            cg->evaluate(maskChild), 0, 0);
         cg->decReferenceCount(maskChild);
     }
 
@@ -15731,19 +15723,29 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpeqEvaluator(TR::Node *node, TR::CodeGen
     TR_ASSERT_FATAL_WITH_NODE(node, node->getFirstChild()->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
 
+    TR::Register *targetReg;
     switch (node->getFirstChild()->getDataType().getVectorElementType()) {
         case TR::Int8:
         case TR::Int16:
         case TR::Int32:
         case TR::Int64:
-            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VCEQ);
+            targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VCEQ);
+            break;
         case TR::Double:
         case TR::Float:
-            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
+            targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
+            break;
         default:
             TR_ASSERT_FATAL_WITH_NODE(node, false, "unrecognized vector type %s\n", node->getFirstChild()->getDataType().toString());
-            return NULL;
+            break;
     }
+    if (node->getOpCode().isVectorMasked()) {
+        TR::Node *maskChild = node->getThirdChild();
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, cg->evaluate(maskChild), targetReg, 0, 0, 0);
+        cg->decReferenceCount(maskChild);
+    }
+    return node->getRegister();
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vcmpneEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15767,12 +15769,15 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpneEvaluator(TR::Node *node, TR::CodeGen
             TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
             break;
     }
-
-    // vector nor with zero vector
-    TR::Register *vecZeroReg = cg->allocateRegister(TR_VRF);
-    generateZeroVector(node, cg, vecZeroReg);
-    generateVRRcInstruction(cg, TR::InstOpCode::VNO, node, targetReg, targetReg, vecZeroReg, 0, 0, 0);
-    cg->stopUsingRegister(vecZeroReg);
+    if (node->getOpCode().isVectorMasked()) {
+        TR::Node *maskChild = node->getThirdChild();
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        generateVRRcInstruction(cg, TR::InstOpCode::VNC, node, targetReg, cg->evaluate(maskChild), targetReg, 0, 0, 0);
+        cg->decReferenceCount(maskChild);
+    } else {
+        // Invert the register.
+        generateVRRcInstruction(cg, TR::InstOpCode::VNO, node, targetReg, targetReg, targetReg, 0, 0, 0);
+    }
     return node->getRegister();
 }
 
@@ -15788,19 +15793,29 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgtEvaluator(TR::Node *node, TR::CodeGen
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
 
     TR::InstOpCode::Mnemonic op = node->getOpCode().isUnsignedCompare() ? TR::InstOpCode::VCHL : TR::InstOpCode::VCH;
+    TR::Register *targetReg;
     switch (node->getFirstChild()->getDataType().getVectorElementType()) {
         case TR::Int8:
         case TR::Int16:
         case TR::Int32:
         case TR::Int64:
-            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, op);
+            targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, op);
+            break;
         case TR::Double:
         case TR::Float:
-            return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCH);
+            targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCH);
+            break;
         default:
             TR_ASSERT(false, "unrecognized vector type %s\n", node->getDataType().toString());
-            return NULL;
+            break;
     }
+    if (node->getOpCode().isVectorMasked()) {
+        TR::Node *maskChild = node->getThirdChild();
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, cg->evaluate(maskChild), targetReg, 0, 0, 0);
+        cg->decReferenceCount(maskChild);
+    }
+    return node->getRegister();
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vcmpleEvaluator(TR::Node *node, TR::CodeGenerator *cg)
