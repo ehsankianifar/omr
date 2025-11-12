@@ -1194,16 +1194,16 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
     u_int64_t bitMask[2] = {0x0102040810204080, 0x0102040810204080};
     switch (elementSizeMask) {
         case 1:
-            bitMask[1] = 0x0001000200040008;
-            bitMask[0] = 0x0100020004000800;
+            bitMask[0] = 0x0001000200040008;
+            bitMask[1] = 0x0100020004000800;
             break;
         case 2:
-            bitMask[1] = 0x0000000100000002;
-            bitMask[0] = 0x0000000400000008;
+            bitMask[0] = 0x0000000100000002;
+            bitMask[1] = 0x0000000400000008;
             break;
         case 3:
-            bitMask[1] = 0x0000000000000001;
-            bitMask[0] = 0x0000000000000002;
+            bitMask[0] = 0x0000000000000001;
+            bitMask[1] = 0x0000000000000002;
             break;
         default :
             TR_ASSERT_FATAL_WITH_NODE(node, false, "The provided element size (%d) is not supported!", elementSizeMask);
