@@ -16062,7 +16062,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionOrEvaluator(TR::Node *node, TR::C
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionOrUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VO, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionXorEvaluator(TR::Node *node, TR::CodeGenerator *cg)

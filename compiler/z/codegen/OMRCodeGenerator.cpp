@@ -4531,6 +4531,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vreductionFirstNonZero:
         case TR::vmreductionFirstNonZero:
         case TR::mLongBitsToMask:
+        case TR::vmreductionOrUnchecked:
             return true;
         default:
             static const char *enableAllVectors = feGetEnv("TR_EnableAllVectors");
