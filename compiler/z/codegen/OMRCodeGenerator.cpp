@@ -4377,16 +4377,17 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
     TR::DataType ot = opcode.getVectorResultDataType();
 
     TR_ASSERT_FATAL(ot == TR::VectorLength128 || ot == TR::VectorLength64 || ot == TR::VectorLength256 || ot == TR::VectorLength512,
-        "Unexpected vector size\n");
+        "Unexpected vector size: %s\n", ot.toString());
 
-    if (ot.getVectorLength() != TR::VectorLength128)
+    if (ot.getVectorLength() != TR::VectorLength128) {
         return false;
+    }
 
     TR::DataType et = opcode.getVectorResultDataType().getVectorElementType();
 
     TR_ASSERT_FATAL(et == TR::Int8 || et == TR::Int16 || et == TR::Int32 || et == TR::Int64 || et == TR::Float
             || et == TR::Double,
-        "Unexpected vector element type\n");
+        "Unexpected vector element type: %s\n", ot.toString());
 
     /*
      * Prior to z14, vector operations that operated on floating point numbers only supported
