@@ -14181,7 +14181,7 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
     TR::Register *returnReg
         = isMasked ? cg->allocateRegister(TR_VRF) : TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
     TR::Register *sourceReg1 = cg->evaluate(firstChild);
-    bool zeroUnmasked = false;
+    bool zeroUnmasked = false;//TODO: remove if unused!
 
     switch (op) {
         case TR::InstOpCode::VCDG:
@@ -14190,7 +14190,6 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorUnaryOp(TR::Node *node, TR::Cod
         case TR::InstOpCode::VCTZ:
         case TR::InstOpCode::VCLZ:
         case TR::InstOpCode::VPOPCT:
-            zeroUnmasked = true;
             generateVRRaInstruction(cg, op, node, returnReg, sourceReg1, 0, 0, getVectorElementSizeMask(node));
             break;
         case TR::InstOpCode::VLC:
