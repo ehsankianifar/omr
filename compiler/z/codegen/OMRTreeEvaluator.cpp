@@ -1649,6 +1649,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::
 static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
     bool instructionNeedsElementSizeMask)
 {
+    // TODO: if it was used for reduceLanesToLong(), then we need to sign exted the result.
     TR::Node *firstChild = node->getFirstChild();
     TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
     uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
@@ -15905,6 +15906,7 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
 TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic vectorOp,
     TR::InstOpCode::Mnemonic floatOP, bool isDouble)
 {
+    // TODO: if it was used for reduceLanesToLong(), then we need to convert float to double.
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
 
