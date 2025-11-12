@@ -1193,20 +1193,20 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
     void *bitMask = 0;
     switch (elementSizeMask) {
         case 0:
-            int8_t int8BitMask[16] = {128, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1};
-            bitmask = int8BitMask;
+            u_int8_t int8BitMask[16] = {128, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1};
+            bitMask = int8BitMask;
             break;
         case 1:
-            int16_t int16BitMask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
-            bitmask = int16BitMask;
+            u_int16_t int16BitMask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
+            bitMask = int16BitMask;
             break;
         case 2:
-            int32_t int32BitMask[4] = {8, 4, 2, 1};
-            bitmask = int32BitMask;
+            u_int32_t int32BitMask[4] = {8, 4, 2, 1};
+            bitMask = int32BitMask;
             break;
         case 3:
-            int64_t int64BitMask[2] = {2, 1};
-            bitmask = int64BitMask;
+            u_int64_t int64BitMask[2] = {2, 1};
+            bitMask = int64BitMask;
             break;
     }
     TR::MemoryReference *bitMaskMemRef
@@ -1215,7 +1215,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
 
     generateVRRcInstruction(cg, TR::InstOpCode::VN, node, maskRegister, maskRegister, scratchReg, 0);
     generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, maskRegister, maskRegister, scratchReg, 0, elementSizeMask);
-    
+
     cg->stopUsingRegister(scratchReg);
     cg->decReferenceCount(sourceNode);
     node->setRegister(maskRegister);
