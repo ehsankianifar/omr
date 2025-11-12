@@ -1190,27 +1190,23 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
         generateVRRcInstruction(cg, TR::InstOpCode::VMRH, node, maskRegister, maskRegister, scratchReg, 3);
     }
 
-    void *bitMask = 0;
+    // Create a mask to specify which bit set each lane. Default case is fot int8 type.
+    u_int64_t bitMask[2] = {0x0102040810204080, 0x0102040810204080};
     switch (elementSizeMask) {
-        case 0:
-            u_int8_t int8BitMask[16] = {128, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1};
-            bitMask = int8BitMask;
-            break;
         case 1:
-            u_int16_t int16BitMask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
-            bitMask = int16BitMask;
+            bitMask[0] = 0x0001000200040008;
+            bitMask[1] = 0x0100020004000800;
             break;
         case 2:
-            u_int32_t int32BitMask[4] = {8, 4, 2, 1};
-            bitMask = int32BitMask;
+            bitMask[0] = 0x0000000100000002;
+            bitMask[1] = 0x0000000400000008;
             break;
         case 3:
-            u_int64_t int64BitMask[2] = {2, 1};
-            bitMask = int64BitMask;
+            bitMask[0] = 0x0000000000000001;
+            bitMask[1] = 0x0000000000000002;
             break;
         default :
             TR_ASSERT_FATAL_WITH_NODE(node, false, "The provided element size (%d) is not supported!", elementSizeMask);
-            bitMask = 0;
             break;
     }
     TR::MemoryReference *bitMaskMemRef
