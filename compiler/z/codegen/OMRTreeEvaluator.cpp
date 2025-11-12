@@ -1166,7 +1166,60 @@ TR::Register *OMR::Z::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR::Co
 
 TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    //TODO: use VGEM for z17 and higher!
+    //TODO: use VGM if load is constant!
+    TR::Node *sourceNode = node->getFirstChild();
+    uint8_t elementSizeMask = getVectorElementSizeMask(node);
+    TR::Register *maskRegister = cg->allocateRegister(TR_VRF);
+    TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    TR::Register *sourceRegister = cg->evaluate(sourceNode);
+    // TODO: if load is load indirect and it is not evaluated, load into vector register.
+    // Load the source to element 1 of the vector.
+    generateVRSbInstruction(cg, TR::InstOpCode::VLVG, node, maskRegister, sourceRegister,
+        generateS390MemoryReference(0, cg), 3);
+    if(elementSizeMask == 0) {
+        // If the vector type is int8, we need 16 bits of the source to construct the mask.
+        // We need to use a helper register.
+        // 6th lane of the scratch register contains the mask bits of the lower half of the mask.
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchReg, maskRegister, 6, 0);
+    }
+    // repeat the element 15 throughout the lanes.
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, maskRegister, maskRegister, 15 >> elementSizeMask, elementSizeMask);
+    if(elementSizeMask == 0) {
+        // Since the lane size is 8, the required data for the lower half of mask exist in scratch register.
+        generateVRRcInstruction(cg, TR::InstOpCode::VMRH, node, maskRegister, maskRegister, scratchReg, 3);
+    }
+
+    void *bitMask = 0;
+    switch (elementSizeMask) {
+        case 0:
+            int8_t int8BitMask[16] = {128, 64, 32, 16, 8, 4, 2, 1, 128, 64, 32, 16, 8, 4, 2, 1};
+            bitmask = int8BitMask;
+            break;
+        case 1:
+            int16_t int16BitMask[8] = {128, 64, 32, 16, 8, 4, 2, 1};
+            bitmask = int16BitMask;
+            break;
+        case 2:
+            int32_t int32BitMask[4] = {8, 4, 2, 1};
+            bitmask = int32BitMask;
+            break;
+        case 3:
+            int64_t int64BitMask[2] = {2, 1};
+            bitmask = int64BitMask;
+            break;
+    }
+    TR::MemoryReference *bitMaskMemRef
+        = generateS390MemoryReference(cg->findOrCreateConstant(node, bitMask, 16), cg, 0, node);
+    generateVRXInstruction(cg, TR::InstOpCode::VL, node, scratchReg, bitMaskMemRef);
+
+    generateVRRcInstruction(cg, TR::InstOpCode::VN, node, maskRegister, maskRegister, scratchReg, 0);
+    generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, maskRegister, maskRegister, scratchReg, 0, elementSizeMask);
+    
+    cg->stopUsingRegister(scratchReg);
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(maskRegister);
+    return maskRegister;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mRegLoadEvaluator(TR::Node *node, TR::CodeGenerator *cg)
