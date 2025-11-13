@@ -1077,12 +1077,23 @@ TR::Register *OMR::Z::TreeEvaluator::msplatsEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    TR::Register *resultRegister = vIntReductionAddHelper(node, cg, node->getFirstChild()->getDataType().getVectorElementType());
+    // Since the true mask value is -1, the result of reduction add is negative!
+    generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
+    return node->getRegister();
+
+    /* Second approach
     TR::Node *sourceNode = node->getFirstChild();
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     bool supportGprPopcnt = cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z15);
     // TODO: reduction add may be faster than this!
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
+    if (sourceNode->getDataType().getVectorElementType() == TR::Int8) {
+        // We can not pack 8bit lanes so shifting it 4 bits to have the same effect as packing 8 bit data!
+        generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, maskRegister, maskRegister,
+            generateS390MemoryReference(4, cg), 1);
+    }
     // Reduce the size of the mask to 64 bits so it fits inside a GPR.
     generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
     TR::Register *resultRegister = cg->allocateRegister();
@@ -1102,6 +1113,7 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
     return resultRegister;
+    */
 }
 
 static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
@@ -15916,6 +15928,7 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
     generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
     if (needPreReduction) {
         // Reduce the byte or halfword lane size to word size.
+        // TODO: may need sign extension!
         TR::Register *tmpSourceReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
         generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, tmpSourceReg, sourceReg, scratchReg, 0, 0,
             elementSizeMask);
@@ -15928,7 +15941,7 @@ TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
 
     TR::Register *resultReg = cg->allocateRegister();
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, scratchReg,
-        generateS390MemoryReference((16 >> elementSizeMask) - 1, cg), elementSizeMask);
+        generateS390MemoryReference(1, cg), elementSizeMask);
 
     if (needPreReduction)
         cg->stopUsingRegister(sourceReg);
