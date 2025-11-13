@@ -1077,51 +1077,50 @@ TR::Register *OMR::Z::TreeEvaluator::msplatsEvaluator(TR::Node *node, TR::CodeGe
 
 static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
 {
-    bool needPreReduction = false;
-    uint8_t elementSizeMask = 0;
-    switch (type) {
-        case TR::Int8:
-            needPreReduction = true;
-            break;
-        case TR::Int16:
-            needPreReduction = true;
-            elementSizeMask = 1;
-            break;
-        case TR::Int32:
-            elementSizeMask = 2;
-            break;
-        case TR::Int64:
-            elementSizeMask = 3;
-            break;
-        default:
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
-    }
-    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
+    TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+    uint8_t elementSizeMask = getVectorElementSizeMask(node->getFirstChild());
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    if(elementSizeMask < 2) {
+        // VSUM perform a logical add. We need to increase the size to make sure there is no overflow!
+        // In case of int64 data type we don't care about overflow!
+        generateVRRaInstruction(cg, TR::InstOpCode::VUPL, node, scratchReg, sourceReg, 0, 0, elementSizeMask);
+        generateVRRaInstruction(cg, TR::InstOpCode::VUPH, node, sourceReg, sourceReg, 0, 0, elementSizeMask);
+        // Now elements are one step larger!
+        elementSizeMask ++;
+        generateVRRcInstruction(cg, TR::InstOpCode::VA, node, sourceReg, sourceReg, scratchReg, elementSizeMask);
+    }
+    bool shortTypeSignExtend = false;
     generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
-    if (needPreReduction) {
-        // Reduce the byte or halfword lane size to word size.
-        // TODO: may need sign extension!
-        TR::Register *tmpSourceReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
-        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, tmpSourceReg, sourceReg, scratchReg, 0, 0,
+    if (elementSizeMask == 1) {
+        // Reduce the halfword lane size to word size.
+        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, sourceReg, sourceReg, scratchReg, 0, 0,
             elementSizeMask);
-        sourceReg = tmpSourceReg;
+        signExtensionShift = 48;
+        elementSizeMask++;
+        shortTypeSignExtend = true;
     }
 
     // Reduce word or doubleword size to one element.
     generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, sourceReg, scratchReg, 0, 0,
-        needPreReduction ? 2 : elementSizeMask);
+        elementSizeMask);
 
     TR::Register *resultReg = cg->allocateRegister();
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, scratchReg,
-        generateS390MemoryReference(1, cg), elementSizeMask);
-
-    if (needPreReduction)
-        cg->stopUsingRegister(sourceReg);
+        generateS390MemoryReference(1, cg), 3);
+    
+    if (elementSizeMask < 3) {
+        if (shortTypeSignExtend) {
+            // Sign extend 32bit value.
+            generateRRInstruction(cg, TR::InstOpCode::LLG, node, resultReg, resultReg);
+        } else {
+            // Sign extend 16bit value.
+            generateRSInstruction(cg, TR::InstOpCode::SLLG, node, resultReg, resultReg, 48);
+            generateRSInstruction(cg, TR::InstOpCode::SRAG, node, resultReg, resultReg, 48);
+        }
+    }
     cg->stopUsingRegister(scratchReg);
     cg->decReferenceCount(node->getFirstChild());
     node->setRegister(resultReg);
-
     return resultReg;
 }
 
@@ -1168,7 +1167,7 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
 
 static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
 {
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(node->getFirstChild()->getDataType().getVectorElementType())) + 3;
+    int32_t shiftAmount = getVectorElementSizeMask(node->getFirstChild()) + 3;
     uint8_t laneSizeMask = 4;
     if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
         if (node->getFirstChild()->getDataType().getVectorElementType() == TR::Int8) {
@@ -1210,7 +1209,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
-    int32_t dataSizeTrailingZeroes = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType()));
+    int32_t dataSizeTrailingZeroes = getVectorElementSizeMask(sourceNode);
     int32_t shiftAmount = dataSizeTrailingZeroes + 3;
     uint8_t laneSizeMask = 4;
     if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
