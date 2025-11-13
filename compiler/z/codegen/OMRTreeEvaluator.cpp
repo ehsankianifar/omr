@@ -1106,14 +1106,21 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
 
 static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
 {
-    // Count the leading zeroes in a whole length of the vector.
-    generateVRRcInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, maskRegister, 4);
+    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
+    uint8_t laneSizeMask = 4;
+    if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
+        // Reduce the size of the mask to 64 bits so we can count number of trailing zeros.
+        generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
+        // The mask size is half now, less shift is needed.
+        shiftAmount -= 1;
+        // Older hardware can not work on 128 bit length!
+        laneSizeMask = 3;
+    }
+    // Count the trailig zeros.
+    generateVRRcInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, maskRegister, laneSizeMask);
     TR::Register *resultRegister = cg->allocateRegister();
     // Move the mask to a GPR.
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
-    // Shift right to account for the number of bits set to 1 in each lane.
-    // resultRegister will be equal to vector length if no mask is true (this is expected behaviour).
-    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
     return resultRegister;
 }
@@ -1136,13 +1143,21 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
+    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
+    uint8_t laneSizeMask = 4;
+    if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
+        // Reduce the size of the mask to 64 bits so we can count number of trailing zeros.
+        generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
+        // The mask size is half now, less shift is needed.
+        shiftAmount -= 1;
+        // Older hardware can not work on 128 bit length!
+        laneSizeMask = 3;
+    }
     // Count the leading zeroes in a whole length of the vector.
-    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, 4);
+    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, laneSizeMask);
     TR::Register *resultRegister = cg->allocateRegister();
     // Move the count of leading zeros to a GPR.
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
-    // Shift right to account for the number of bits set to 1 in each lane.
-    int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
     // We have the element index from right. use (numberOfLanes - indexFromRight - 1) to calculate the last true index.
     // resultRegister will be equal to -1 if no mask is true (this is expected behaviour).
