@@ -1120,7 +1120,7 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
     cg->stopUsingRegister(scratchReg);
     cg->decReferenceCount(node->getFirstChild());
     node->setRegister(resultReg);
-    return resultReg;si
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
