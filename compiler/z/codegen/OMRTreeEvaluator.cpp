@@ -1106,13 +1106,11 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
 
 static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
 {
-    // Reduce the size of the mask to 64 bits so it fits inside a GPR.
-    generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
-    // Count the leading zeroes in a 64bit lane:
-    generateVRRcInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, maskRegister, 1);
+    // Count the leading zeroes in a whole length of the vector.
+    generateVRRcInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, maskRegister, 4);
     TR::Register *resultRegister = cg->allocateRegister();
     // Move the mask to a GPR.
-    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0, cg), 3);
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
     // Shift right to account for the number of bits set to 1 in each lane.
     // resultRegister will be equal to vector length if no mask is true (this is expected behaviour).
     int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
@@ -1138,13 +1136,11 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
-    // Reduce the size of the mask to 64 bits so it fits inside a GPR.
-    generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
-    // Count the leading zeroes in a 64bit lane:
-    generateVRRcInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, maskRegister, 1);
+    // Count the leading zeroes in a whole length of the vector.
+    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, 4);
     TR::Register *resultRegister = cg->allocateRegister();
-    // Move the mask to a GPR.
-    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0, cg), 3);
+    // Move the count of leading zeros to a GPR.
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
     // Shift right to account for the number of bits set to 1 in each lane.
     int32_t shiftAmount = leadingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
@@ -1153,7 +1149,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     // Negate the result.
     generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
     // Add last lane index
-    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, (16 / TR::DataType::getSize(node->getDataType())) - 1);
+    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, (15 >> TR::DataType::getSize(node->getDataType())));
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
     return resultRegister;

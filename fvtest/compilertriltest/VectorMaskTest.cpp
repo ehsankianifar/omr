@@ -284,7 +284,7 @@ TEST_P(ParameterizedBinaryMaskTest, bitwiseMaskTests) {
    TR::ILOpCode a2m = getMaskConvOpcode(arrayToMask, mt);
    TR::CPU cpu = TR::CPU::detect(privateOmrPortLibrary);
    bool platformSupport = isSupported(&cpu, loadOp, maskOpcode, a2m, m2LongOpcode);
-   SKIP_IF(!platformSupport, MissingImplementation) << "Opcode is not supported by the target platform";
+   //SKIP_IF(!platformSupport, MissingImplementation) << "Opcode is not supported by the target platform";
 
    char inputTrees[1024];
    char bits2m[64];
