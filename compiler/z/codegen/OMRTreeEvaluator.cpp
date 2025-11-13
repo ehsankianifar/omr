@@ -1117,7 +1117,7 @@ static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
         laneSizeMask = 3;
     }
     // Count the trailig zeros.
-    generateVRRcInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, maskRegister, laneSizeMask);
+    generateVRRcInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, maskRegister, laneSizeMask);
     TR::Register *resultRegister = cg->allocateRegister();
     // Move the mask to a GPR.
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
@@ -1154,7 +1154,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
         laneSizeMask = 3;
     }
     // Count the leading zeroes in a whole length of the vector.
-    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, laneSizeMask);
+    generateVRRaInstruction(cg, TR::InstOpCode::VCTZ, node, maskRegister, maskRegister, 0, 0, laneSizeMask);
     TR::Register *resultRegister = cg->allocateRegister();
     // Move the count of leading zeros to a GPR.
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
