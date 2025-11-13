@@ -1109,6 +1109,11 @@ static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
     int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(node->getFirstChild()->getDataType().getVectorElementType())) + 3;
     uint8_t laneSizeMask = 4;
     if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
+        if (node->getFirstChild()->getDataType().getVectorElementType() == TR::Int8) {
+            // We can not pack 8bit lanes so shifting it 4 bits to have the same effect as packing 8 bit data!
+            generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, maskRegister, maskRegister,
+                generateS390MemoryReference(4, cg), 1);
+        }
         // Reduce the size of the mask to 64 bits so we can count number of trailing zeros.
         generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
         // The mask size is half now, less shift is needed.
@@ -1143,9 +1148,15 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType())) + 3;
+    int32_t dataSizeTrailingZeroes = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType()));
+    int32_t shiftAmount = dataSizeTrailingZeroes + 3;
     uint8_t laneSizeMask = 4;
     if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
+        if (sourceNode->getDataType().getVectorElementType() == TR::Int8) {
+            // We can not pack 8bit lanes so shifting it 4 bits to have the same effect as packing 8 bit data!
+            generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, maskRegister, maskRegister,
+                generateS390MemoryReference(4, cg), 1);
+        }
         // Reduce the size of the mask to 64 bits so we can count number of trailing zeros.
         generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
         // The mask size is half now, less shift is needed.
@@ -1164,7 +1175,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     // Negate the result.
     generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
     // Add last lane index
-    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, (15 >> TR::DataType::getSize(node->getDataType())));
+    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, (15 >> dataSizeTrailingZeroes));
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
     return resultRegister;
