@@ -1094,8 +1094,7 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
     if (elementSizeMask == 1) {
         // Reduce the halfword lane size to word size.
         generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, sourceReg, sourceReg, scratchReg, 0, 0,
-            elementSizeMask);
-        signExtensionShift = 48;
+            elementSizeMask);\
         elementSizeMask++;
         shortTypeSignExtend = true;
     }
@@ -1111,7 +1110,7 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
     if (elementSizeMask < 3) {
         if (shortTypeSignExtend) {
             // Sign extend 32bit value.
-            generateRRInstruction(cg, TR::InstOpCode::LLG, node, resultReg, resultReg);
+            generateRRInstruction(cg, TR::InstOpCode::LGFR, node, resultReg, resultReg);
         } else {
             // Sign extend 16bit value.
             generateRSInstruction(cg, TR::InstOpCode::SLLG, node, resultReg, resultReg, 48);
