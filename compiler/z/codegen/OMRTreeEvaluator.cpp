@@ -1109,18 +1109,18 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
     
     if (elementSizeMask < 3) {
         if (shortTypeSignExtend) {
-            // Sign extend 32bit value.
-            generateRRInstruction(cg, TR::InstOpCode::LGFR, node, resultReg, resultReg);
-        } else {
             // Sign extend 16bit value.
             generateRSInstruction(cg, TR::InstOpCode::SLLG, node, resultReg, resultReg, 48);
             generateRSInstruction(cg, TR::InstOpCode::SRAG, node, resultReg, resultReg, 48);
+        } else {
+            // Sign extend 32bit value.
+            generateRRInstruction(cg, TR::InstOpCode::LGFR, node, resultReg, resultReg);
         }
     }
     cg->stopUsingRegister(scratchReg);
     cg->decReferenceCount(node->getFirstChild());
     node->setRegister(resultReg);
-    return resultReg;
+    return resultReg;si
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
