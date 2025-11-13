@@ -1075,6 +1075,56 @@ TR::Register *OMR::Z::TreeEvaluator::msplatsEvaluator(TR::Node *node, TR::CodeGe
     return TR::TreeEvaluator::vsplatsEvaluator(node, cg);
 }
 
+static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
+{
+    bool needPreReduction = false;
+    uint8_t elementSizeMask = 0;
+    switch (type) {
+        case TR::Int8:
+            needPreReduction = true;
+            break;
+        case TR::Int16:
+            needPreReduction = true;
+            elementSizeMask = 1;
+            break;
+        case TR::Int32:
+            elementSizeMask = 2;
+            break;
+        case TR::Int64:
+            elementSizeMask = 3;
+            break;
+        default:
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
+    }
+    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
+    TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
+    if (needPreReduction) {
+        // Reduce the byte or halfword lane size to word size.
+        // TODO: may need sign extension!
+        TR::Register *tmpSourceReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
+        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, tmpSourceReg, sourceReg, scratchReg, 0, 0,
+            elementSizeMask);
+        sourceReg = tmpSourceReg;
+    }
+
+    // Reduce word or doubleword size to one element.
+    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, sourceReg, scratchReg, 0, 0,
+        needPreReduction ? 2 : elementSizeMask);
+
+    TR::Register *resultReg = cg->allocateRegister();
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, scratchReg,
+        generateS390MemoryReference(1, cg), elementSizeMask);
+
+    if (needPreReduction)
+        cg->stopUsingRegister(sourceReg);
+    cg->stopUsingRegister(scratchReg);
+    cg->decReferenceCount(node->getFirstChild());
+    node->setRegister(resultReg);
+
+    return resultReg;
+}
+
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::Register *resultRegister = vIntReductionAddHelper(node, cg, node->getFirstChild()->getDataType().getVectorElementType());
@@ -15900,56 +15950,6 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
         node->setRegister(targetReg);
         return targetReg;
     }
-}
-
-TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
-{
-    bool needPreReduction = false;
-    uint8_t elementSizeMask = 0;
-    switch (type) {
-        case TR::Int8:
-            needPreReduction = true;
-            break;
-        case TR::Int16:
-            needPreReduction = true;
-            elementSizeMask = 1;
-            break;
-        case TR::Int32:
-            elementSizeMask = 2;
-            break;
-        case TR::Int64:
-            elementSizeMask = 3;
-            break;
-        default:
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
-    }
-    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
-    TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
-    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
-    if (needPreReduction) {
-        // Reduce the byte or halfword lane size to word size.
-        // TODO: may need sign extension!
-        TR::Register *tmpSourceReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
-        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, tmpSourceReg, sourceReg, scratchReg, 0, 0,
-            elementSizeMask);
-        sourceReg = tmpSourceReg;
-    }
-
-    // Reduce word or doubleword size to one element.
-    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, sourceReg, scratchReg, 0, 0,
-        needPreReduction ? 2 : elementSizeMask);
-
-    TR::Register *resultReg = cg->allocateRegister();
-    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, scratchReg,
-        generateS390MemoryReference(1, cg), elementSizeMask);
-
-    if (needPreReduction)
-        cg->stopUsingRegister(sourceReg);
-    cg->stopUsingRegister(scratchReg);
-    cg->decReferenceCount(node->getFirstChild());
-    node->setRegister(resultReg);
-
-    return resultReg;
 }
 
 TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic vectorOp,
