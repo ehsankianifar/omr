@@ -1097,7 +1097,7 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
             static_cast<uint8_t>(0x0), NULL);
     }
     // Shift right to account for the number of bits set to 1 in each lane.
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(node->getDataType())) + 2;
+    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType())) + 2;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
@@ -1106,7 +1106,7 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
 
 static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
 {
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(node->getDataType())) + 3;
+    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(node->getFirstChild()->getDataType().getVectorElementType())) + 3;
     uint8_t laneSizeMask = 4;
     if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
         // Reduce the size of the mask to 64 bits so we can count number of trailing zeros.
@@ -1143,7 +1143,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(node->getDataType())) + 3;
+    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType())) + 3;
     uint8_t laneSizeMask = 4;
     if (!cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z17)) {
         // Reduce the size of the mask to 64 bits so we can count number of trailing zeros.
