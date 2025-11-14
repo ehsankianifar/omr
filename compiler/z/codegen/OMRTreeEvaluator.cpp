@@ -14341,6 +14341,13 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
 
+    // Before z14, vector instructions for floating point operations supported only double-precision values.
+    // Starting with z14, single-precision (float) values are also supported.
+    TR_ASSERT_FATAL_WITH_NODE(node,
+        (node->getDataType().getVectorElementType() != TR::Float)
+            || cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1),
+        "Unsupported float vector operation: Single-precision floats require z14 or newer.");
+
     TR::Node *firstChild = node->getFirstChild();
     TR::Node *secondChild = node->getSecondChild();
 
