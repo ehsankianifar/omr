@@ -278,7 +278,7 @@ MM_MemoryPoolSplitAddressOrderedListBase::collectorAllocate(MM_EnvironmentBase* 
 
 void*
 MM_MemoryPoolSplitAddressOrderedListBase::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription,
-												  uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop)
+												  uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop, bool initializeTLH)
 {
 	void* tlhBase = NULL;
 

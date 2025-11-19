@@ -210,6 +210,10 @@ public:
 		_typeId = __FUNCTION__;
 	}
 
+
+	// Having a method in base for logging.
+	void ehsanLogging(const char *fmt, ...);
+
 };
 
 #endif /* MEMORYSPACE_HPP_ */

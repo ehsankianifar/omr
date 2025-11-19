@@ -59,6 +59,7 @@ public:
 	 * Get Base Virtual Type Id
 	 */
 	const char* getBaseVirtualTypeId() { return _typeId; }
+
 };
 
 #endif /* BASEVIRTUAL_HPP_ */
