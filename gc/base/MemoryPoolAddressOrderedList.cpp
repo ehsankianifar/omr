@@ -42,6 +42,7 @@
 #include "HeapLinkedFreeHeader.hpp"
 #include "Heap.hpp"
 #include "Math.hpp"
+#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -49,6 +50,8 @@
 
 #include "HeapRegionManager.hpp"
 #include "HeapRegionDescriptor.hpp"
+
+#include "MemoryInitializer.cpp"
 
 /**
  * Called when SATB barrier is enabled/disabled. We use this to set the TLH alignment base.
@@ -96,6 +99,10 @@ MM_MemoryPoolAddressOrderedList::initialize(MM_EnvironmentBase *env)
 	MM_GCExtensionsBase *ext = env->getExtensions();
 	J9ModronAllocateHint *inactiveHint, *previousInactiveHint;
 	uintptr_t inactiveCount;
+
+	//Init things
+	ehsan_logger_init();
+	resetInitializer();
 
 	Assert_MM_true(_minimumFreeEntrySize >= CARD_SIZE);
 
@@ -531,10 +538,17 @@ retry:
 	addrBase = (void *)currentFreeEntry;
 	recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
 
+	//ehsan: internalAllocate wait until initialized to base + header size (16) if overlap with initialization!
+	isInitialized((uintptr_t)addrBase, (uintptr_t)addrBase + sizeInBytesRequired, false);
+	ehsanLog("InternalAllocate %p to 0x%lx", addrBase, (uintptr_t)addrBase + sizeInBytesRequired);
+
 	if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, currentFreeEntry->getNext(compressed))) {
 		updatePrevCardUnalignedFreeEntry(currentFreeEntry->getNext(compressed), recycleEntry);
 		updateHint(currentFreeEntry, recycleEntry);
 		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+		//trigger the cleaning if not in progress!
+		tryInitialize((uintptr_t)recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
+		ehsanLog("Recycle2 %p to 0x%lx", recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
 	} else {
 		updatePrevCardUnalignedFreeEntry(currentFreeEntry->getNext(compressed), previousFreeEntry);
 		/* Adjust the free memory size and count */
@@ -702,12 +716,21 @@ retry:
 	addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 	entryNext = freeEntry->getNext(compressed);
 
+	//ehsan: internalAllocateTLH wait if partially initialized
+	//wait until initialized to base + header size (16) if overlap with initialization!
+	isInitialized((uintptr_t)addrBase, (uintptr_t)addrTop, true);
+	ehsanLog("InternalAllocateTLH %p to %p", addrBase, addrTop);
+
 	if (recycleEntrySize > 0) {
 		topOfRecycledChunk = ((uint8_t *)addrTop) + recycleEntrySize;
 		/* Recycle the remaining entry back onto the free list (if applicable) */
 		if (recycleHeapChunk(addrTop, topOfRecycledChunk, NULL, entryNext)) {
 			updatePrevCardUnalignedFreeEntry(entryNext, (MM_HeapLinkedFreeHeader *)addrTop);
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+			//trigger the cleaning if not in progress!
+			tryInitialize((uintptr_t)addrTop, (uintptr_t)topOfRecycledChunk);
+			ehsanLog("Recycle %p to %p", addrTop, topOfRecycledChunk);
+
 		} else {
 			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
 			/* Adjust the free memory size and count */
@@ -820,7 +843,8 @@ MM_MemoryPoolAddressOrderedList::reset(Cause cause)
 {
 	/* Call superclass first .. */
 	MM_MemoryPool::reset(cause);
-
+	ehsanLog("Reset!");
+	checkedResetInitializer();
 	clearHints();
 	_heapFreeList = (MM_HeapLinkedFreeHeader *)NULL;
 	_scannableBytes = 0;
@@ -843,6 +867,8 @@ MM_HeapLinkedFreeHeader *
 MM_MemoryPoolAddressOrderedList::rebuildFreeListInRegion(MM_EnvironmentBase *env, MM_HeapRegionDescriptor *region, MM_HeapLinkedFreeHeader *previousFreeEntry)
 {
 	MM_HeapLinkedFreeHeader *newFreeEntry = NULL;
+	ehsanLog("Rebuild!");
+	checkedResetInitializer();
 	void* rangeBase = region->getLowAddress();
 	void* rangeTop = region->getHighAddress();
 	uintptr_t rangeSize = region->getSize();
@@ -1613,6 +1639,7 @@ MM_MemoryPoolAddressOrderedList::moveHeap(MM_EnvironmentBase *env, void *srcBase
 void
 MM_MemoryPoolAddressOrderedList::lock(MM_EnvironmentBase *env)
 {
+	ehsanLog("Lock!");
 	_heapLock.acquire();
 }
 
@@ -1622,6 +1649,7 @@ MM_MemoryPoolAddressOrderedList::lock(MM_EnvironmentBase *env)
 void
 MM_MemoryPoolAddressOrderedList::unlock(MM_EnvironmentBase *env)
 {
+	ehsanLog("Unlock!");
 	_heapLock.release();
 }
 

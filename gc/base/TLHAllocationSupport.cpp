@@ -49,6 +49,7 @@
 #include "MemorySubSpace.hpp"
 #include "ObjectAllocationInterface.hpp"
 #include "ObjectHeapIteratorAddressOrderedList.hpp"
+#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -214,9 +215,31 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
 			if (_zeroTLH) {
 				if (0 != extensions->batchClearTLH) {
+					
 					void *base = getBase();
+					//ehsan: If the content in base address is zero, the section was already initialized!
+					const char *heapInit = getenv("TR_HeapInit");
+					int initMem = heapInit ? atoi(heapInit) : 0;
+					uint64_t content = *(uint64_t*)base;
 					void *top = getTop();
-					OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
+					if((content != 0) || ((initMem & 4) != 4))
+					{
+						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
+						ehsanLog("Allocated and zeroed memory from %p to %p content: %lx", base, top, content);
+					} else {
+						ehsanLog("Allocated zeroed memory from %p to %p", base, top);
+						if((initMem & 8) == 8) {
+							char* current = (char*)base;
+							while (current<top){
+								if ((*current) != 0) {
+									ehsanLog("Non zero value at %p", current);
+									break;
+								}
+								current ++;
+							}
+
+						}
+					}
 				}
 			}
 #endif /* defined(OMR_GC_BATCH_CLEAR_TLH) */
