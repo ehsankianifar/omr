@@ -251,7 +251,7 @@ MM_MemoryPoolSegregated::allocateContiguous(MM_EnvironmentBase *env,
  * There is currently no TLH in this memory pool.
  */
 void *
-MM_MemoryPoolSegregated::allocateTLH(MM_EnvironmentBase *env,  uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
+MM_MemoryPoolSegregated::allocateTLH(MM_EnvironmentBase *env,  uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH)
 {
 	return NULL;
 }

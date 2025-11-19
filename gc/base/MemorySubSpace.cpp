@@ -1078,7 +1078,7 @@ MM_MemorySubSpace::allocateGeneric(MM_EnvironmentBase* env, MM_AllocateDescripti
 		break;
 #if defined(OMR_GC_THREAD_LOCAL_HEAP)
 	case ALLOCATION_TYPE_TLH:
-		result = attemptSubspace->allocateTLH(env, allocateDescription, objectAllocationInterface, this, this, false);
+		result = attemptSubspace->allocateTLH(env, allocateDescription, objectAllocationInterface, this, this, false, false);
 		break;
 #endif /* defined(OMR_GC_THREAD_LOCAL_HEAP) */
 	default:

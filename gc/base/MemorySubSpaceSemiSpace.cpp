@@ -39,6 +39,7 @@
 #include "ParallelDispatcher.hpp"
 #include "PhysicalSubArena.hpp"
 #include "Scavenger.hpp"
+#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -189,7 +190,7 @@ MM_MemorySubSpaceSemiSpace::allocateArrayletLeaf(MM_EnvironmentBase *env, MM_All
 }
 
 void *
-MM_MemorySubSpaceSemiSpace::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_ObjectAllocationInterface *objectAllocationInterface, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure)
+MM_MemorySubSpaceSemiSpace::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_ObjectAllocationInterface *objectAllocationInterface, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH)
 {
 	/* We may receive this call from the MemorySubSpaceGeneric for which we are the parent but we shouldn't satisfy TLH allocates 
 	 * in this space (since that would allow us to fill old space before collecting new space) so just return NULL.
@@ -464,6 +465,7 @@ MM_MemorySubSpaceSemiSpace::tearDown(MM_EnvironmentBase *env)
 void
 MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 {
+	ehsanLog("flip before survive %p alloc %p", _memorySubSpaceSurvivor, _memorySubSpaceAllocate);
 	switch (step) {
 	case set_evacuate:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "set_evacuate");
@@ -589,6 +591,7 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 	default:
 		Assert_MM_unreachable();
 	}
+	ehsanLog("flip after survive %p alloc %p", _memorySubSpaceSurvivor, _memorySubSpaceAllocate);
 }
 
 void
@@ -1114,6 +1117,13 @@ uintptr_t
 MM_MemorySubSpaceSemiSpace::releaseFreeMemoryPages(MM_EnvironmentBase* env)
 {
 	return _memorySubSpaceAllocate->releaseFreeMemoryPages(env) + _memorySubSpaceSurvivor->releaseFreeMemoryPages(env);
+}
+
+void
+MM_MemorySubSpaceSemiSpace::notifyHeapIsReady(int source)
+{
+	//source: 2:MM_Scavenger::mainThreadGarbageCollect 
+	_memorySubSpaceAllocate->getMemoryPool()->notifyHeapIsReady(source);
 }
 
 #endif /* OMR_GC_MODRON_SCAVENGER */

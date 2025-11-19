@@ -49,6 +49,7 @@
 #include "MemorySubSpace.hpp"
 #include "ObjectAllocationInterface.hpp"
 #include "ObjectHeapIteratorAddressOrderedList.hpp"
+#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -146,7 +147,10 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	stats->_tlhDiscardedBytes += getRemainingSize();
 	uintptr_t usedSize = getUsedSize();
 	stats->_tlhAllocatedUsed += usedSize;
-
+	bool cleanTLH = false;
+#if defined(OMR_GC_BATCH_CLEAR_TLH)
+	cleanTLH = _zeroTLH && (0 != extensions->batchClearTLH);
+#endif /* OMR_GC_BATCH_CLEAR_TLH */
 	/* Try to cache the current TLH */
 	if ((NULL != getRealTop()) && (getRemainingSize() >= tlhMinimumSize)) {
 		/* Cache the current TLH because it is bigger than the minimum size */
@@ -169,9 +173,12 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		clear(env);
 	}
 
+	MM_MemorySpace *memorySpace = _objectAllocationInterface->getOwningEnv()->getMemorySpace();
 	bool didRefresh = false;
 	/* Try allocating a TLH */
 	if ((NULL != _abandonedList) && (sizeInBytesRequired <= tlhMinimumSize)) {
+
+		ehsanLog("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
 		/* Try to get a cached TLH */
 		setupTLH(env, (void *)_abandonedList, (void *)_abandonedList->afterEnd(),
 				_abandonedList->_memorySubSpace, _abandonedList->_memoryPool);
@@ -179,10 +186,8 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		--_abandonedListSize;
 
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
-		if (_zeroTLH) {
-			if (0 != extensions->batchClearTLH) {
-				memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeaderTLH));
-			}
+		if (cleanTLH) {
+			memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeaderTLH));
 		}
 #endif /* OMR_GC_BATCH_CLEAR_TLH */
 
@@ -198,29 +203,54 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	} else {
 		/* Try allocating a fresh TLH */
 		MM_AllocationContext *ac = env->getAllocationContext();
-		MM_MemorySpace *memorySpace = _objectAllocationInterface->getOwningEnv()->getMemorySpace();
 
 		if (NULL != ac) {
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
 			/* allocation contexts currently aren't supported with generational schemes */
 			Assert_MM_true(memorySpace->getTenureMemorySubSpace() == memorySpace->getDefaultMemorySubSpace());
-			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure));
+			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure, cleanTLH));
+			ehsanLog("Allocated using ac: %p", ac);
 		} else {
 			MM_MemorySubSpace *subspace = memorySpace->getDefaultMemorySubSpace();
-			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure));
+			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure, cleanTLH));
+			ehsanLog("Allocated using space %p subspace %p", memorySpace, subspace);
 		}
 
 		if (didRefresh) {
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
-			if (_zeroTLH) {
-				if (0 != extensions->batchClearTLH) {
-					void *base = getBase();
+/*
+			if (cleanTLH) {
+				const bool noSuperClean = getenv("TR_superBatchClear") == NULL;
+				const bool checkMem = getenv("TR_CheckMemory") != NULL;
+				const bool allocateFromBottom = getenv("TR_allocateFromTop") == NULL;
+				void *base = getBase();
+				if (noSuperClean) {
 					void *top = getTop();
 					OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
+				} else if (allocateFromBottom || *(uintptr_t*)base != 0) {
+					//if allocating from buttom or allocating from top but it is the last chunck in the heap, we need to clean the header!
+					// *(uintptr_t*)base != 0 should take care of both cases but maybe allocateFromBottom is faster!
+					memset(base, 0, sizeof(MM_HeapLinkedFreeHeader));
+					ehsanLog("*** Delete header from  %p", base);
+				}
+				for (char *start = (char*)base; start < getTop() && checkMem; start++) {
+					if (*start != 0) {
+						ehsanLog("*** Non zero at %p", start);
+						Assert_MM_true(false);
+					}
 				}
 			}
+*/
+			const bool checkMem = getenv("TR_CheckMemory") != NULL;
+			if (checkMem) {
+				for (char *start = (char*)getBase(); start < getTop(); start++) {
+						if (*start != 0) {
+							ehsanLog("*** Non zero at %p", start);
+							Assert_MM_true(false);
+						}
+					}
+			}
 #endif /* defined(OMR_GC_BATCH_CLEAR_TLH) */
-
 			/*
 			 * THL was refreshed however it might be already flushed in GC
 			 * Some special features (like Prepare Heap For Walk called by GC check)
@@ -300,13 +330,14 @@ MM_TLHAllocationSupport::allocateFromTLH(MM_EnvironmentBase *env, MM_AllocateDes
 }
 
 void *
-MM_TLHAllocationSupport::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool)
+MM_TLHAllocationSupport::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool, bool initializeTLH)
 {
 	void *addrBase, *addrTop;
 
 	Assert_MM_true(_reservedBytesForGC == 0);
 
-	if(memoryPool->allocateTLH(env, allocDescription, getRefreshSize(), addrBase, addrTop)) {
+	if(memoryPool->allocateTLH(env, allocDescription, getRefreshSize(), addrBase, addrTop, initializeTLH)) {
+		ehsanLog("Allocate TLH ! base: %p top %p", addrBase, addrTop);
 		setupTLH(env, addrBase, addrTop, memorySubSpace, memoryPool);
 		allocDescription->setMemorySubSpace(memorySubSpace);
 		allocDescription->setObjectFlags(memorySubSpace->getObjectFlags());
