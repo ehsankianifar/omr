@@ -78,7 +78,7 @@ public:
 	MMINLINE MM_PercolateStats *getPercolateStats() { return &_percolateStats; }
 
 	MMINLINE MM_MemorySpace *getDefaultMemorySpace() { return _defaultMemorySpace; }
-	MMINLINE void setDefaultMemorySpace(MM_MemorySpace *memorySpace) { _defaultMemorySpace = memorySpace; }
+	void setDefaultMemorySpace(MM_MemorySpace *memorySpace);
 	MMINLINE MM_MemorySpace *getMemorySpaceList() { return _memorySpaceList; }
 	MMINLINE MM_HeapRegionManager *getHeapRegionManager() { return _heapRegionManager; }
 

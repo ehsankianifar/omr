@@ -132,7 +132,7 @@ MM_MemoryPoolBumpPointer::allocateObject(MM_EnvironmentBase *env,  MM_AllocateDe
 }
 
 MMINLINE bool
-MM_MemoryPoolBumpPointer::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
+MM_MemoryPoolBumpPointer::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH)
 {
 	bool success = false;
 	uintptr_t spaceRemaining = (uintptr_t)_topPointer - (uintptr_t)_allocatePointer;
@@ -167,11 +167,11 @@ MM_MemoryPoolBumpPointer::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t
 
 void *
 MM_MemoryPoolBumpPointer::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription,
-											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
+											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH)
 {
 	void *tlhBase = NULL;
 
-	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop)) {
+	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, initializeTLH)) {
 		tlhBase = addrBase;
 	}
 
@@ -209,7 +209,7 @@ MM_MemoryPoolBumpPointer::collectorAllocateTLH(MM_EnvironmentBase *env, MM_Alloc
 {
 	void *tlhBase = NULL;
 
-	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop)) {
+	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, false)) {
 		tlhBase = addrBase;
 	}
 

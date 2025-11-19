@@ -453,6 +453,7 @@ MM_ParallelGlobalGC::cleanupAfterGC(MM_EnvironmentBase *env, MM_AllocateDescript
 	_extensions->_mainThreadTenureTLHRemainderTop = NULL;
 	_extensions->_mainThreadTenureTLHRemainderBase = NULL;
 #endif /* OMR_GC_MODRON_SCAVENGER */
+	env->getMemorySpace()->getDefaultMemorySubSpace()->getMemoryPool()->notifyHeapIsReady(3);
 }
 
 void

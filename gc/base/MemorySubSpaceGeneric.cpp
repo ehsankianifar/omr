@@ -353,7 +353,7 @@ MM_MemorySubSpaceGeneric::allocationRequestFailed(MM_EnvironmentBase* env, MM_Al
 
 #if defined(OMR_GC_THREAD_LOCAL_HEAP)
 void*
-MM_MemorySubSpaceGeneric::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_ObjectAllocationInterface* objectAllocationInterface, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure)
+MM_MemorySubSpaceGeneric::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_ObjectAllocationInterface* objectAllocationInterface, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH)
 {
 	Trc_MM_MSSGeneric_allocate_entry(env->getLanguageVMThread(), "TLH", allocDescription->getBytesRequested(), this, getName(), baseSubSpace, previousSubSpace, (uintptr_t)_allocateAtSafePointOnly, (uintptr_t)shouldCollectOnFailure, (uintptr_t)_isAllocatable);
 
@@ -367,7 +367,7 @@ MM_MemorySubSpaceGeneric::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescri
 	 * but on the way out of this allocate, when we pay tax, concurrent mark will trigger the final phase. */
 	if (!_allocateAtSafePointOnly || shouldCollectOnFailure) {
 		if (_isAllocatable) {
-			result = objectAllocationInterface->allocateTLH(env, allocDescription, this, _memoryPool);
+			result = objectAllocationInterface->allocateTLH(env, allocDescription, this, _memoryPool, initializeTLH);
 		}
 
 		if (NULL == result) {
@@ -378,7 +378,7 @@ MM_MemorySubSpaceGeneric::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescri
 				}
 			} else {
 				Trc_MM_MSSGeneric_allocate(env->getLanguageVMThread(), "TLH", allocDescription->getBytesRequested(), 2, this, _parent);
-				result = _parent->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, false);
+				result = _parent->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, false, initializeTLH);
 			}
 		}
 	}

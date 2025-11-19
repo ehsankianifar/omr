@@ -81,7 +81,7 @@ public:
 	/**
 	 * Ideally, this would only be understood by sub-classes which know about TLH allocation but we will use runtime assertions to ensure this is safe, for now
 	 */
-	virtual void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocateDescription, MM_ObjectAllocationInterface *objectAllocationInterface, bool shouldCollectOnFailure)
+	virtual void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocateDescription, MM_ObjectAllocationInterface *objectAllocationInterface, bool shouldCollectOnFailure, bool initializeTLH = false)
 	{
 		Assert_MM_unreachable();
 		return NULL;

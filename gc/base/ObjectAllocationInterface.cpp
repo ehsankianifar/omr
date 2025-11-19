@@ -40,7 +40,7 @@
  * @return true on successful TLH replenishment, false otherwise.
  */
 void *
-MM_ObjectAllocationInterface::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool)
+MM_ObjectAllocationInterface::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool, bool initializeTLH)
 {
 	assume0(0);  /* Temporary routine */
 	return NULL;
