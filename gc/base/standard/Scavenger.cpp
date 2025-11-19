@@ -4285,6 +4285,7 @@ MM_Scavenger::completeBackOut(MM_EnvironmentStandard *env)
 void
 MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateDescription *allocDescription, bool initMarkMap, bool rebuildMarkBits)
 {
+	//printf("GC");
 	OMRPORT_ACCESS_FROM_OMRPORT(envBase->getPortLibrary());
 	MM_EnvironmentStandard *env = MM_EnvironmentStandard::getEnvironment(envBase);
 	Trc_MM_Scavenger_mainThreadGarbageCollect_Entry(env->getLanguageVMThread());

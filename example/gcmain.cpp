@@ -39,7 +39,6 @@
 #include "omrvm.h"
 #include "StartupManagerImpl.hpp"
 #include "omrExampleVM.hpp"
-
 extern "C" {
 
 int
