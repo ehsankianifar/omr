@@ -115,7 +115,7 @@ public:
 	virtual void *allocateObject(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure);
 	virtual void *allocateArrayletLeaf(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure);
 	
-	virtual void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_ObjectAllocationInterface *objectAllocationInterface, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure);
+	virtual void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_ObjectAllocationInterface *objectAllocationInterface, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH = false);
 
 	virtual MM_MemorySubSpace *getDefaultMemorySubSpace();
 
@@ -170,6 +170,7 @@ public:
 	 * Not thread safe - caller has to make sure no other threads are modifying the stats for any of children.
 	 */
 	virtual void mergeLargeObjectAllocateStats(MM_EnvironmentBase *env);
+	void notifyHeapIsReady(int source);
 
 	virtual uintptr_t releaseFreeMemoryPages(MM_EnvironmentBase* env);
 

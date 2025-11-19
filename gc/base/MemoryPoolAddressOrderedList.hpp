@@ -41,6 +41,7 @@ class MM_ConcurrentSweepScheme;
 
 #define FREE_ENTRY_END ((MM_HeapLinkedFreeHeader *)OMRPORT_VMEM_MAX_ADDRESS)
 
+
 /**
  * @todo Provide class documentation
  * @ingroup GC_Base_Core
@@ -54,11 +55,14 @@ private:
 	/* Basic free list support */
 	MM_LightweightNonReentrantLock _heapLock;
 	MM_HeapLinkedFreeHeader *_heapFreeList;
+
 	
 	/* Hint support */
 	struct J9ModronAllocateHint* _hintActive;
 	struct J9ModronAllocateHint* _hintInactive;
 	struct J9ModronAllocateHint _hintStorage[HINT_ELEMENT_COUNT];
+	struct CleanMemory * _cleanMemory;
+	
 	uintptr_t _hintLru;
 	
 	MM_LargeObjectAllocateStats *_largeObjectCollectorAllocateStats;  /**< Same as _largeObjectAllocateStats except specifically for collector allocates */
@@ -70,6 +74,8 @@ private:
 	uintptr_t _parallelGCAlignmentSize; /**<  Fixed Size used to determine boundaries for alignment. */
 protected:
 public:
+	uintptr_t _cleanMemoryStart;
+	uintptr_t _cleanMemorySize;
 	
 /*
  * Function members
@@ -82,7 +88,9 @@ private:
 	void clearHints();
 	void updateHintsBeyondEntry(MM_HeapLinkedFreeHeader *freeEntry);
 	void *internalAllocate(MM_EnvironmentBase *env, uintptr_t sizeInBytesRequired, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats);
-	bool internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats);
+	bool internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats, bool initializeTLH);
+	char *ehsanGetInfo();
+	void printFreeEntries(const char* message);
 	uintptr_t getConsumedSizeForTLH(MM_EnvironmentBase *env, MM_HeapLinkedFreeHeader *freeEntry, uintptr_t maximumSizeInBytesRequired);
 
 	/* Align a TLH to meet boundary restrictions. Certain phases of some GCs may require that TLHs not span heap chunks for parallel processing. */
@@ -124,7 +132,7 @@ public:
 	virtual void unlock(MM_EnvironmentBase *env);
 	
 	virtual void *allocateObject(MM_EnvironmentBase *env,  MM_AllocateDescription *allocDescription);
-	virtual void *allocateTLH(MM_EnvironmentBase *env,  MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop);
+	virtual void *allocateTLH(MM_EnvironmentBase *env,  MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH = false);
 	virtual void *collectorAllocate(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, bool lockingRequired);
 	virtual void *collectorAllocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired);
 		
@@ -189,6 +197,9 @@ public:
 	virtual uintptr_t releaseFreeMemoryPages(MM_EnvironmentBase* env);
 
 	void setParallelGCAlignment(MM_EnvironmentBase *env, bool alignmentEnabled);
+
+	virtual void notifyHeapIsReady(int source);
+	void superBatchClear();
 
 	/**
 	 * remove a free entry from freelist
@@ -258,6 +269,8 @@ public:
 		,_prevCardUnalignedFreeEntry(FREE_ENTRY_END)
 		,_parallelGCAlignmentBase(NULL)
 		,_parallelGCAlignmentSize(0)
+		,_cleanMemoryStart(0)
+		,_cleanMemorySize(0)
 	{
 		_typeId = __FUNCTION__;
 	};
@@ -270,6 +283,8 @@ public:
 		,_prevCardUnalignedFreeEntry(FREE_ENTRY_END)
 		,_parallelGCAlignmentBase(NULL)
 		,_parallelGCAlignmentSize(0)
+		,_cleanMemoryStart(0)
+		,_cleanMemorySize(0)
 	{
 		_typeId = __FUNCTION__;
 	};

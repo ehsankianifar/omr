@@ -88,7 +88,7 @@ public:
 	virtual void *allocateArrayletLeaf(MM_EnvironmentBase *env, MM_AllocateDescription *allocDesc);
 #if defined(OMR_GC_THREAD_LOCAL_HEAP)
 	using MM_MemoryPool::allocateTLH;
-	virtual void *allocateTLH(MM_EnvironmentBase *env, uintptr_t maxSizeInBytesRequired, void * &addrBase, void * &addrTop);
+	virtual void *allocateTLH(MM_EnvironmentBase *env, uintptr_t maxSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH = false);
 #endif /* OMR_GC_THREAD_LOCAL_HEAP */
 
 	virtual void reset(Cause cause = any);

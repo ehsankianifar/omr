@@ -231,14 +231,14 @@ MM_MemorySubSpaceFlat::getAllocationFailureStats()
  * @return TRUE if TLH allocated; FALSE otherwise
  */
 void*
-MM_MemorySubSpaceFlat::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_ObjectAllocationInterface* objectAllocationInterface, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure)
+MM_MemorySubSpaceFlat::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_ObjectAllocationInterface* objectAllocationInterface, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH)
 {
 	if (shouldCollectOnFailure) {
-		return _memorySubSpace->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, shouldCollectOnFailure);
+		return _memorySubSpace->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, shouldCollectOnFailure, initializeTLH);
 	} else {
 		if (previousSubSpace == _parent) {
 			/* Retry the allocate - should succeed unless heap fragmented */
-			return _memorySubSpace->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, shouldCollectOnFailure);
+			return _memorySubSpace->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, shouldCollectOnFailure, initializeTLH);
 		}
 		return NULL;
 	}
