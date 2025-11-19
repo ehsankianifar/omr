@@ -523,9 +523,9 @@ MM_MemoryPoolLargeObjects::allocateObject(MM_EnvironmentBase* env, MM_AllocateDe
 
 void*
 MM_MemoryPoolLargeObjects::allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription,
-									   uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop)
+									   uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop, bool initializeTLH)
 {
-	return _memoryPoolSmallObjects->allocateTLH(env, allocDescription, maximumSizeInBytesRequired, addrBase, addrTop);
+	return _memoryPoolSmallObjects->allocateTLH(env, allocDescription, maximumSizeInBytesRequired, addrBase, addrTop, initializeTLH);
 }
 
 /**

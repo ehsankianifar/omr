@@ -255,17 +255,17 @@ MM_TLHAllocationInterface::allocateArrayletLeaf(MM_EnvironmentBase *env, MM_Allo
  * @return true on successful TLH replenishment, false otherwise.
  */
 void *
-MM_TLHAllocationInterface::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool)
+MM_TLHAllocationInterface::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool, bool initializeTLH)
 {
 	void *result = NULL;
 
 #if defined(OMR_GC_NON_ZERO_TLH)
 	if (allocDescription->getNonZeroTLHFlag()) {
-		result = _tlhAllocationSupportNonZero.allocateTLH(env, allocDescription, memorySubSpace, memoryPool);
+		result = _tlhAllocationSupportNonZero.allocateTLH(env, allocDescription, memorySubSpace, memoryPool, initializeTLH);
 	} else
 #endif /* defined(OMR_GC_NON_ZERO_TLH) */
 	{
-		result = _tlhAllocationSupport.allocateTLH(env, allocDescription, memorySubSpace, memoryPool);
+		result = _tlhAllocationSupport.allocateTLH(env, allocDescription, memorySubSpace, memoryPool, initializeTLH);
 	}
 
 	return result;
