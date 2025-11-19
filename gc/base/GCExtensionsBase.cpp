@@ -39,6 +39,7 @@
 #include "RememberedSetSATB.hpp"
 #endif /* defined(OMR_GC_REALTIME) */
 #include "Heap.hpp"
+#include "MemoryZeroer.hpp"
 
 MM_GCExtensionsBase*
 MM_GCExtensionsBase::newInstance(MM_EnvironmentBase* env)
@@ -211,6 +212,9 @@ MM_GCExtensionsBase::initialize(MM_EnvironmentBase* env)
 	}
 #endif /* defined(OMR_GC_REALTIME) */
 
+	/* Initialize the memory zeroer singleton - will be created lazily on first use */
+	memoryZeroer = NULL;
+
 	return true;
 
 failed:
@@ -251,6 +255,11 @@ MM_GCExtensionsBase::tearDown(MM_EnvironmentBase* env)
 	objectModel.tearDown(this);
 	mixedObjectModel.tearDown(this);
 	indexableObjectModel.tearDown(this);
+
+	if (NULL != memoryZeroer) {
+		memoryZeroer->kill(env);
+		memoryZeroer = NULL;
+	}
 
 	if (NULL != collectorLanguageInterface) {
 		collectorLanguageInterface->kill(env);

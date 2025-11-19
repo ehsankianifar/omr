@@ -4285,6 +4285,7 @@ MM_Scavenger::completeBackOut(MM_EnvironmentStandard *env)
 void
 MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateDescription *allocDescription, bool initMarkMap, bool rebuildMarkBits)
 {
+	//printf("GC");
 	OMRPORT_ACCESS_FROM_OMRPORT(envBase->getPortLibrary());
 	MM_EnvironmentStandard *env = MM_EnvironmentStandard::getEnvironment(envBase);
 	Trc_MM_Scavenger_mainThreadGarbageCollect_Entry(env->getLanguageVMThread());
@@ -4445,7 +4446,7 @@ MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateD
 		/* Done doing GC, reset the category back to the old one */
 		omrthread_set_category(env->getOmrVMThread()->_os_thread, 0, J9THREAD_TYPE_SET_GC);
 	}
-
+	_activeSubSpace->notifyHeapIsReady(2);
 	Trc_MM_Scavenger_mainThreadGarbageCollect_Exit(env->getLanguageVMThread());
 }
 

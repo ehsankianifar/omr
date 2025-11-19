@@ -32,6 +32,7 @@
 #include "HeapRegionManager.hpp"
 #include "HeapStats.hpp"
 #include "MemorySpace.hpp"
+#include "MemoryPoolAddressOrderedList.hpp"
 #include "ModronAssertions.h"
 
 #include "mmhook_common.h"
@@ -560,3 +561,11 @@ MM_Heap::getActualSoftMxSize(MM_EnvironmentBase* env, uintptr_t memoryType)
 	}
 	return actualSoftMX;
 }
+
+	void
+	MM_Heap::setDefaultMemorySpace(MM_MemorySpace *memorySpace) {
+		_defaultMemorySpace = memorySpace;
+		if (_defaultMemorySpace){
+			_defaultMemorySpace->getDefaultMemorySubSpace()->getMemoryPool()->notifyHeapIsReady(1);
+		}
+	}

@@ -173,7 +173,7 @@ MM_MemorySubSpaceGenerational::allocateArrayletLeaf(MM_EnvironmentBase *env, MM_
 }
 
 void *
-MM_MemorySubSpaceGenerational::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_ObjectAllocationInterface *objectAllocationInterface, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure)
+MM_MemorySubSpaceGenerational::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_ObjectAllocationInterface *objectAllocationInterface, MM_MemorySubSpace *baseSubSpace, MM_MemorySubSpace *previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH)
 {
 	if (shouldCollectOnFailure) {
 		/* Should never receive this call */
@@ -182,7 +182,7 @@ MM_MemorySubSpaceGenerational::allocateTLH(MM_EnvironmentBase *env, MM_AllocateD
 	} else {
 		if(previousSubSpace == _memorySubSpaceNew) {
 			/* The allocate request is coming from new space - forward on to the old area */
-			return _memorySubSpaceOld->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, false);
+			return _memorySubSpaceOld->allocateTLH(env, allocDescription, objectAllocationInterface, baseSubSpace, this, false, initializeTLH);
 		}
 	
 		/* The allocate comes from the old area - failure */

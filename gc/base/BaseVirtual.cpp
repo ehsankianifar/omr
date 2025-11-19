@@ -21,6 +21,7 @@
  *******************************************************************************/
 
 #include "BaseVirtual.hpp"
+#include "ehsanLogger.c"
 	
 /*
  * Required to force MM_BaseVirtual to have a vtable, otherwise
@@ -30,3 +31,4 @@
  * delete implementation will be missing (e.g. needed by stack allocation)
  */
 void MM_BaseVirtual::emptyMethod() { /* No implementation */ }
+

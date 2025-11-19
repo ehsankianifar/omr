@@ -189,7 +189,7 @@ public:
 	virtual void* allocateObject(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription);
 	virtual void* collectorAllocate(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, bool lockingRequired);
 
-	virtual void* allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop);
+	virtual void* allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop, bool initializeTLH = false);
 	virtual void* collectorAllocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, uintptr_t maximumSizeInBytesRequired, void*& addrBase, void*& addrTop, bool lockingRequired);
 
 	virtual void reset(Cause cause = any);
