@@ -86,6 +86,9 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
     _initTop = addrTop;
     requestedTop = OMR_MIN(_initTop, requestedTop + sizeof(MM_HeapLinkedFreeHeader));
     _initCurrent = isTLH ? addrBase : requestedTop;
+
+    ehsanLog("Initiate zeroing2! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isTLH %d _initMode %d",
+            addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH, _initMode);
     if(_initMode == inlined)
     {
         startZeroing();
