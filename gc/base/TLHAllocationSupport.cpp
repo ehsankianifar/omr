@@ -223,7 +223,20 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 					{
 						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 						//ehsanLog("Allocated and zeroed memory from %p to %p content: %lx", base, top, content);
+					} else {
+						char* current = (char*)base;
+						while (current<top){
+							if ((*current) != 0) {
+								ehsanLog("Non zero value at %p", current);
+								// trigger segfault
+								*current = *(char*)base;
+								break;
+							}
+							current ++;
+						}
+
 					}
+
 				}
 			}
 #endif /* defined(OMR_GC_BATCH_CLEAR_TLH) */
