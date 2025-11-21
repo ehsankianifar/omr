@@ -26,6 +26,20 @@ void ehsanLog(const char *fmt, ...) {
     pthread_mutex_unlock(&log_mutex);
 }
 
+void ehsanLogNoNewLine(const char *fmt, ...) {
+    if (!log_file) return;
+
+    pthread_mutex_lock(&log_mutex);
+
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(log_file, fmt, args);
+    fflush(log_file);
+    va_end(args);
+
+    pthread_mutex_unlock(&log_mutex);
+}
+
 void ehsan_logger_shutdown(void) {
     pthread_mutex_lock(&log_mutex);
     if (log_file) {

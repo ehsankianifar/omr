@@ -12,6 +12,7 @@ static volatile uintptr_t _initCurrent;
 static volatile uintptr_t _initTop;
 static int _initMode;
 static int _blockSize;
+static bool _zeroIfTLH;
 static bool _isReady = false;
 //std::mutex _mtx;
 
@@ -43,11 +44,15 @@ static bool isInitialized(uintptr_t addrBase, uintptr_t addrTop, bool deleteHead
 			//NOP
 			whileCount++;
 		}
+        if(whileCount)
+        {
+            ehsanLog("some thread was waiting for memory freeing! %d", whileCount);
+        }
 		// zero header metadata
 		if(deleteHeader)
-			memset((void*)addrBase, 0, sizeof(MM_HeapLinkedFreeHeader));
+			OMRZeroMemory((void*)addrBase, sizeof(MM_HeapLinkedFreeHeader));
 	}
-	ehsanLog("Checking base %lx top %lx initBase %lx initTop %lx initCurrent %lx redult %d whileCount %d", addrBase, addrTop, _initBase, _initTop, _initCurrent, result, whileCount);
+	//ehsanLog("Checking base %lx top %lx initBase %lx initTop %lx initCurrent %lx redult %d whileCount %d", addrBase, addrTop, _initBase, _initTop, _initCurrent, result, whileCount);
 	return result;
 }
 
@@ -56,7 +61,7 @@ static void startZeroing()
     size_t size = _initTop - _initCurrent;
     int blocks = size/_blockSize;
     //start initialization
-    ehsanLog("Started init from %lx to %lx size %lu blocks %d", _initBase, _initTop, size, blocks);
+    //ehsanLog("Started init from %lx to %lx size %lu blocks %d", _initBase, _initTop, size, blocks);
     for(int i = 0; i < blocks; i++){
         OMRZeroMemory((void*)_initCurrent, _blockSize);
         _initCurrent += _blockSize;
@@ -65,6 +70,77 @@ static void startZeroing()
         OMRZeroMemory((void*)_initCurrent, (_initTop - _initCurrent));
         _initCurrent = _initTop;
     }
+}
+
+static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t requestedSize, bool isTLH)
+{
+    int debug = 0;
+     // don't do anything if disabled
+    if(_initMode == disabled)
+    {
+        return;
+    }
+
+    uintptr_t addrBase = (uintptr_t)freeEntry;
+    uintptr_t addrTop = addrBase + freeEntry->getSize();
+    uintptr_t requestedTop = addrBase + requestedSize;
+	//check if already initialized or under init.
+	if((addrBase >= _initBase) && (requestedTop <= _initTop))
+    {
+        _initBase = requestedTop;
+        requestedTop = OMR_MIN(_initTop, requestedTop + sizeof(MM_HeapLinkedFreeHeader));
+        while (requestedTop < _initCurrent)
+        {
+            /* nop */
+            debug = 1;
+        }
+        if(isTLH)
+        {
+            OMRZeroMemory((void*)addrBase, sizeof(MM_HeapLinkedFreeHeader));
+        }
+        ehsanLogNoNewLine("A%d%d ", isTLH, debug);
+        return;
+    }
+    if (!isTLH && _zeroIfTLH)
+    {
+        return;
+    }
+
+    ehsanLog("Initiate zeroing! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isNotTLH %d",
+            addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH);
+    if(_initTop != _initCurrent)
+    {
+        ehsanLog("Unexpected event! Memory is under initialization.");
+        return;
+    }
+
+    _initBase = requestedTop;
+    requestedTop = OMR_MIN(_initTop, requestedTop + sizeof(MM_HeapLinkedFreeHeader));
+    _initCurrent = isTLH ? addrBase : requestedTop;
+    _initTop = addrTop;
+    if(_initMode == inlined)
+    {
+        startZeroing();
+    }
+    else
+    {
+        std::thread cleaner(startZeroing);
+        if(_initMode == attached)
+        {
+            cleaner.join();
+        }
+        else if(_initMode == detached)
+        {
+            cleaner.detach();
+        }
+    }
+    while (requestedTop < _initCurrent)
+    {
+        /* nop */
+        debug = 2;
+    }
+    ehsanLog("debug=%d",debug);
+    
 }
 
 static void tryInitialize(uintptr_t addrBase, uintptr_t addrTop)
@@ -83,7 +159,7 @@ static void tryInitialize(uintptr_t addrBase, uintptr_t addrTop)
 
 	// return if any of those conditions are true!
 	if(status) {
-		ehsanLog("Skip init base %lx top %lx initBase %lx initTop %lx initCurrent %lx", addrBase, addrTop, _initBase, _initTop, _initCurrent);
+		//ehsanLog("Skip init base %lx top %lx initBase %lx initTop %lx initCurrent %lx", addrBase, addrTop, _initBase, _initTop, _initCurrent);
 		return;
 	}
 
@@ -125,7 +201,9 @@ static void resetInitializer()
         }
         const char *blockSize = getenv("TR_MemInitBlockSize");
         _blockSize= blockSize ? atoi(blockSize) : 1024 * 8;
-        ehsanLog("_initMode: %d, _blockSize %d", _initMode, _blockSize);
+        const char *heapInitOnlyIfTLH = getenv("TR_HeapInitOnlyIfTLH");
+        _zeroIfTLH = heapInitOnlyIfTLH != NULL;
+        ehsanLog("_initMode: %d, _blockSize %d, _zeroIfTLH %d", _initMode, _blockSize, _zeroIfTLH);
     }
 }
 static void checkedResetInitializer()
