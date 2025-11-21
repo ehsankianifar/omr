@@ -74,8 +74,8 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
         return;
     }
 
-    ehsanLog("Initiate zeroing! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isTLH %d",
-            addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH);
+    //ehsanLog("Initiate zeroing! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isTLH %d",
+    //        addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH);
     if(_initTop != _initCurrent)
     {
         ehsanLog("Unexpected event! Memory is under initialization.");
@@ -87,8 +87,6 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
     requestedTop = OMR_MIN(_initTop, requestedTop + sizeof(MM_HeapLinkedFreeHeader));
     _initCurrent = isTLH ? addrBase : requestedTop;
 
-    ehsanLog("Initiate zeroing2! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isTLH %d _initMode %d",
-            addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH, _initMode);
     if(_initMode == inlined)
     {
         startZeroing();
@@ -110,7 +108,7 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
         /* nop */
         debug = 2;
     }
-    ehsanLog("debug2=%d",debug);
+    ehsanLog("A%d%d ", isTLH, debug);
     
 }
 /*
