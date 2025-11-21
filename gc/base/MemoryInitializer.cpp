@@ -108,7 +108,7 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
         /* nop */
         debug = 2;
     }
-    ehsanLog("A%d%d ", isTLH, debug);
+    ehsanLog("B%d%d ", isTLH, debug);
     
 }
 /*
