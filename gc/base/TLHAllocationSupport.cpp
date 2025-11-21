@@ -219,11 +219,12 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 					void *base = getBase();
 					uint64_t content = *(uint64_t*)base;
 					void *top = getTop();
+					const char *checkMem = getenv("TR_CheckMemory");
 					if(content != 0)
 					{
 						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 						//ehsanLog("Allocated and zeroed memory from %p to %p content: %lx", base, top, content);
-					} else {
+					} else if (checkMem) {
 						char* current = (char*)base;
 						while (current<top){
 							if ((*current) != 0) {
