@@ -74,8 +74,8 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
         return;
     }
 
-    //ehsanLog("Initiate zeroing! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isTLH %d",
-    //        addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH);
+    ehsanLog("Initiate zeroing! addrBase 0x%lx addrTop 0x%lx requestedTop 0x%lx _initBase 0x%lx _initTop 0x%lx _initCurrent 0x%lx isTLH %d",
+            addrBase, addrTop, requestedTop, _initBase, _initTop, _initCurrent, isTLH);
     if(_initTop != _initCurrent)
     {
         ehsanLog("Unexpected event! Memory is under initialization.");
