@@ -57,7 +57,7 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
     {
         _initBase = requestedTop;
         requestedTop = OMR_MIN(_initTop, requestedTop + sizeof(MM_HeapLinkedFreeHeader));
-        while (requestedTop < _initCurrent)
+        while (requestedTop > _initCurrent)
         {
             /* nop */
             debug = 1;
@@ -105,7 +105,7 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
             cleaner.detach();
         }
     }
-    while (requestedTop < _initCurrent)
+    while (requestedTop > _initCurrent)
     {
         /* nop */
         debug = 2;
