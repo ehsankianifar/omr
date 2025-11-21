@@ -10,6 +10,7 @@
 static volatile uintptr_t _initBase;
 static volatile uintptr_t _initCurrent;
 static volatile uintptr_t _initTop;
+static size_t _minimumSize;
 static int _initMode;
 static int _blockSize;
 static bool _zeroIfTLH;
@@ -71,6 +72,11 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
     }
     if (!isTLH && _zeroIfTLH)
     {
+        return;
+    }
+    if((addrTop - requestedTop) < _minimumSize)
+    {
+        ehsanLogNoNewLine("C%d0 ", isTLH);
         return;
     }
 
@@ -204,6 +210,8 @@ static void resetInitializer()
         _blockSize= blockSize ? atoi(blockSize) : 1024 * 8;
         const char *heapInitOnlyIfTLH = getenv("TR_HeapInitOnlyIfTLH");
         _zeroIfTLH = heapInitOnlyIfTLH != NULL;
+        const char *minBlocks = getenv("TR_MemInitMinBlocks");
+        _minimumSize = minBlocks ? (atoi(minBlocks) * _blockSize) : (4 * _blockSize);
         ehsanLog("_initMode: %d, _blockSize %d, _zeroIfTLH %d", _initMode, _blockSize, _zeroIfTLH);
     }
 }
