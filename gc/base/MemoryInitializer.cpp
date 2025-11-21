@@ -23,38 +23,6 @@ enum Mode {
     detached = 3,
     lastItem = detached
 };
-static bool isInitialized(uintptr_t addrBase, uintptr_t addrTop, bool deleteHeader)
-{
-    // don't do anything if disabled
-    if(_initMode == disabled)
-    {
-        return false;
-    }
-	// false if not overlapping with the whole section under initialization;
-	bool result = (addrBase >= _initBase) && (addrTop <= _initTop);
-	int whileCount = 0;  
-	if(result)
-	{
-		// add 16 to account for the next free header head.
-		// If this add exceeds _initTop, there may not be a next header so limit it to _initTop
-		addrTop = OMR_MIN(_initTop, addrTop + sizeof(MM_HeapLinkedFreeHeader));
-		// Wait if under intialization;
-		while (addrTop > _initCurrent )
-		{
-			//NOP
-			whileCount++;
-		}
-        if(whileCount)
-        {
-            ehsanLog("some thread was waiting for memory freeing! %d", whileCount);
-        }
-		// zero header metadata
-		if(deleteHeader)
-			OMRZeroMemory((void*)addrBase, sizeof(MM_HeapLinkedFreeHeader));
-	}
-	//ehsanLog("Checking base %lx top %lx initBase %lx initTop %lx initCurrent %lx redult %d whileCount %d", addrBase, addrTop, _initBase, _initTop, _initCurrent, result, whileCount);
-	return result;
-}
 
 static void startZeroing()
 {
@@ -142,7 +110,39 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
     ehsanLog("debug=%d",debug);
     
 }
-
+/*
+static bool isInitialized(uintptr_t addrBase, uintptr_t addrTop, bool deleteHeader)
+{
+    // don't do anything if disabled
+    if(_initMode == disabled)
+    {
+        return false;
+    }
+	// false if not overlapping with the whole section under initialization;
+	bool result = (addrBase >= _initBase) && (addrTop <= _initTop);
+	int whileCount = 0;  
+	if(result)
+	{
+		// add 16 to account for the next free header head.
+		// If this add exceeds _initTop, there may not be a next header so limit it to _initTop
+		addrTop = OMR_MIN(_initTop, addrTop + sizeof(MM_HeapLinkedFreeHeader));
+		// Wait if under intialization;
+		while (addrTop > _initCurrent )
+		{
+			//NOP
+			whileCount++;
+		}
+        if(whileCount)
+        {
+            ehsanLog("some thread was waiting for memory freeing! %d", whileCount);
+        }
+		// zero header metadata
+		if(deleteHeader)
+			OMRZeroMemory((void*)addrBase, sizeof(MM_HeapLinkedFreeHeader));
+	}
+	//ehsanLog("Checking base %lx top %lx initBase %lx initTop %lx initCurrent %lx redult %d whileCount %d", addrBase, addrTop, _initBase, _initTop, _initCurrent, result, whileCount);
+	return result;
+}
 static void tryInitialize(uintptr_t addrBase, uintptr_t addrTop)
 {
      // don't do anything if disabled
@@ -183,7 +183,7 @@ static void tryInitialize(uintptr_t addrBase, uintptr_t addrTop)
         }
     }
 }
-
+*/
 static void resetInitializer()
 {
 	_initBase = 0;
