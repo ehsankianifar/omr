@@ -229,7 +229,7 @@ static void resetInitializer()
         if(_initMode == omrThread)
         {
             //omrthread_init();
-            omrthread_monitor_init(&_monitor);
+            omrthread_monitor_init_with_name(&_monitor, 0, "MemoryZeroing");
             omrthread_create(&_thread, 0, J9THREAD_PRIORITY_NORMAL, 0, omrThreadZeroing, NULL);
         }
     }
