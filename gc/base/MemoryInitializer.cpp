@@ -42,7 +42,7 @@ static void startZeroing()
     }
 }
 
-intptr_t omrThreadZeroing(void *arg)
+int omrThreadZeroing(void *arg)
 {
     while (1) {
         omrthread_monitor_enter(_monitor);
