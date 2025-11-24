@@ -5,7 +5,7 @@
 #include "omrcomp.h"
 #include "HeapLinkedFreeHeader.hpp"
 #include "omrutil.h"
-#include <thread>
+#include "omrthread.h"
 
 static volatile uintptr_t _initBase;
 static volatile uintptr_t _initCurrent;
@@ -15,14 +15,15 @@ static int _initMode;
 static int _blockSize;
 static bool _zeroIfTLH;
 static bool _isReady = false;
+static omrthread_monitor_t _monitor;
+static omrthread_t _thread;
 //std::mutex _mtx;
 
 enum Mode {
     disabled = 0,
     inlined  = 1,
-    attached = 2,
-    detached = 3,
-    lastItem = detached
+    omrThread = 2,
+    lastItem = omrThread
 };
 
 static void startZeroing()
@@ -39,6 +40,20 @@ static void startZeroing()
         OMRZeroMemory((void*)_initCurrent, (_initTop - _initCurrent));
         _initCurrent = _initTop;
     }
+}
+
+intptr_t omrThreadZeroing(void *arg)
+{
+    while (1) {
+        omrthread_monitor_enter(_monitor);
+        while (_initCurrent == _initTop) {
+            omrthread_monitor_wait(_monitor);
+        }
+        omrthread_monitor_exit(_monitor);
+
+        startZeroing();
+    }
+    return 0;
 }
 
 static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t requestedSize, bool isTLH)
@@ -88,6 +103,11 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
         return;
     }
 
+    if(_initMode == omrThread)
+    {
+        omrthread_monitor_enter(_monitor);
+    }
+
     _initBase = requestedTop;
     _initTop = addrTop;
     requestedTop = OMR_MIN(_initTop, requestedTop + sizeof(MM_HeapLinkedFreeHeader));
@@ -97,17 +117,10 @@ static void tryInitializeMemory(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t re
     {
         startZeroing();
     }
-    else
+    else if(_initMode == omrThread)
     {
-        std::thread cleaner(startZeroing);
-        if(_initMode == attached)
-        {
-            cleaner.join();
-        }
-        else if(_initMode == detached)
-        {
-            cleaner.detach();
-        }
+        omrthread_monitor_notify(_monitor);
+        omrthread_monitor_exit(_monitor);
     }
     while (requestedTop > _initCurrent)
     {
@@ -213,6 +226,12 @@ static void resetInitializer()
         const char *minBlocks = getenv("TR_MemInitMinBlocks");
         _minimumSize = minBlocks ? (atoi(minBlocks) * _blockSize) : (4 * _blockSize);
         ehsanLog("_initMode: %d, _blockSize %d, _zeroIfTLH %d", _initMode, _blockSize, _zeroIfTLH);
+        if(_initMode == omrThread)
+        {
+            //omrthread_init();
+            omrthread_monitor_init(&_monitor);
+            omrthread_create(&_thread, 0, J9THREAD_PRIORITY_NORMAL, 0, omrThreadZeroing, NULL);
+        }
     }
 }
 static void checkedResetInitializer()
