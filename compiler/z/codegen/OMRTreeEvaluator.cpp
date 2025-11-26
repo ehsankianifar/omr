@@ -1095,7 +1095,7 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
     if (elementSizeMask == 1) {
         // Reduce the halfword lane size to word size.
         generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, sourceReg, sourceReg, scratchReg, 0, 0,
-            elementSizeMask);\
+            elementSizeMask);
         elementSizeMask++;
         shortTypeSignExtend = true;
     }
@@ -1242,9 +1242,66 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     return resultRegister;
 }
 
+static void loadIndexOfEachLaneInVectorRegister(TR::Node *node, TR::CodeGenerator *cg, TR::Register targetReg, uint8_t elementSize)
+{
+    u_int64_t bitMask[2] = {0x0102040810204080, 0x0102040810204080};
+    switch (elementSizeMask) {
+        case 0:
+            break;
+        case 1:
+            bitMask[0] = 0x0001000200040008;
+            bitMask[1] = 0x0100020004000800;
+            break;
+        case 2:
+            bitMask[0] = 0x0000000100000002;
+            bitMask[1] = 0x0000000400000008;
+            break;
+        case 3:
+            bitMask[0] = 0x0000000000000001;
+            bitMask[1] = 0x0000000000000002;
+            break;
+        default :
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "The provided element size (%d) is not supported!", elementSize);
+            break;
+    }
+    TR::MemoryReference *bitMaskMemRef
+        = generateS390MemoryReference(cg->findOrCreateConstant(node, bitMask, 16), cg, 0, node);
+    generateVRXInstruction(cg, TR::InstOpCode::VL, node, targetReg, bitMaskMemRef);
+}
+
 TR::Register *OMR::Z::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::Node *sourceNode = node->getFirstChild();
+    uint8_t elementSizeMask = getVectorElementSizeMask(sourceNode);
+    TR::Register *maskRegister = cg->evaluate(sourceNode);
+    TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+
+    loadIndexOfEachLaneInVectorRegister(node, cg, scratchReg, elementSizeMask);
+    generateVRRcInstruction(cg, TR::InstOpCode::VN, node, scratchReg, maskRegister, scratchReg, 0);
+
+    if(elementSizeMask < 2)
+    {
+        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, scratchReg, scratchReg, scratchReg, 0, 0,
+            elementSizeMask);
+        if(elementSizeMask == 0)
+        {
+            // if byte size elements, then need to shift the second half of the register to the right since there are 16 lanes!
+            TR_ASSERT_FATAL_WITH_NODE(node, false, "mToLongBitsEvaluator for byte is not implemented yet!");
+        }
+        elementSizeMask = 2;
+    }
+    // Reduce word or doubleword size to one element.
+    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, sourceReg, scratchReg, 0, 0,
+        elementSizeMask);
+
+    TR::Register *resultReg = cg->allocateRegister();
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, scratchReg,
+        generateS390MemoryReference(1, cg), 3);
+
+    cg->stopUsingRegister(scratchReg);
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultReg);
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1273,28 +1330,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
         generateVRRcInstruction(cg, TR::InstOpCode::VMRH, node, maskRegister, maskRegister, scratchReg, 3);
     }
 
-    // Create a mask to specify which bit set each lane. Default case is fot int8 type.
-    u_int64_t bitMask[2] = {0x0102040810204080, 0x0102040810204080};
-    switch (elementSizeMask) {
-        case 1:
-            bitMask[0] = 0x0001000200040008;
-            bitMask[1] = 0x0100020004000800;
-            break;
-        case 2:
-            bitMask[0] = 0x0000000100000002;
-            bitMask[1] = 0x0000000400000008;
-            break;
-        case 3:
-            bitMask[0] = 0x0000000000000001;
-            bitMask[1] = 0x0000000000000002;
-            break;
-        default :
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "The provided element size (%d) is not supported!", elementSizeMask);
-            break;
-    }
-    TR::MemoryReference *bitMaskMemRef
-        = generateS390MemoryReference(cg->findOrCreateConstant(node, bitMask, 16), cg, 0, node);
-    generateVRXInstruction(cg, TR::InstOpCode::VL, node, scratchReg, bitMaskMemRef);
+    loadIndexOfEachLaneInVectorRegister(node, cg, scratchReg, elementSizeMask);
 
     generateVRRcInstruction(cg, TR::InstOpCode::VN, node, maskRegister, maskRegister, scratchReg, 0);
     generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, maskRegister, maskRegister, scratchReg, 0, elementSizeMask);
