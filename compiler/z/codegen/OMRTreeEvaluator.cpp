@@ -1259,15 +1259,15 @@ TR::Register *OMR::Z::TreeEvaluator::mLongBitsToMaskEvaluator(TR::Node *node, TR
     // TODO: if load is load indirect and it is not evaluated, load into vector register.
     // Load the source to element 1 of the vector.
     generateVRSbInstruction(cg, TR::InstOpCode::VLVG, node, maskRegister, sourceRegister,
-        generateS390MemoryReference(0, cg), 3);
+        generateS390MemoryReference(1, cg), 3);
     if(elementSizeMask == 0) {
         // If the vector type is int8, we need 16 bits of the source to construct the mask.
         // We need to use a helper register.
         // 6th lane of the scratch register contains the mask bits of the lower half of the mask.
-        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchReg, maskRegister, 6, 0);
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, scratchReg, maskRegister, 14, 0);
     }
     // repeat the element 15 throughout the lanes.
-    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, maskRegister, maskRegister, 15 >> elementSizeMask, elementSizeMask);
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, maskRegister, maskRegister, 15, 0);
     if(elementSizeMask == 0) {
         // Since the lane size is 8, the required data for the lower half of mask exist in scratch register.
         generateVRRcInstruction(cg, TR::InstOpCode::VMRH, node, maskRegister, maskRegister, scratchReg, 3);
