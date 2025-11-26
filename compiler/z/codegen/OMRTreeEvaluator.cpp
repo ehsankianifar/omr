@@ -1242,10 +1242,10 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     return resultRegister;
 }
 
-static void loadIndexOfEachLaneInVectorRegister(TR::Node *node, TR::CodeGenerator *cg, TR::Register targetReg, uint8_t elementSize)
+static void loadIndexOfEachLaneInVectorRegister(TR::Node *node, TR::CodeGenerator *cg, TR::Register *targetReg, uint8_t elementSize)
 {
     u_int64_t bitMask[2] = {0x0102040810204080, 0x0102040810204080};
-    switch (elementSizeMask) {
+    switch (elementSize) {
         case 0:
             break;
         case 1:
