@@ -1291,7 +1291,7 @@ TR::Register *OMR::Z::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR::Co
         elementSizeMask = 2;
     }
     // Reduce word or doubleword size to one element.
-    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, sourceReg, scratchReg, 0, 0,
+    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, scratchReg, scratchReg, 0, 0,
         elementSizeMask);
 
     TR::Register *resultReg = cg->allocateRegister();
