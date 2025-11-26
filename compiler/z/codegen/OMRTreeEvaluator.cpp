@@ -15899,7 +15899,6 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpneEvaluator(TR::Node *node, TR::CodeGen
             break;
         case TR::Float:
         case TR::Double:
-        case TR::Float:
             targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCE);
             break;
         default:
