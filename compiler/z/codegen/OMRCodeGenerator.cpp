@@ -4429,6 +4429,9 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vreductionAnd:
         case TR::vreductionOr:
         case TR::vreductionXor:
+        case TR::vmreductionAnd:
+        case TR::vmreductionOr:
+        case TR::vmreductionXor:
         case TR::vrol:
         case TR::vmrol:
         case TR::vushr:
@@ -4499,6 +4502,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vreductionMul:
         case TR::mLongBitsToMask:
         case TR::vreductionOrUnchecked:
+        case TR::vmreductionOrUnchecked:
         case TR::mToLongBits:
             return true;
         default:
