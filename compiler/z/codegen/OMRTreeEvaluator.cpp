@@ -1251,7 +1251,7 @@ static void loadIndexOfEachLaneInVectorRegister(TR::Node *node, TR::CodeGenerato
             break;
         case 1:
             bitMask[0] = 0x0001000200040008;
-            bitMask[1] = 0x0100020004000800;
+            bitMask[1] = 0x0010002000400080;
             break;
         case 2:
             bitMask[0] = 0x0000000100000002;
