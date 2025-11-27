@@ -1862,13 +1862,31 @@ TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::
 }
 
 static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
-    bool instructionNeedsElementSizeMask)
+    bool instructionNeedsElementSizeMask, int unmaskedValues = 0)
 {
     // TODO: if it was used for reduceLanesToLong(), then we need to sign exted the result.
     TR::Node *firstChild = node->getFirstChild();
     TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
     uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    if (isMasked) {
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = (unmaskedValues == 1) : cg->gprClobberEvaluate(maskChild) : cg->evaluate(maskChild);
+        if(unmaskedValues == -1) {
+            generateVRRcInstruction(cg, TR::InstOpCode::VOC, node, sourceReg, sourceReg, maskReg, 0, 0, 0);
+        }
+        if(unmaskedValues == 0 || unmaskedValues == 1) {
+            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, sourceReg, maskReg, sourceReg, 0, 0, 0);
+        }
+        if(unmaskedValues == 1) {
+            //TODO: use VSEL instead of this!
+            generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, maskReg, maskReg, maskReg, 0, 0, 0);
+            generateVRRaInstruction(cg, TR::InstOpCode::VLC, node, maskReg, maskReg, 0, 0, elementSizeMask);
+            generateVRRcInstruction(cg, TR::InstOpCode::VO, node, sourceReg, maskReg, sourceReg, 0, 0, 0);
+        }
+        cg->decReferenceCount(maskChild);
+    }
 
     for (int i = 0; i < 4 - elementSizeMask; i++) {
         // In each iteration, the vector is split in half: the first half stays in
@@ -1897,7 +1915,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionAddEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionAndEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VN, false /* instructionNeedsElementSizeMask */, -1);
 }
 
 static TR::Register *reductionFirstNonZeroHelper(TR::Node *node, TR::CodeGenerator *cg, bool isMasked)
@@ -1948,17 +1966,17 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionMulEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionOrEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VO, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionOrUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VO, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionXorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VX, false /* instructionNeedsElementSizeMask */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmsqrtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
