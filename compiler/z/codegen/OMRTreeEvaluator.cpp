@@ -1242,6 +1242,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     return resultRegister;
 }
 
+//TODO: it is not loading index! setting the 2^index
 static void loadIndexOfEachLaneInVectorRegister(TR::Node *node, TR::CodeGenerator *cg, TR::Register *targetReg, uint8_t elementSize)
 {
     u_int64_t bitMask[2] = {0x0102040810204080, 0x0102040810204080};
@@ -1273,25 +1274,33 @@ TR::Register *OMR::Z::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR::Co
 {
     TR::Node *sourceNode = node->getFirstChild();
     uint8_t elementSizeMask = getVectorElementSizeMask(sourceNode);
-    TR::Register *maskRegister = cg->evaluate(sourceNode);
+    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
 
+    // Load 2^index in each lane. For 8bit vectors, using 2^index%8 since there are only 8 bits
     loadIndexOfEachLaneInVectorRegister(node, cg, scratchReg, elementSizeMask);
+    //and mask with index bit. This way only the bit coresponding to the index would be set if the mask is not zero
     generateVRRcInstruction(cg, TR::InstOpCode::VN, node, scratchReg, maskRegister, scratchReg, 0);
+    // zero the mask register
+    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, maskRegister, 0, 0);
 
     if(elementSizeMask < 2)
     {
-        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, scratchReg, scratchReg, scratchReg, 0, 0,
+        // combine all index bits
+        generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, scratchReg, scratchReg, maskRegister, 0, 0,
             elementSizeMask);
         if(elementSizeMask == 0)
         {
-            // if byte size elements, then need to shift the second half of the register to the right since there are 16 lanes!
-            TR_ASSERT_FATAL_WITH_NODE(node, false, "mToLongBitsEvaluator for byte is not implemented yet!");
+            //need to shift the right half of the scratch register left to account for the index modulo
+            generateVRIaInstruction(cg, TR::InstOpCode::VLEIG, node, maskRegister, 8, 1);
+            generateVRRcInstruction(cg, TR::InstOpCode::VESLV, node, scratchReg, scratchReg, maskRegister, 0, 0, 3);
+            // zero the mask register again!
+            generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, maskRegister, 0, 0)
         }
         elementSizeMask = 2;
     }
     // Reduce word or doubleword size to one element.
-    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, scratchReg, scratchReg, 0, 0,
+    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, scratchReg, scratchReg, maskRegister, 0, 0,
         elementSizeMask);
 
     TR::Register *resultReg = cg->allocateRegister();
