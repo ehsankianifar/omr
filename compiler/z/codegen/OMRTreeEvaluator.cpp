@@ -1872,7 +1872,7 @@ static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *
     bool isMasked = node->getOpCode().isVectorMasked();
     if (isMasked) {
         TR::Node *maskChild = node->getSecondChild();
-        TR::Register *maskReg = (unmaskedValues == 1) : cg->gprClobberEvaluate(maskChild) : cg->evaluate(maskChild);
+        TR::Register *maskReg = (unmaskedValues == 1) ? cg->gprClobberEvaluate(maskChild) : cg->evaluate(maskChild);
         if(unmaskedValues == -1) {
             generateVRRcInstruction(cg, TR::InstOpCode::VOC, node, sourceReg, sourceReg, maskReg, 0, 0, 0);
         }
