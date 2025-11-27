@@ -1295,7 +1295,7 @@ TR::Register *OMR::Z::TreeEvaluator::mToLongBitsEvaluator(TR::Node *node, TR::Co
             generateVRIaInstruction(cg, TR::InstOpCode::VLEIG, node, maskRegister, 8, 1);
             generateVRRcInstruction(cg, TR::InstOpCode::VESLV, node, scratchReg, scratchReg, maskRegister, 0, 0, 3);
             // zero the mask register again!
-            generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, maskRegister, 0, 0)
+            generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, maskRegister, 0, 0);
         }
         elementSizeMask = 2;
     }
