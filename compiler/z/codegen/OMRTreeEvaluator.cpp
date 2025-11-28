@@ -1147,7 +1147,7 @@ static void setIdentityValueToUnmaskedLanes(TR::Node *node, TR::CodeGenerator *c
     {
         generateVRSaInstruction(cg, shiftOp, node, scratchReg, scratchReg, generateS390MemoryReference(shiftAmunt, cg), elementSizeMask);
     }
-    generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, scratchReg, targetReg, maskReg);
+    generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, targetReg, scratchReg, maskReg);
 }
 
 static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
