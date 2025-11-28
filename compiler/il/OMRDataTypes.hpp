@@ -149,6 +149,21 @@ enum TR_YesNoMaybe {
     TR_maybe
 };
 
+// Well known values used in operations like masked reduction operations.
+enum TR_IdentityValues {
+    Universal_0,
+    Int_1,
+    Int_Negative1,
+    Int_Max,
+    Int_Min,
+    Float_Max,
+    Float_Min,
+    Float_1,
+    Double_Max,
+    Double_Min,
+    Double_1
+};
+
 // NOTE : update these tables when adding/modifying enum TR_RawBCDSignCode
 // OMRDataTypes.cpp
 //    bcdToRawSignCodeMap

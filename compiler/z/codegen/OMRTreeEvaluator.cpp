@@ -1076,11 +1076,92 @@ TR::Register *OMR::Z::TreeEvaluator::msplatsEvaluator(TR::Node *node, TR::CodeGe
     return TR::TreeEvaluator::vsplatsEvaluator(node, cg);
 }
 
+static void setIdentityValueToUnmaskedLanes(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskReg, TR::Register *targetReg,
+    TR::Register *scratchReg, TR_IdentityValues identityValue, uint8_t elementSizeMask)
+{
+    uint16_t immediateValue = 0;
+    uint8_t shiftAmunt = 0;
+    TR::InstOpCode::Mnemonic shiftOp = TR::InstOpCode::VESL;
+    switch (identityValue)
+    {
+    case TR_IdentityValues::Int_Negative1:
+        generateVRRcInstruction(cg, TR::InstOpCode::VOC, node, targetReg, targetReg, maskReg, 0, 0, 0);
+        return;
+    case TR_IdentityValues::Universal_0:
+        generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, targetReg, maskReg, 0, 0, 0);
+        return;
+    case TR_IdentityValues::Int_1:
+        immediateValue = 1;
+        break;
+    case TR_IdentityValues::Int_Max:
+        if (elementSizeMask == 0)
+            immediateValue = 0x7f;
+        else if (elementSizeMask == 1)
+            immediateValue = 0x7fff;
+        else
+        {
+            immediateValue = 0xffff;
+            shiftAmunt = 1;
+            shiftOp = TR::InstOpCode::VESRL;
+        }
+        break;
+    case TR_IdentityValues::Int_Min:
+        if (elementSizeMask == 0)
+            immediateValue = 0x80;
+        else if (elementSizeMask == 1)
+            immediateValue = 0x8000;
+        else
+        {
+            immediateValue = 1;
+            shiftAmunt = 63;
+        }
+        break;
+    case TR_IdentityValues::Float_Max:
+        shiftAmunt = trailingZeroes(FLOAT_POS_INFINITY);
+        immediateValue = FLOAT_POS_INFINITY >> shiftAmunt;
+        break;
+    case TR_IdentityValues::Float_Min:
+        shiftAmunt = trailingZeroes(FLOAT_NEG_INFINITY);
+        immediateValue = FLOAT_NEG_INFINITY >> shiftAmunt;
+        break;
+    case TR_IdentityValues::Float_1:
+        shiftAmunt = trailingZeroes(FLOAT_ONE);
+        immediateValue = FLOAT_ONE >> shiftAmunt;
+        break;
+    case TR_IdentityValues::Double_Max:
+        shiftAmunt = trailingZeroes(DOUBLE_POS_INFINITY);
+        immediateValue = DOUBLE_POS_INFINITY >> shiftAmunt;
+        break;
+    case TR_IdentityValues::Double_Min:
+        shiftAmunt = trailingZeroes(DOUBLE_NEG_INFINITY);
+        immediateValue = DOUBLE_NEG_INFINITY >> shiftAmunt;
+        break;
+    case TR_IdentityValues::Double_1:
+        shiftAmunt = trailingZeroes(DOUBLE_ONE);
+        immediateValue = DOUBLE_ONE >> shiftAmunt;
+        break;
+    }
+    //replicate the immediate value throughout the scratch register.
+    generateVRIaInstruction(cg, TR::InstOpCode::VREPI, node, scratchReg, immediateValue, elementSizeMask);
+    if (shiftAmunt > 0)
+    {
+        generateVRSaInstruction(cg, shiftOp, node, scratchReg, scratchReg, generateS390MemoryReference(shiftAmunt, cg), elementSizeMask);
+    }
+    generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, targetReg, scratchReg, targetReg, maskReg);
+}
+
 static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *cg, TR::DataType type)
 {
     TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
     uint8_t elementSizeMask = getVectorElementSizeMask(node->getFirstChild());
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    if (isMasked) {
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        setIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchReg, TR_IdentityValues::Universal_0, elementSizeMask);
+        cg->decReferenceCount(maskChild);
+    }
     if(elementSizeMask < 2) {
         // VSUM perform a logical add. We need to increase the size to make sure there is no overflow!
         // In case of int64 data type we don't care about overflow!
@@ -1110,7 +1191,7 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
     
     if (elementSizeMask < 3) {
         if (shortTypeSignExtend) {
-            // Sign extend 16bit value.
+            // Sign extend 16bit value. TODO: use VSEG
             generateRSInstruction(cg, TR::InstOpCode::SLLG, node, resultReg, resultReg, 48);
             generateRSInstruction(cg, TR::InstOpCode::SRAG, node, resultReg, resultReg, 48);
         } else {
@@ -1862,7 +1943,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmorUncheckedEvaluator(TR::Node *node, TR::
 }
 
 static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
-    bool instructionNeedsElementSizeMask, int unmaskedValues = 0)
+    bool instructionNeedsElementSizeMask, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
 {
     // TODO: if it was used for reduceLanesToLong(), then we need to sign exted the result.
     TR::Node *firstChild = node->getFirstChild();
@@ -1872,19 +1953,8 @@ static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *
     bool isMasked = node->getOpCode().isVectorMasked();
     if (isMasked) {
         TR::Node *maskChild = node->getSecondChild();
-        TR::Register *maskReg = (unmaskedValues == 1) ? cg->gprClobberEvaluate(maskChild) : cg->evaluate(maskChild);
-        if(unmaskedValues == -1) {
-            generateVRRcInstruction(cg, TR::InstOpCode::VOC, node, sourceReg, sourceReg, maskReg, 0, 0, 0);
-        }
-        if(unmaskedValues == 0 || unmaskedValues == 1) {
-            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, sourceReg, maskReg, sourceReg, 0, 0, 0);
-        }
-        if(unmaskedValues == 1) {
-            //TODO: use VSEL instead of this!
-            generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, maskReg, maskReg, maskReg, 0, 0, 0);
-            generateVRRaInstruction(cg, TR::InstOpCode::VLC, node, maskReg, maskReg, 0, 0, elementSizeMask);
-            generateVRRcInstruction(cg, TR::InstOpCode::VO, node, sourceReg, maskReg, sourceReg, 0, 0, 0);
-        }
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        setIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchReg, identityValue, elementSizeMask);
         cg->decReferenceCount(maskChild);
     }
 
@@ -1910,12 +1980,12 @@ static TR::Register *integralReductionHelper(TR::Node *node, TR::CodeGenerator *
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionAddEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionAddEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionAndEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return integralReductionHelper(node, cg, TR::InstOpCode::VN, false /* instructionNeedsElementSizeMask */, -1);
+    return integralReductionHelper(node, cg, TR::InstOpCode::VN, false /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_Negative1);
 }
 
 static TR::Register *reductionFirstNonZeroHelper(TR::Node *node, TR::CodeGenerator *cg, bool isMasked)
@@ -1951,17 +2021,17 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionFirstNonZeroEvaluator(TR::Node *
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionMaxEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionMaxEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionMinEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionMinEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionMulEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionOrEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -14508,12 +14578,18 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
         case TR::InstOpCode::VFCH:
         case TR::InstOpCode::VFCHE:
             breakInst = generateVRRcInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 0, 0, mask4);
+            // mask is handled inside the evaluator!
+            // TODO: unify the implementation.
+            isMasked = false;
             break;
         // These are VRRb
         case TR::InstOpCode::VCH:
         case TR::InstOpCode::VCHL:
         case TR::InstOpCode::VCEQ:
             breakInst = generateVRRbInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, 0, mask4);
+            // mask is handled inside the evaluator!
+            // TODO: unify the implementation.
+            isMasked = false;
             break;
         case TR::InstOpCode::VFMAX:
         case TR::InstOpCode::VFMIN:
@@ -16010,7 +16086,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgtEvaluator(TR::Node *node, TR::CodeGen
     }
     if (node->getOpCode().isVectorMasked()) {
         TR::Node *maskChild = node->getThirdChild();
-        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true.
         generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, cg->evaluate(maskChild), targetReg, 0, 0, 0);
         cg->decReferenceCount(maskChild);
     }
@@ -16068,13 +16144,20 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
 }
 
 TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic vectorOp,
-    TR::InstOpCode::Mnemonic floatOP, bool isDouble)
+    TR::InstOpCode::Mnemonic floatOP, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
 {
     // TODO: if it was used for reduceLanesToLong(), then we need to convert float to double.
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
 
     TR::Register *sourceReg = cg->gprClobberEvaluate(sourceNode);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    if (isMasked) {
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        setIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, resultReg, identityValue, isDouble ? 3 : 2);
+        cg->decReferenceCount(maskChild);
+    }
     // Need the second half of the source in first half of the scratch register.
     generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
 
@@ -16095,12 +16178,22 @@ TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::In
     return resultReg;
 }
 
-TR::Register *longReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op)
+TR::Register *longReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, TR_IdentityValues identityValue = TR_IdentityValues::Int_1)
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister();
     TR::Register *scratchReg = cg->allocateRegister();
     TR::Register *sourceReg = cg->evaluate(sourceNode);
+
+    bool isMasked = node->getOpCode().isVectorMasked();
+    if (isMasked) {
+        TR::Register *scratchVectorReg = cg->allocateRegister(TR_VRF);
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        setIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchVectorReg, identityValue, 3);
+        cg->stopUsingRegister(scratchVectorReg);
+        cg->decReferenceCount(maskChild);
+    }
 
     // Copy elements to GPRS;
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg,
@@ -16176,11 +16269,11 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMaxEvaluator(TR::Node *node, TR::
 {
     TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
     if (type.isIntegral()) {
-        return integralReductionHelper(node, cg, TR::InstOpCode::VMX, true /* instructionNeedsElementSizeMask */);
+        return integralReductionHelper(node, cg, TR::InstOpCode::VMX, true /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_Min);
     } else if (type.isFloat()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, false /* isDouble */);
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, false /* isDouble */, TR_IdentityValues::Float_Min);
     } else if (type.isDouble()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, true /* isDouble */);
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, true /* isDouble */, TR_IdentityValues::Double_Min);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -16191,11 +16284,11 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
 {
     TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
     if (type.isIntegral()) {
-        return integralReductionHelper(node, cg, TR::InstOpCode::VMN, true /* instructionNeedsElementSizeMask */);
+        return integralReductionHelper(node, cg, TR::InstOpCode::VMN, true /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_Max);
     } else if (type.isFloat()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, false /* isDouble */);
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, false /* isDouble */, TR_IdentityValues::Float_Max);
     } else if (type.isDouble()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, true /* isDouble */);
+        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, true /* isDouble */, TR_IdentityValues::Double_Max);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -16208,11 +16301,11 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
     if (type.isDouble()) {
         return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
     } else if (type.isIntegral()) {
-        return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */);
+        return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_1);
     } else if (type.isFloat()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */);
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
     } else if (type.isDouble()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::MDBR, true /* isDouble */);
+        return floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::MDBR, true /* isDouble */, TR_IdentityValues::Double_1);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
