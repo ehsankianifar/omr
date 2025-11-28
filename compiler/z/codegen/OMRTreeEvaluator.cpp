@@ -16105,17 +16105,18 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
 
     TR::InstOpCode::Mnemonic op = node->getOpCode().isUnsignedCompare() ? TR::InstOpCode::VCHL : TR::InstOpCode::VCH;
+    TR::Register *targetReg;
 
     TR::DataType dt = node->getFirstChild()->getDataType().getVectorElementType();
     if (dt == TR::Double || dt == TR::Float)
-        return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCHE);
+        targetReg = OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFCHE);
     else {
         TR::Node *firstChild = node->getFirstChild();
         TR::Node *secondChild = node->getSecondChild();
 
         TR::Register *firstReg = cg->evaluate(firstChild);
         TR::Register *secondReg = cg->evaluate(secondChild);
-        TR::Register *targetReg = cg->allocateRegister(TR_VRF);
+        targetReg = cg->allocateRegister(TR_VRF);
         TR::Register *equalReg = cg->allocateRegister(TR_VRF);
 
         int32_t mask4 = getVectorElementSizeMask(node);
@@ -16123,13 +16124,6 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
         generateVRRbInstruction(cg, TR::InstOpCode::VCEQ, node, equalReg, firstReg, secondReg, 0, mask4);
         generateVRRbInstruction(cg, op, node, targetReg, firstReg, secondReg, 0, mask4);
         generateVRRcInstruction(cg, TR::InstOpCode::VO, node, targetReg, targetReg, equalReg, 0, 0, 0);
-        if(node->getOpCode().isVectorMasked()) {
-            TR::Node *maskChild = node->getThirdChild();
-            // Zero any lane that is not covered by mask.
-            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, targetReg, cg->evaluate(maskChild), 0, 0,
-                0);
-            cg->decReferenceCount(maskChild);
-        }
 
         cg->decReferenceCount(firstChild);
         cg->decReferenceCount(secondChild);
@@ -16139,8 +16133,15 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
         cg->stopUsingRegister(secondReg);
 
         node->setRegister(targetReg);
-        return targetReg;
     }
+    if(node->getOpCode().isVectorMasked()) {
+        TR::Node *maskChild = node->getThirdChild();
+        // Zero any lane that is not covered by mask.
+        generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, targetReg, cg->evaluate(maskChild), 0, 0,
+            0);
+        cg->decReferenceCount(maskChild);
+    }
+    return node->getRegister();
 }
 
 TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic vectorOp,
