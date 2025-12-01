@@ -173,7 +173,7 @@ TEST_P(LongCmpTest, integer) {
       tester2("Int64", opCode, a_vector, b_vector, expected_vector);
    }
 }
-TEST_P(DoubleCmpTest, floatPoint) {
+TEST_P(FloatCmpTest, floatPoint) {
    const char *opCode = std::get<0>(GetParam());
    std::vector<float> a_vector = std::get<1>(GetParam());
    std::vector<float> b_vector = std::get<2>(GetParam());
@@ -185,7 +185,7 @@ TEST_P(DoubleCmpTest, floatPoint) {
       tester2("Float", opCode, a_vector, b_vector, expected_vector);
    }
 }
-TEST_P(FloatCmpTest, floatPoint) {
+TEST_P(DoubleCmpTest, floatPoint) {
    const char *opCode = std::get<0>(GetParam());
    std::vector<double> a_vector = std::get<1>(GetParam());
    std::vector<double> b_vector = std::get<2>(GetParam());
