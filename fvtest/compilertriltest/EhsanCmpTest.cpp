@@ -62,8 +62,7 @@ void tester(char *laneType, char *opCode,  std::vector<T>a,  std::vector<T>b,  s
 
     auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*,T*,void*)>();
   
-    T output = 0;
-
+    std::vector<T> output(128/sizeof(T));
     entry_point(&output,&a.front(),&b.front(),&mask.front());
 
    //  if(sizeChar == 'f') {
@@ -74,7 +73,7 @@ void tester(char *laneType, char *opCode,  std::vector<T>a,  std::vector<T>b,  s
    //  }
    //EXPECT_EQ(expectedResult, output);
    //EXPECT_THAT(output, testing::ContainerEq(expectedResult));
-   for (int i = 0 ; i < expectedResult.size(), i++) {
+   for (int i = 0 ; i < expectedResult.size(); i++) {
       EXPECT_EQ(expectedResult[i], output[i]);
    }
 }
