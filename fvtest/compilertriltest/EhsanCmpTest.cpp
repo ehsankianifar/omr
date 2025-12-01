@@ -64,7 +64,7 @@ void tester(char *laneType, char *opCode,  std::vector<T>a,  std::vector<T>b,  s
   
     T output = 0;
 
-    entry_point(&output,&a.front(),&b.front(),&c.front());
+    entry_point(&output,&a.front(),&b.front(),&mask.front());
 
    //  if(sizeChar == 'f') {
    //    // workaround for precision issue with float!
@@ -85,7 +85,7 @@ TEST_P(ByteCmpTest, integer) {
    std::vector<int8_t> b_vector = std::get<2>(GetParam());
    std::vector<int8_t> mask_vector = std::get<3>(GetParam());
    std::vector<int8_t> expected_vector = std::get<4>(GetParam());
-   tester("Int8", opCode, a_vector, a_vector, b_vector, mask_vector, expected_vector);
+   tester("Int8", opCode, a_vector, b_vector, mask_vector, expected_vector);
 }
 // TEST_P(ShortCmpTest, integer) {
 //    std::vector<int16_t> input_vector = GetParam();
@@ -117,8 +117,7 @@ INSTANTIATE_TEST_CASE_P(b, ByteCmpTest, testing::ValuesIn({
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, 
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
          std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-         std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
-      )
+         std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1})
    }));
 
 // INSTANTIATE_TEST_CASE_P(s, ShortCmpTest, testing::ValuesIn({
