@@ -60,10 +60,10 @@ void tester(char *laneType, char *opCode,  std::vector<T>a,  std::vector<T>b,  s
     Tril::DefaultCompiler compiler(trees);
     ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
 
-    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*,T*,void*)>();
+    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*,T*)>();
   
     std::vector<T> output(128/sizeof(T));
-    entry_point(&output,&a.front(),&b.front(),&mask.front());
+    entry_point(&output.front(),&a.front(),&b.front(),&mask.front());
 
    //  if(sizeChar == 'f') {
    //    // workaround for precision issue with float!
