@@ -95,8 +95,8 @@ public:
         TR_ASSERT_FATAL(vectorType.isVector() || vectorType.isMask(),
             "createVectorOpCode should take vector or mask type\n");
 
-        // TR_ASSERT_FATAL(operation < TR::firstTwoTypeVectorOperation,
-        //     "Vector operation should be one vector type operation\n");
+        TR_ASSERT_FATAL(operation < TR::firstTwoTypeVectorOperation,
+            "Vector operation should be one vector type operation\n");
 
         if (vectorType.isMask())
             vectorType = TR::DataType::vectorFromMaskType(vectorType);
