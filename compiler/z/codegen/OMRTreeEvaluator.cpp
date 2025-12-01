@@ -16307,9 +16307,9 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
 TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
-    if (type.isLong()) {
+    if (type.isInt64()) {
         return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
-    } else if (type.isInt64()) {
+    } else if (type.isIntegral()) {
         return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_1);
     } else if (type.isFloat()) {
         return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
