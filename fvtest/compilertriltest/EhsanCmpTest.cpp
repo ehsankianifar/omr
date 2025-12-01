@@ -25,7 +25,7 @@
 #include <cmath>
 class VectorCmpTest : public TRTest::JitTest {};
 
-class ByteCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<char*, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>>> {};
+class ByteCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>>> {};
 // class ShortCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<int16_t>> {};
 // class IntCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<int32_t>> {};
 // class LongCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<int64_t>> {};
