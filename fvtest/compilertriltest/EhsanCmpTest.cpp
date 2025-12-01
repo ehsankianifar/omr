@@ -215,7 +215,7 @@ INSTANTIATE_TEST_CASE_P(b, ByteCmpTest, testing::ValuesIn({
    }));
 
 
-INSTANTIATE_TEST_CASE_P(dmeq, ByteCmpTest, testing::ValuesIn({
+INSTANTIATE_TEST_CASE_P(dmeq, DoubleCmpTest, testing::ValuesIn({
       std::make_tuple("vmcmpeq",
          std::vector<double>{0, 1}, 
          std::vector<double>{0, 1},
@@ -223,7 +223,7 @@ INSTANTIATE_TEST_CASE_P(dmeq, ByteCmpTest, testing::ValuesIn({
          std::vector<int64_t>{-1, -1})
    }));
 
-INSTANTIATE_TEST_CASE_P(dmlt, ByteCmpTest, testing::ValuesIn({
+INSTANTIATE_TEST_CASE_P(dmlt, DoubleCmpTest, testing::ValuesIn({
       std::make_tuple("vmcmplt",
          std::vector<double>{0, 1}, 
          std::vector<double>{0, 1},
@@ -231,7 +231,7 @@ INSTANTIATE_TEST_CASE_P(dmlt, ByteCmpTest, testing::ValuesIn({
          std::vector<int64_t>{0, 0})
    }));
 
-INSTANTIATE_TEST_CASE_P(d, ByteCmpTest, testing::ValuesIn({
+INSTANTIATE_TEST_CASE_P(d, DoubleCmpTest, testing::ValuesIn({
       std::make_tuple("vcmpeq",
          std::vector<double>{0, 1}, 
          std::vector<double>{0, 1},
