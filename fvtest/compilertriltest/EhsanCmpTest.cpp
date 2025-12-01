@@ -34,7 +34,7 @@ class ByteCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<s
 
 
 template<typename T>
-void tester(const char *laneType, char *opCode,  std::vector<T>a,  std::vector<T>b,  std::vector<T>mask,  std::vector<T>expectedResult) {
+void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b,  std::vector<T>mask,  std::vector<T>expectedResult) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address] "
                       " (block "
