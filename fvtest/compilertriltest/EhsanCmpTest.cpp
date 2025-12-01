@@ -104,7 +104,7 @@ void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::v
     Tril::DefaultCompiler compiler(trees);
     ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
 
-    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*,T*)>();
+    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*)>();
   
     std::vector<T> output(128/sizeof(T));
     entry_point(&output.front(),&a.front(),&b.front());
