@@ -25,12 +25,12 @@
 #include <cmath>
 class VectorCmpTest : public TRTest::JitTest {};
 
-class ByteCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>>> {};
-class ShortCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int16_t>, std::vector<int16_t>, std::vector<int16_t>, std::vector<int16_t>>> {};
-class IntCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int32_t>, std::vector<int32_t>, std::vector<int32_t>, std::vector<int32_t>>> {};
-class LongCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>>> {};
-class DoubleCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<double>, std::vector<double>, std::vector<int64_t>, std::vector<int64_t>>> {};
-class FloatCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<float>, std::vector<float>, std::vector<int32_t>, std::vector<int32_t>>> {};
+class ByteCmpTest : public VectorCmpTest,   public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int8_t>,  std::vector<int8_t>,  std::vector<int8_t>,  std::vector<int8_t>>> {};
+class ShortCmpTest : public VectorCmpTest,  public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int16_t>, std::vector<int16_t>, std::vector<int16_t>, std::vector<int16_t>>> {};
+class IntCmpTest : public VectorCmpTest,    public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int32_t>, std::vector<int32_t>, std::vector<int32_t>, std::vector<int32_t>>> {};
+class LongCmpTest : public VectorCmpTest,   public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>>> {};
+class DoubleCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<double>,  std::vector<double>,  std::vector<int64_t>, std::vector<int64_t>>> {};
+class FloatCmpTest : public VectorCmpTest,  public ::testing::WithParamInterface<std::tuple<const char*, std::vector<float>,   std::vector<float>,   std::vector<int32_t>, std::vector<int32_t>>> {};
 
 
 template<typename T1, typename T2>
@@ -219,24 +219,24 @@ INSTANTIATE_TEST_CASE_P(dmeq, ByteCmpTest, testing::ValuesIn({
       std::make_tuple("vmcmpeq",
          std::vector<double>{0, 1}, 
          std::vector<double>{0, 1},
-         std::vector<int64_t>>{-1, -1},
-         std::vector<int64_t>>{-1, -1})
+         std::vector<int64_t>{-1, -1},
+         std::vector<int64_t>{-1, -1})
    }));
 
 INSTANTIATE_TEST_CASE_P(dmlt, ByteCmpTest, testing::ValuesIn({
       std::make_tuple("vmcmplt",
          std::vector<double>{0, 1}, 
          std::vector<double>{0, 1},
-         std::vector<int64_t>>{-1, -1},
-         std::vector<int64_t>>{0, 0})
+         std::vector<int64_t>{-1, -1},
+         std::vector<int64_t>{0, 0})
    }));
 
 INSTANTIATE_TEST_CASE_P(d, ByteCmpTest, testing::ValuesIn({
       std::make_tuple("vcmpeq",
          std::vector<double>{0, 1}, 
          std::vector<double>{0, 1},
-         std::vector<int64_t>>{0},
-         std::vector<int64_t>>{-1, -1})
+         std::vector<int64_t>{0},
+         std::vector<int64_t>{-1, -1})
    }));
 
 // INSTANTIATE_TEST_CASE_P(s, ShortCmpTest, testing::ValuesIn({
