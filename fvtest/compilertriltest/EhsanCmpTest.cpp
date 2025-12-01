@@ -112,7 +112,7 @@ TEST_P(ByteCmpTest, integer) {
 // }
 
 INSTANTIATE_TEST_CASE_P(b, ByteCmpTest, testing::ValuesIn({
-      std::make_tuple("vcmpeq",
+      std::make_tuple("vmcmpeq",
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, 
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
          std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
