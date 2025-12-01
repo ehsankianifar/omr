@@ -78,6 +78,50 @@ void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::ve
    }
 }
 
+template<typename T>
+void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b  std::vector<T>expectedResult) {
+   char inputTrees[1024];
+   char *formatStr = "(method return= NoType args=[Address,Address,Address] "
+                      " (block "
+                         " (mstoreiVector128%s offset=0 "
+                             " (aload parm=0) "
+                             " (%sVector128%s "
+                                  " (vloadiVector128%s (aload parm=1)) "
+                                  " (vloadiVector128%s (aload parm=2)))) "
+                         " (return))) ";
+
+   sprintf(inputTrees, formatStr,
+           laneType,
+           opCode,
+           laneType,
+           laneType,
+           laneType,
+           laneType);
+    auto trees = parseString(inputTrees);
+
+    ASSERT_NOTNULL(trees);
+
+    Tril::DefaultCompiler compiler(trees);
+    ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
+
+    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*,T*)>();
+  
+    std::vector<T> output(128/sizeof(T));
+    entry_point(&output.front(),&a.front(),&b.front());
+
+   //  if(sizeChar == 'f') {
+   //    // workaround for precision issue with float!
+   //    EXPECT_EQ(std::round(expectedOutput * 1000), std::round(output * 1000));
+   //  } else {
+   //    EXPECT_EQ(expectedOutput, output);
+   //  }
+   //EXPECT_EQ(expectedResult, output);
+   //EXPECT_THAT(output, testing::ContainerEq(expectedResult));
+   for (int i = 0 ; i < expectedResult.size(); i++) {
+      EXPECT_EQ(expectedResult[i], output[i]);
+   }
+}
+
 TEST_P(ByteCmpTest, integer) {
    const char *opCode = std::get<0>(GetParam());
    std::vector<int8_t> a_vector = std::get<1>(GetParam());
@@ -85,6 +129,16 @@ TEST_P(ByteCmpTest, integer) {
    std::vector<int8_t> mask_vector = std::get<3>(GetParam());
    std::vector<int8_t> expected_vector = std::get<4>(GetParam());
    tester("Int8", opCode, a_vector, b_vector, mask_vector, expected_vector);
+}
+
+
+TEST_P(ByteCmpTest, integer2) {
+   const char *opCode = std::get<0>(GetParam());
+   std::vector<int8_t> a_vector = std::get<1>(GetParam());
+   std::vector<int8_t> b_vector = std::get<2>(GetParam());
+   std::vector<int8_t> mask_vector = std::get<3>(GetParam());
+   std::vector<int8_t> expected_vector = std::get<4>(GetParam());
+   tester2("Int8", opCode, a_vector, b_vector, expected_vector);
 }
 // TEST_P(ShortCmpTest, integer) {
 //    std::vector<int16_t> input_vector = GetParam();
