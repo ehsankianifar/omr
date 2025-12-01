@@ -79,7 +79,7 @@ void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::ve
 }
 
 template<typename T>
-void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b  std::vector<T>expectedResult) {
+void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b,  std::vector<T>expectedResult) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address] "
                       " (block "
@@ -122,23 +122,19 @@ void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::v
    }
 }
 
+
 TEST_P(ByteCmpTest, integer) {
    const char *opCode = std::get<0>(GetParam());
    std::vector<int8_t> a_vector = std::get<1>(GetParam());
    std::vector<int8_t> b_vector = std::get<2>(GetParam());
    std::vector<int8_t> mask_vector = std::get<3>(GetParam());
    std::vector<int8_t> expected_vector = std::get<4>(GetParam());
-   tester("Int8", opCode, a_vector, b_vector, mask_vector, expected_vector);
-}
+   if(opCode[1]=='m'){
+      tester("Int8", opCode, a_vector, b_vector, mask_vector, expected_vector);
+   } else {
+      tester2("Int8", opCode, a_vector, b_vector, expected_vector);
+   }
 
-
-TEST_P(ByteCmpTest, integer2) {
-   const char *opCode = std::get<0>(GetParam());
-   std::vector<int8_t> a_vector = std::get<1>(GetParam());
-   std::vector<int8_t> b_vector = std::get<2>(GetParam());
-   std::vector<int8_t> mask_vector = std::get<3>(GetParam());
-   std::vector<int8_t> expected_vector = std::get<4>(GetParam());
-   tester2("Int8", opCode, a_vector, b_vector, expected_vector);
 }
 // TEST_P(ShortCmpTest, integer) {
 //    std::vector<int16_t> input_vector = GetParam();
@@ -165,11 +161,19 @@ TEST_P(ByteCmpTest, integer2) {
 //    tester2("Float", 'f', input_vector);
 // }
 
-INSTANTIATE_TEST_CASE_P(b, ByteCmpTest, testing::ValuesIn({
+INSTANTIATE_TEST_CASE_P(bm, ByteCmpTest, testing::ValuesIn({
       std::make_tuple("vmcmpeq",
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, 
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
          std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+         std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1})
+   }));
+
+INSTANTIATE_TEST_CASE_P(b, ByteCmpTest, testing::ValuesIn({
+      std::make_tuple("vcmpeq",
+         std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, 
+         std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+         std::vector<int8_t>{0},
          std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1})
    }));
 
