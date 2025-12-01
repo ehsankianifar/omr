@@ -26,15 +26,15 @@
 class VectorCmpTest : public TRTest::JitTest {};
 
 class ByteCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>, std::vector<int8_t>>> {};
-// class ShortCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<int16_t>> {};
-// class IntCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<int32_t>> {};
-// class LongCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<int64_t>> {};
-// class DoubleCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<double>> {};
-// class FloatCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::vector<float>> {};
+class ShortCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int16_t>, std::vector<int16_t>, std::vector<int16_t>, std::vector<int16_t>>> {};
+class IntCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int32_t>, std::vector<int32_t>, std::vector<int32_t>, std::vector<int32_t>>> {};
+class LongCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>, std::vector<int64_t>>> {};
+class DoubleCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<double>, std::vector<double>, std::vector<int64_t>, std::vector<int64_t>>> {};
+class FloatCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<std::tuple<const char*, std::vector<float>, std::vector<float>, std::vector<int32_t>, std::vector<int32_t>>> {};
 
 
-template<typename T>
-void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b,  std::vector<T>mask,  std::vector<T>expectedResult) {
+template<typename T1, typename T2>
+void tester(const char *laneType, const char *opCode,  std::vector<T1>a,  std::vector<T1>b,  std::vector<T2>mask,  std::vector<T2>expectedResult) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address,Address] "
                       " (block "
@@ -61,9 +61,9 @@ void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::ve
     Tril::DefaultCompiler compiler(trees);
     ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
 
-    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*,T*)>();
+    auto entry_point = compiler.getEntryPoint<void (*)(T2*,T1*,T1*,T2*)>();
   
-    std::vector<T> output(128/sizeof(T));
+    std::vector<T2> output(128/sizeof(T2));
     entry_point(&output.front(),&a.front(),&b.front(),&mask.front());
 
    //  if(sizeChar == 'f') {
@@ -79,8 +79,8 @@ void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::ve
    }
 }
 
-template<typename T>
-void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b,  std::vector<T>expectedResult) {
+template<typename T1, typename T2>
+void tester2(const char *laneType, const char *opCode,  std::vector<T1>a,  std::vector<T1>b,  std::vector<T2>expectedResult) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address] "
                       " (block "
@@ -105,9 +105,9 @@ void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::v
     Tril::DefaultCompiler compiler(trees);
     ASSERT_EQ(0, compiler.compile()) << "Compilation failed unexpectedly\n" << "Input trees: " << inputTrees;
 
-    auto entry_point = compiler.getEntryPoint<void (*)(T*,T*,T*)>();
+    auto entry_point = compiler.getEntryPoint<void (*)(T2*,T1*,T1*)>();
   
-    std::vector<T> output(128/sizeof(T));
+    std::vector<T2> output(128/sizeof(T2));
     entry_point(&output.front(),&a.front(),&b.front());
 
    //  if(sizeChar == 'f') {
@@ -137,30 +137,66 @@ TEST_P(ByteCmpTest, integer) {
    }
 
 }
-// TEST_P(ShortCmpTest, integer) {
-//    std::vector<int16_t> input_vector = GetParam();
-//    tester("Int16", 's', input_vector);
-// }
-// TEST_P(IntCmpTest, integer) {
-//    std::vector<int32_t> input_vector = GetParam();
-//    tester("Int32", 'i', input_vector);
-// }
-// TEST_P(LongCmpTest, integer) {
-//    std::vector<int64_t> input_vector = GetParam();
-//    tester("Int64", 'l', input_vector);
-// }
-// TEST_P(DoubleCmpTest, floatPoint) {
-//    std::vector<double> input_vector = GetParam();
-//    tester("Double", 'd', input_vector);
-// }
-// TEST_P(FloatCmpTest, floatPoint) {
-//    std::vector<float> input_vector = GetParam();
-//    tester("Float", 'f', input_vector);
-// }
-// TEST_P(FloatCmpTest, floatPoint2ref) {
-//    std::vector<float> input_vector = GetParam();
-//    tester2("Float", 'f', input_vector);
-// }
+TEST_P(ShortCmpTest, integer) {
+   const char *opCode = std::get<0>(GetParam());
+   std::vector<int16_t> a_vector = std::get<1>(GetParam());
+   std::vector<int16_t> b_vector = std::get<2>(GetParam());
+   std::vector<int16_t> mask_vector = std::get<3>(GetParam());
+   std::vector<int16_t> expected_vector = std::get<4>(GetParam());
+   if(opCode[1]=='m'){
+      tester("Int16", opCode, a_vector, b_vector, mask_vector, expected_vector);
+   } else {
+      tester2("Int16", opCode, a_vector, b_vector, expected_vector);
+   }
+}
+TEST_P(IntCmpTest, integer) {
+   const char *opCode = std::get<0>(GetParam());
+   std::vector<int32_t> a_vector = std::get<1>(GetParam());
+   std::vector<int32_t> b_vector = std::get<2>(GetParam());
+   std::vector<int32_t> mask_vector = std::get<3>(GetParam());
+   std::vector<int32_t> expected_vector = std::get<4>(GetParam());
+   if(opCode[1]=='m'){
+      tester("Int32", opCode, a_vector, b_vector, mask_vector, expected_vector);
+   } else {
+      tester2("Int32", opCode, a_vector, b_vector, expected_vector);
+   }
+}
+TEST_P(LongCmpTest, integer) {
+   const char *opCode = std::get<0>(GetParam());
+   std::vector<int64_t> a_vector = std::get<1>(GetParam());
+   std::vector<int64_t> b_vector = std::get<2>(GetParam());
+   std::vector<int64_t> mask_vector = std::get<3>(GetParam());
+   std::vector<int64_t> expected_vector = std::get<4>(GetParam());
+   if(opCode[1]=='m'){
+      tester("Int64", opCode, a_vector, b_vector, mask_vector, expected_vector);
+   } else {
+      tester2("Int64", opCode, a_vector, b_vector, expected_vector);
+   }
+}
+TEST_P(DoubleCmpTest, floatPoint) {
+   const char *opCode = std::get<0>(GetParam());
+   std::vector<float> a_vector = std::get<1>(GetParam());
+   std::vector<float> b_vector = std::get<2>(GetParam());
+   std::vector<int32_t> mask_vector = std::get<3>(GetParam());
+   std::vector<int32_t> expected_vector = std::get<4>(GetParam());
+   if(opCode[1]=='m'){
+      tester("Float", opCode, a_vector, b_vector, mask_vector, expected_vector);
+   } else {
+      tester2("Float", opCode, a_vector, b_vector, expected_vector);
+   }
+}
+TEST_P(FloatCmpTest, floatPoint) {
+   const char *opCode = std::get<0>(GetParam());
+   std::vector<double> a_vector = std::get<1>(GetParam());
+   std::vector<double> b_vector = std::get<2>(GetParam());
+   std::vector<int64_t> mask_vector = std::get<3>(GetParam());
+   std::vector<int64_t> expected_vector = std::get<4>(GetParam());
+   if(opCode[1]=='m'){
+      tester("Double", opCode, a_vector, b_vector, mask_vector, expected_vector);
+   } else {
+      tester2("Double", opCode, a_vector, b_vector, expected_vector);
+   }
+}
 
 INSTANTIATE_TEST_CASE_P(bm, ByteCmpTest, testing::ValuesIn({
       std::make_tuple("vmcmpeq",
@@ -176,6 +212,31 @@ INSTANTIATE_TEST_CASE_P(b, ByteCmpTest, testing::ValuesIn({
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
          std::vector<int8_t>{0},
          std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1})
+   }));
+
+
+INSTANTIATE_TEST_CASE_P(dmeq, ByteCmpTest, testing::ValuesIn({
+      std::make_tuple("vmcmpeq",
+         std::vector<double>{0, 1}, 
+         std::vector<double>{0, 1},
+         std::vector<int64_t>>{-1, -1},
+         std::vector<int64_t>>{-1, -1})
+   }));
+
+INSTANTIATE_TEST_CASE_P(dmlt, ByteCmpTest, testing::ValuesIn({
+      std::make_tuple("vmcmplt",
+         std::vector<double>{0, 1}, 
+         std::vector<double>{0, 1},
+         std::vector<int64_t>>{-1, -1},
+         std::vector<int64_t>>{0, 0})
+   }));
+
+INSTANTIATE_TEST_CASE_P(d, ByteCmpTest, testing::ValuesIn({
+      std::make_tuple("vcmpeq",
+         std::vector<double>{0, 1}, 
+         std::vector<double>{0, 1},
+         std::vector<int64_t>>{0},
+         std::vector<int64_t>>{-1, -1})
    }));
 
 // INSTANTIATE_TEST_CASE_P(s, ShortCmpTest, testing::ValuesIn({
