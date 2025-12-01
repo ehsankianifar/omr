@@ -36,11 +36,11 @@ class ByteCmpTest : public VectorCmpTest, public ::testing::WithParamInterface<s
 template<typename T>
 void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::vector<T>b,  std::vector<T>mask,  std::vector<T>expectedResult) {
    char inputTrees[1024];
-   char *formatStr = "(method return= NoType args=[Address,Address,Address] "
+   char *formatStr = "(method return= NoType args=[Address,Address,Address,Address] "
                       " (block "
                          " (mstoreiVector128%s offset=0 "
                              " (aload parm=0) "
-                             " (%sVector128%s "
+                             " (%sVector128%s_Vector128%s "
                                   " (vloadiVector128%s (aload parm=1)) "
                                   " (vloadiVector128%s (aload parm=2)) "
                                   " (mloadiVector128%s (aload parm=3)))) "
@@ -49,6 +49,7 @@ void tester(const char *laneType, const char *opCode,  std::vector<T>a,  std::ve
    sprintf(inputTrees, formatStr,
            laneType,
            opCode,
+           laneType,
            laneType,
            laneType,
            laneType,
@@ -85,7 +86,7 @@ void tester2(const char *laneType, const char *opCode,  std::vector<T>a,  std::v
                       " (block "
                          " (mstoreiVector128%s offset=0 "
                              " (aload parm=0) "
-                             " (%sVector128%s "
+                             " (%sVector128%s_Vector128%s "
                                   " (vloadiVector128%s (aload parm=1)) "
                                   " (vloadiVector128%s (aload parm=2)))) "
                          " (return))) ";
