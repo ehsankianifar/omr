@@ -16307,7 +16307,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
 TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
-    if (type.isLong) {
+    if (type.isLong()) {
         return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
     } else if (type.isInt64()) {
         return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_1);
@@ -16315,7 +16315,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
     } else if (type.isDouble()) {
         return floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::MDBR, true /* isDouble */, TR_IdentityValues::Double_1);
-    } else {o
+    } else
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
     return NULL;
