@@ -1536,7 +1536,7 @@ TR::Register *OMR::Z::TreeEvaluator::mstoreiToArrayEvaluator(TR::Node *node, TR:
     }
     TR::MemoryReference *srcMemRef = new (cg->trHeapMemory()) TR::MemoryReference(node, cg);
     generateVRXInstruction(cg, opCode, node, maskRegister, srcMemRef);
-    cg->decReferenceCount(valueChild);
+    cg->decReferenceCount(sourceNode);
     srcMemRef->stopUsingMemRefRegister(cg);
 
     return NULL;
