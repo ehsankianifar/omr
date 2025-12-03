@@ -4498,6 +4498,8 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::s2m:
         case TR::i2m:
         case TR::l2m:
+        case TR::mstoreiToArray:
+        case TR::mloadiFromArray:
         case TR::vorUnchecked:
         case TR::vmorUnchecked:
         case TR::vreductionAdd:
