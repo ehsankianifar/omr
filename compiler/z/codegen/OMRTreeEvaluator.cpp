@@ -1742,12 +1742,23 @@ TR::Register *OMR::Z::TreeEvaluator::vfmaEvaluator(TR::Node *node, TR::CodeGener
             || (node->getDataType().getVectorElementType() == TR::Float
                 && cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1)),
         "VFMA is only supported for VectorElementDataType TR::Double on z13 and onwards and TR::Float on z14 onwards");
-    TR::Register *resultReg = TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    TR::Register *resultReg
+        = isMasked ? cg->allocateRegister(TR_VRF) : TR::TreeEvaluator::tryToReuseInputVectorRegs(node, cg);
     TR::Register *va = cg->evaluate(node->getFirstChild());
     TR::Register *vb = cg->evaluate(node->getSecondChild());
     TR::Register *vc = cg->evaluate(node->getThirdChild());
     generateVRReInstruction(cg, TR::InstOpCode::VFMA, node, resultReg, va, vb, vc,
         static_cast<uint8_t>(getVectorElementSizeMask(node)), 0);
+    if (isMasked) {
+        TR::Node *maskChild = node->getChild(3);
+        // The result should reflect the outcome of the operation only if the mask for that lane is true;
+        // otherwise, the first child value remains unchanged in the result register.
+        generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, resultReg, va,
+            cg->evaluate(maskChild), 0, 0);
+        cg->decReferenceCount(maskChild);
+    }
+
     node->setRegister(resultReg);
     cg->decReferenceCount(node->getFirstChild());
     cg->decReferenceCount(node->getSecondChild());
@@ -1879,7 +1890,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmfmaEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vfmaEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmindexVectorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
