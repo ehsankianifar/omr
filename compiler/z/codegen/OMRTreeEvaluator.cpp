@@ -1460,7 +1460,7 @@ TR::Register *OMR::Z::TreeEvaluator::mloadiFromArrayEvaluator(TR::Node *node, TR
 {
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
-    uint8_t elementSizeMask = getVectorElementSizeMask(node);
+    const uint8_t elementSizeMask = getVectorElementSizeMask(node);
     TR::InstOpCode::Mnemonic opCode = TR::InstOpCode::bad;
     uint8_t targetIndexOfVectorRegister = 0;
     switch (elementSizeMask) {
@@ -1506,7 +1506,7 @@ TR::Register *OMR::Z::TreeEvaluator::mstoreiToArrayEvaluator(TR::Node *node, TR:
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
-    uint8_t elementSizeMask = getVectorElementSizeMask(sourceNode);
+    const uint8_t elementSizeMask = getVectorElementSizeMask(sourceNode);
 
     for (uint8_t i = elementSizeMask; i > 0; i--) {
         // Keep packing until element size is 1 byte.
