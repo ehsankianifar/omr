@@ -2183,6 +2183,52 @@ TR::Register *OMR::Z::TreeEvaluator::vmbyteswapEvaluator(TR::Node *node, TR::Cod
 TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+    const uint8_t elementSizeMask = getVectorElementSizeMask(node);
+    const uint32_t elementLength = getVectorElementLength(node);
+    TR::Register *resultReg = cg->allocateRegister(TR_VRF);
+    TR::Register *loopCountReg = cg->allocateRegister();
+    TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
+    TR::Register *maskReg = cg->evaluate(node->getSecondChild());
+
+    // Initialize the result register.
+    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, resultReg, 0, 0);
+
+    // Start a loop to compress the vector bit by bit.
+    generateRIInstruction(cg, TR::InstOpCode::LHI, node, loopCountReg, elementLength);
+    TR::LabelSymbol *loopTopLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
+
+    // Extract mask MSB bit to scratch register.
+    generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, scratchReg, maskReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+    // Rotate source to move the MSB to LSB position.
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, sourceReg, sourceReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+    // Extract the bit to the result.
+    generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, sourceReg, resultReg, scratchReg, 0, 0);
+    // Commit the extracted bit is the mask is set.
+    generateVRRcInstruction(cg, TR::InstOpCode::VERLLV, node, resultReg, resultReg, scratchReg, elementSizeMask);
+    // Rotate mask to move the MSB to LSB position.
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, maskReg, maskReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+
+    generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
+    // End of the compression loop.
+    
+    // Rotate result register to fix the bit order since there is an extra rotation from the loop.
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+
+    cg->stopUsingRegister(scratchReg);
+    cg->stopUsingRegister(loopCountReg);
+    node->setRegister(resultReg);
+    cg->decReferenceCount(node->getFirstChild());
+    cg->decReferenceCount(node->getSecondChild());
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcompressbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15558,6 +15604,28 @@ int32_t getVectorElementSize(TR::Node *node)
         case TR::Int64:
         case TR::Double:
             return 8;
+        default:
+            TR_ASSERT(false, "Unknown vector node type %s for element size\n", node->getDataType().toString());
+            return 0;
+    }
+}
+
+int32_t getVectorElementLength(TR::Node *node)
+{
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+
+    switch (node->getDataType().getVectorElementType()) {
+        case TR::Int8:
+            return 8;
+        case TR::Int16:
+            return 16;
+        case TR::Int32:
+        case TR::Float:
+            return 32;
+        case TR::Int64:
+        case TR::Double:
+            return 64;
         default:
             TR_ASSERT(false, "Unknown vector node type %s for element size\n", node->getDataType().toString());
             return 0;
