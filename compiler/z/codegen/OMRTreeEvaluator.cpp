@@ -2220,6 +2220,15 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
     // Rotate result register to fix the bit order since there is an extra rotation from the loop.
     generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
             generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+    
+    if (node->getOpCode().isVectorMasked()) {
+        TR::Node *maskChild = node->getThirdChild();
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        // otherwise, the source1 value remains unchanged in the result register.
+        generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, resultReg, sourceReg,
+            cg->evaluate(maskChild), 0, 0);
+        cg->decReferenceCount(maskChild);
+    }
 
     cg->stopUsingRegister(scratchReg);
     cg->stopUsingRegister(loopCountReg);
@@ -2231,7 +2240,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
 
 TR::Register *OMR::Z::TreeEvaluator::vmcompressbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vcompressbitsEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
