@@ -2202,10 +2202,10 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
 
     // Extract mask MSB bit to scratch register.
     generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, scratchReg, maskReg,
-            generateS390MemoryReference(1, cg), elementSizeMask);
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
     // Rotate source to move the MSB to LSB position.
     generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, sourceReg, sourceReg,
-            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+            generateS390MemoryReference(1, cg), elementSizeMask);
     // Extract the bit to the result.
     generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, sourceReg, resultReg, scratchReg, 0, 0);
     // Commit the extracted bit is the mask is set.
