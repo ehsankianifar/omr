@@ -1972,7 +1972,7 @@ VECTOR_OPERATION_MACRO(\
    /* .properties4             = */ 0, \
    /* .dataType                = */ TR::NoType, \
    /* .typeProperties          = */ ILTypeProp::VectorResult, \
-   /* .childProperties         = */ TWO_SAME_CHILD(ILChildProp::UnspecifiedChildType), \
+   /* .childProperties         = */ THREE_SAME_CHILD(ILChildProp::UnspecifiedChildType), \
    /* .swapChildrenOperation   = */ TR::vBadOperation, \
    /* .reverseBranchOperation  = */ TR::vBadOperation, \
    /* .booleanCompareOpCode    = */ TR::BadILOp, \
@@ -1988,7 +1988,7 @@ VECTOR_OPERATION_MACRO(\
    /* .properties4             = */ 0, \
    /* .dataType                = */ TR::NoType, \
    /* .typeProperties          = */ ILTypeProp::VectorResult, \
-   /* .childProperties         = */ TWO_SAME_CHILD(ILChildProp::UnspecifiedChildType), \
+   /* .childProperties         = */ THREE_SAME_CHILD(ILChildProp::UnspecifiedChildType), \
    /* .swapChildrenOperation   = */ TR::vBadOperation, \
    /* .reverseBranchOperation  = */ TR::vBadOperation, \
    /* .booleanCompareOpCode    = */ TR::BadILOp, \
