@@ -2263,7 +2263,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     } else {
         sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
     }
-    TR::Register *maskReg = cg->gprClobberEvaluate(node->getFirstChild());
+    TR::Register *maskReg = cg->evaluate(node->getSecondChild());
 
     // Initialize the result register.
     generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, resultReg, 0, 0);
@@ -2311,7 +2311,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
 
 TR::Register *OMR::Z::TreeEvaluator::vmexpandbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vexpandbitsEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::f2iuEvaluator(TR::Node *node, TR::CodeGenerator *cg)
