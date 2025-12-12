@@ -2203,14 +2203,14 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
     // Extract mask MSB bit to scratch register.
     generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, scratchReg, maskReg,
             generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
-    // Rotate source to move the MSB to LSB position.
+    // Rotate source left.
     generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, sourceReg, sourceReg,
             generateS390MemoryReference(1, cg), elementSizeMask);
     // Extract the bit to the result.
     generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, sourceReg, resultReg, scratchReg, 0, 0);
     // Commit the extracted bit is the mask is set.
     generateVRRcInstruction(cg, TR::InstOpCode::VERLLV, node, resultReg, resultReg, scratchReg, elementSizeMask);
-    // Rotate mask to move the MSB to LSB position.
+    // Rotate mask left.
     generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, maskReg, maskReg,
             generateS390MemoryReference(1, cg), elementSizeMask);
 
@@ -2221,6 +2221,9 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
     generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
             generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
     
+    cg->stopUsingRegister(scratchReg);
+    cg->stopUsingRegister(loopCountReg);
+
     if (node->getOpCode().isVectorMasked()) {
         TR::Node *maskChild = node->getThirdChild();
         // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
@@ -2230,8 +2233,6 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
         cg->decReferenceCount(maskChild);
     }
 
-    cg->stopUsingRegister(scratchReg);
-    cg->stopUsingRegister(loopCountReg);
     node->setRegister(resultReg);
     cg->decReferenceCount(node->getFirstChild());
     cg->decReferenceCount(node->getSecondChild());
@@ -2245,7 +2246,67 @@ TR::Register *OMR::Z::TreeEvaluator::vmcompressbitsEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+    const uint8_t elementSizeMask = getVectorElementSizeMask(node);
+    const uint32_t elementLength = getVectorElementLength(node);
+    TR::Register *resultReg = cg->allocateRegister(TR_VRF);
+    TR::Register *loopCountReg = cg->allocateRegister();
+    TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+    const bool isMasked = node->getOpCode().isVectorMasked();
+    TR::Register *sourceReg;
+    TR::Register *sourceCopyReg;
+    if (isMasked) {
+        sourceCopyReg = cg->evaluate(node->getFirstChild());
+        sourceReg = cg->allocateRegister(TR_VRF);
+        generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, sourceReg, sourceCopyReg);
+    } else {
+        sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+    }
+    TR::Register *maskReg = cg->gprClobberEvaluate(node->getFirstChild());
+
+    // Initialize the result register.
+    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, resultReg, 0, 0);
+
+    // Start a loop to compress the vector bit by bit.
+    generateRIInstruction(cg, TR::InstOpCode::LHI, node, loopCountReg, elementLength);
+    TR::LabelSymbol *loopTopLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
+
+    // Rotate mask right.
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, maskReg, maskReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+    // Extract mask MSB bit to scratch register.
+    generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, scratchReg, maskReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+    // Extract the bit to the result.
+    generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, sourceReg, resultReg, scratchReg, 0, 0);
+    // Rotate result right.
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
+            generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
+    // Move to the next bit to extract.
+    generateVRRcInstruction(cg, TR::InstOpCode::VSRL, node, sourceReg, sourceReg, scratchReg, elementSizeMask);
+
+    generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
+    // End of the compression loop.
+
+    cg->stopUsingRegister(scratchReg);
+    cg->stopUsingRegister(loopCountReg);
+
+    if (isMasked) {
+        TR::Node *maskChild = node->getThirdChild();
+        // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+        // otherwise, the source1 value remains unchanged in the result register.
+        generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, resultReg, sourceCopyReg,
+            cg->evaluate(maskChild), 0, 0);
+        cg->stopUsingRegister(sourceReg);
+        cg->decReferenceCount(maskChild);
+    }
+
+    node->setRegister(resultReg);
+    cg->decReferenceCount(node->getFirstChild());
+    cg->decReferenceCount(node->getSecondChild());
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmexpandbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
