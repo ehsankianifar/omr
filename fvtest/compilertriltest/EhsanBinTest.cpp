@@ -36,7 +36,7 @@ void tester(const char *laneType, const char *opCode,  std::vector<T1>a,  std::v
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address,Address] "
                       " (block "
-                         " (mstoreiVector128%s offset=0 "
+                         " (vstoreiVector128%s offset=0 "
                              " (aload parm=0) "
                              " (%sVector128%s_Vector128%s "
                                   " (vloadiVector128%s (aload parm=1)) "
@@ -74,7 +74,7 @@ void tester2(const char *laneType, const char *opCode,  std::vector<T1>a,  std::
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address] "
                       " (block "
-                         " (mstoreiVector128%s offset=0 "
+                         " (vstoreiVector128%s offset=0 "
                              " (aload parm=0) "
                              " (%sVector128%s_Vector128%s "
                                   " (vloadiVector128%s (aload parm=1)) "
