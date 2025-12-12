@@ -32,7 +32,7 @@ class LongBinTest : public VectorBinTest,   public ::testing::WithParamInterface
 
 
 template<typename T1, typename T2>
-void tester(const char *laneType, const char *opCode,  std::vector<T1>a,  std::vector<T1>b,  std::vector<T2>mask,  std::vector<T2>expectedResult) {
+void tester3(const char *laneType, const char *opCode,  std::vector<T1>a,  std::vector<T1>b,  std::vector<T2>mask,  std::vector<T2>expectedResult) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address,Address] "
                       " (block "
@@ -70,7 +70,7 @@ void tester(const char *laneType, const char *opCode,  std::vector<T1>a,  std::v
 }
 
 template<typename T1, typename T2>
-void tester2(const char *laneType, const char *opCode,  std::vector<T1>a,  std::vector<T1>b,  std::vector<T2>expectedResult) {
+void tester4(const char *laneType, const char *opCode,  std::vector<T1>a,  std::vector<T1>b,  std::vector<T2>expectedResult) {
    char inputTrees[1024];
    char *formatStr = "(method return= NoType args=[Address,Address,Address] "
                       " (block "
@@ -112,9 +112,9 @@ TEST_P(ByteBinTest, integer) {
    std::vector<int8_t> mask_vector = std::get<3>(GetParam());
    std::vector<int8_t> expected_vector = std::get<4>(GetParam());
    if(opCode[1]=='m'){
-      tester("Int8", opCode, a_vector, b_vector, mask_vector, expected_vector);
+      tester3("Int8", opCode, a_vector, b_vector, mask_vector, expected_vector);
    } else {
-      tester2("Int8", opCode, a_vector, b_vector, expected_vector);
+      tester4("Int8", opCode, a_vector, b_vector, expected_vector);
    }
 
 }
@@ -125,9 +125,9 @@ TEST_P(ShortBinTest, integer) {
    std::vector<int16_t> mask_vector = std::get<3>(GetParam());
    std::vector<int16_t> expected_vector = std::get<4>(GetParam());
    if(opCode[1]=='m'){
-      tester("Int16", opCode, a_vector, b_vector, mask_vector, expected_vector);
+      tester3("Int16", opCode, a_vector, b_vector, mask_vector, expected_vector);
    } else {
-      tester2("Int16", opCode, a_vector, b_vector, expected_vector);
+      tester4("Int16", opCode, a_vector, b_vector, expected_vector);
    }
 }
 TEST_P(IntBinTest, integer) {
@@ -137,9 +137,9 @@ TEST_P(IntBinTest, integer) {
    std::vector<int32_t> mask_vector = std::get<3>(GetParam());
    std::vector<int32_t> expected_vector = std::get<4>(GetParam());
    if(opCode[1]=='m'){
-      tester("Int32", opCode, a_vector, b_vector, mask_vector, expected_vector);
+      tester3("Int32", opCode, a_vector, b_vector, mask_vector, expected_vector);
    } else {
-      tester2("Int32", opCode, a_vector, b_vector, expected_vector);
+      tester4("Int32", opCode, a_vector, b_vector, expected_vector);
    }
 }
 TEST_P(LongBinTest, integer) {
@@ -149,9 +149,9 @@ TEST_P(LongBinTest, integer) {
    std::vector<int64_t> mask_vector = std::get<3>(GetParam());
    std::vector<int64_t> expected_vector = std::get<4>(GetParam());
    if(opCode[1]=='m'){
-      tester("Int64", opCode, a_vector, b_vector, mask_vector, expected_vector);
+      tester3("Int64", opCode, a_vector, b_vector, mask_vector, expected_vector);
    } else {
-      tester2("Int64", opCode, a_vector, b_vector, expected_vector);
+      tester4("Int64", opCode, a_vector, b_vector, expected_vector);
    }
 }
 
