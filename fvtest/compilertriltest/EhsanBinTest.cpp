@@ -155,7 +155,7 @@ TEST_P(LongBinTest, integer) {
    }
 }
 
-INSTANTIATE_TEST_CASE_P(b, ByteBinTest, testing::ValuesIn({
+INSTANTIATE_TEST_CASE_P(vcompressbits, ByteBinTest, testing::ValuesIn({
       std::make_tuple("vcompressbits",
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 4, -15}, 
          std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, -15, 4},
@@ -163,7 +163,21 @@ INSTANTIATE_TEST_CASE_P(b, ByteBinTest, testing::ValuesIn({
          std::vector<int8_t>{0, 1, 1, 3, 1, 3, 3, 7, 1, 3,  3, 7, 3, 7, 0, 0})
    }));
 
+INSTANTIATE_TEST_CASE_P(vexpandbits, ByteBinTest, testing::ValuesIn({
+      std::make_tuple("vexpandbits",
+         std::vector<int8_t>{0, 1, 1, 3, 1, 3, 3, 7, 1, 3,  3, 7,  3,  7,   0,   0},
+         std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, -15,  4},
+         std::vector<int8_t>{0},
+         std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 0})
+   }));
 
+INSTANTIATE_TEST_CASE_P(vmexpandbits, ByteBinTest, testing::ValuesIn({
+      std::make_tuple("vmexpandbits",
+         std::vector<int8_t>{0,  1, 1,  3,  1, 3, 3,  7, 1,  3,  3,  7,   3,  7,   0,  0},
+         std::vector<int8_t>{0,  1, 2,  3,  4, 5, 6,  7, 8,  9, 10, 11,  12, 13, -15,  4},
+         std::vector<int8_t>{-1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1,  0,  -1,  0,  -1,  0},
+         std::vector<int8_t>{0,  1, 2,  3,  4, 3, 6,  7, 8,  3, 10,  7,  12,  7,   0,  0})
+   }));
 
 // INSTANTIATE_TEST_CASE_P(s, ShortBinTest, testing::ValuesIn({
 //       std::vector<int16_t>{0, 1, 2, 3, 4, 5, 6, 7},
