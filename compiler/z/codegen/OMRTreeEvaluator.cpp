@@ -2182,6 +2182,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmbyteswapEvaluator(TR::Node *node, TR::Cod
 
 TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    //TODO: maybe using TR::InstOpCode::BEXTG is faster on newer hardware.
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
@@ -2295,11 +2296,11 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
 
     if (isMasked) {
         TR::Node *maskChild = node->getThirdChild();
+        cg->stopUsingRegister(sourceReg);
         // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
         // otherwise, the source1 value remains unchanged in the result register.
         generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, resultReg, sourceCopyReg,
             cg->evaluate(maskChild), 0, 0);
-        cg->stopUsingRegister(sourceReg);
         cg->decReferenceCount(maskChild);
     }
 
