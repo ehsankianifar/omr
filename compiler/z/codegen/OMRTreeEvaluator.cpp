@@ -2182,8 +2182,6 @@ TR::Register *OMR::Z::TreeEvaluator::vmbyteswapEvaluator(TR::Node *node, TR::Cod
 
 TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
-
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
