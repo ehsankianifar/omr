@@ -4481,6 +4481,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::mLastTrue:
         case TR::mFirstTrue:
         case TR::mTrueCount:
+            return true;
         case TR::vcmpeq:
         case TR::vcmpne:
         case TR::vcmplt:
