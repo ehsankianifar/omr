@@ -171,10 +171,10 @@ INSTANTIATE_TEST_CASE_P(vexpandbits, ByteBinTest, testing::ValuesIn({
    }));
 INSTANTIATE_TEST_CASE_P(vexpandbits, IntBinTest, testing::ValuesIn({
       std::make_tuple("vexpandbits",
-         std::vector<int16_t>{0, 1, 1, 3, 1, 3, 3, -5},
-         std::vector<int16_t>{0, 1, 2, 3, 4, 5, 6, 2},
-         std::vector<int16_t>{0},
-         std::vector<int16_t>{0, 1, 2, 3, 4, 5, 6, 2})
+         std::vector<int32_t>{0, 1, 1, 3, 1, 3, 3, -5},
+         std::vector<int32_t>{0, 1, 2, 3, 4, 5, 6, 2},
+         std::vector<int32_t>{0},
+         std::vector<int32_t>{0, 1, 2, 3, 4, 5, 6, 2})
    }));
 
 INSTANTIATE_TEST_CASE_P(vmexpandbits, ByteBinTest, testing::ValuesIn({
