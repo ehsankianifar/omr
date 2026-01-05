@@ -2257,8 +2257,10 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     const bool isMasked = node->getOpCode().isVectorMasked();
     TR::Register *sourceReg;
     TR::Register *sourceCopyReg;
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions( 0, 5, cg);
     if (isMasked) {
         sourceCopyReg = cg->evaluate(node->getFirstChild());
+        dependencies->addPostCondition(sourceCopyReg, TR::RealRegister::AssignAny);
         sourceReg = cg->allocateRegister(TR_VRF);
         generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, sourceReg, sourceCopyReg);
     } else {
@@ -2289,6 +2291,14 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     generateVRRcInstruction(cg, TR::InstOpCode::VESRLV, node, sourceReg, sourceReg, scratchReg, elementSizeMask);
 
     generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
+    dependencies->addPostCondition(sourceReg, TR::RealRegister::AssignAny);
+    dependencies->addPostCondition(resultReg, TR::RealRegister::AssignAny);
+    dependencies->addPostCondition(scratchReg, TR::RealRegister::AssignAny);
+    dependencies->addPostCondition(loopCountReg, TR::RealRegister::AssignAny);
+    TR::LabelSymbol *dependencyLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dependencyLabel, dependencies);
+
+
     // End of the compression loop.
 
     cg->stopUsingRegister(scratchReg);
