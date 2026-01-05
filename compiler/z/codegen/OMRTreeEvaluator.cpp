@@ -2286,7 +2286,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
             generateS390MemoryReference(elementLength - 1, cg), elementSizeMask);
     // Move to the next bit to extract.
-    generateVRRcInstruction(cg, TR::InstOpCode::VESRL, node, sourceReg, sourceReg, scratchReg, elementSizeMask);
+    generateVRRcInstruction(cg, TR::InstOpCode::VESRLV, node, sourceReg, sourceReg, scratchReg, elementSizeMask);
 
     generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
     // End of the compression loop.
