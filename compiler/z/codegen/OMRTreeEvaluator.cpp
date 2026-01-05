@@ -2257,7 +2257,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     const bool isMasked = node->getOpCode().isVectorMasked();
     TR::Register *sourceReg;
     TR::Register *sourceCopyReg;
-    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions( 0, 5, cg);
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions( 0, 6, cg);
     if (isMasked) {
         sourceCopyReg = cg->evaluate(node->getFirstChild());
         dependencies->addPostCondition(sourceCopyReg, TR::RealRegister::AssignAny);
@@ -2293,6 +2293,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
     dependencies->addPostCondition(sourceReg, TR::RealRegister::AssignAny);
     dependencies->addPostCondition(resultReg, TR::RealRegister::AssignAny);
+    dependencies->addPostCondition(maskReg, TR::RealRegister::AssignAny);
     dependencies->addPostCondition(scratchReg, TR::RealRegister::AssignAny);
     dependencies->addPostCondition(loopCountReg, TR::RealRegister::AssignAny);
     TR::LabelSymbol *dependencyLabel = generateLabelSymbol(cg);
