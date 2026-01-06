@@ -4514,6 +4514,12 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmreductionOrUnchecked:
         case TR::mToLongBits:
             return true;
+        // TODO: check type for the following opcodes!
+        case TR::vbyteswap:
+        case TR::vmbyteswap:
+        case TR::vbitswap:
+        case TR::vmbitswap:
+            return true;
         default:
             static const char *enableAllVectors = feGetEnv("TR_EnableAllVectors");
             return enableAllVectors != NULL;
