@@ -2195,7 +2195,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbitswapEvaluator(TR::Node *node, TR::CodeG
     cg->stopUsingRegister(loopCountReg);
 
     if (node->getOpCode().isVectorMasked()) {
-        TR::Node *maskChild = node->getThirdChild();
+        TR::Node *maskChild = node->getSecondChild();
         // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
         // otherwise, the source1 value remains unchanged in the result register.
         generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, resultReg, sourceReg,
@@ -2248,7 +2248,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbyteswapEvaluator(TR::Node *node, TR::Code
     cg->stopUsingRegister(loopCountReg);
 
     if (node->getOpCode().isVectorMasked()) {
-        TR::Node *maskChild = node->getThirdChild();
+        TR::Node *maskChild = node->getSecondChild();
         // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
         // otherwise, the source1 value remains unchanged in the result register.
         generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, resultReg, sourceReg,
