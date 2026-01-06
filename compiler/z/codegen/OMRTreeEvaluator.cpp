@@ -2180,7 +2180,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbitswapEvaluator(TR::Node *node, TR::CodeG
     generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
 
     // Rotate result left to commit the previous bit.
-    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, sourceReg, sourceReg,
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
             generateS390MemoryReference(1, cg), elementSizeMask);
     // Extract the LSB bit to result register.
     generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, sourceReg, resultReg, scratchReg, 0, 0);
@@ -2233,7 +2233,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbyteswapEvaluator(TR::Node *node, TR::Code
     generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
 
     // Rotate result left to commit the previous byte.
-    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, sourceReg, sourceReg,
+    generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, resultReg, resultReg,
             generateS390MemoryReference(8, cg), elementSizeMask);
     // Extract the last byte to result register.
     generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultReg, sourceReg, resultReg, scratchReg, 0, 0);
