@@ -2100,11 +2100,10 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementLength = getVectorElementLength(node);
     const uint32_t elementSize = getVectorElementSize(node);
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
-    TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+    TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
     TR::Register *maskReg = cg->gprClobberEvaluate(node->getSecondChild());
 
     //fill the unmasked lanes with number of bytes in each lane. shift 3 bits to make up for VSLB opcode requirement.
@@ -2124,9 +2123,9 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     // Move the last element of the source to the result
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, resultReg, sourceReg, resultReg, 16 - elementSize, 0);
 
-    // rotate mask and source left
-    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, elementSize, 0);
-    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, maskReg, maskReg, maskReg, elementSize, 0);
+    // rotate mask and source right
+    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, 16 - elementSize, 0);
+    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, maskReg, maskReg, maskReg, 16 - elementSize, 0);
 
     // remove the last inserted element if it was unmasked
     generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, resultReg, resultReg, maskReg, elementSizeMask);
@@ -2140,7 +2139,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     cg->decReferenceCount(node->getFirstChild());
     cg->decReferenceCount(node->getSecondChild());
     return resultReg;
-}
+}c
 
 TR::Register *OMR::Z::TreeEvaluator::vexpandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
