@@ -2123,12 +2123,13 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     // Move the last element of the source to the result
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, resultReg, sourceReg, resultReg, 16 - elementSize, 0);
 
-    // rotate mask and source right
+    // rotate source right
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, 16 - elementSize, 0);
-    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, maskReg, maskReg, maskReg, 16 - elementSize, 0);
-
+    
     // remove the last inserted element if it was unmasked
     generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, resultReg, resultReg, maskReg, elementSizeMask);
+    // rotate mask right
+    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, maskReg, maskReg, maskReg, 16 - elementSize, 0);
 
     generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
     // End of the compression loop.
