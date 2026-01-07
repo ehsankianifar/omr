@@ -2104,7 +2104,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     TR::Register *maskReg = cg->gprClobberEvaluate(node->getSecondChild());
 
     //each lane that is not masked, needs to shift left by 8 bits so set all non masked lanes to 8! the easiet way is to count the leading or triling zeros!
-    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, 0);
+    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskReg, maskReg, 0, 0, 0);
 
 
     // Start a loop to compress the vector byte by byte.
@@ -2117,7 +2117,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     // Keep shifting unmasked lanes left in both the mask and the source until no unmasked lane is left. it could take 0 to 16 iterations.
     // it is easier to run it 16 times instead of calculating the reqired numbers!
     generateVRRcInstruction(cg, TR::InstOpCode::VSL, node, sourceReg, sourceReg, maskReg, 0);
-    generateVRRcInstruction(cg, TR::InstOpCode::VSL, node, maskReg,, maskReg,, maskReg, 0);
+    generateVRRcInstruction(cg, TR::InstOpCode::VSL, node, maskReg, maskReg, maskReg, 0);
 
     generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
     
