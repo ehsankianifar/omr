@@ -185,6 +185,14 @@ INSTANTIATE_TEST_CASE_P(vmexpandbits, ByteBinTest, testing::ValuesIn({
          std::vector<int8_t>{0,  1, 2,  3,  4, 3, 6,  7, 8,  3, 10,  7,  12,  7,   0,  0})
    }));
 
+INSTANTIATE_TEST_CASE_P(vcompress, ByteBinTest, testing::ValuesIn({
+      std::make_tuple("vcompress",
+         std::vector<int8_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, 
+         std::vector<int8_t>{0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1, 0, -1},
+         std::vector<int8_t>{0},
+         std::vector<int8_t>{1, 3, 5, 7, 9, 11, 13, 15, 0, 0,  0, 0, 0, 0, 0, 0})
+   }));
+
 // INSTANTIATE_TEST_CASE_P(s, ShortBinTest, testing::ValuesIn({
 //       std::vector<int16_t>{0, 1, 2, 3, 4, 5, 6, 7},
 //       std::vector<int16_t>{0, 0, 0, 0, 0, 0, 0, 0},
