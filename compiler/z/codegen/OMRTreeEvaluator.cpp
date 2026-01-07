@@ -1264,7 +1264,7 @@ static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::
         laneSizeMask = 3;
     }
     // Count the trailig zeros.
-    generateVRRcInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, maskRegister, laneSizeMask);
+    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, laneSizeMask);
     TR::Register *resultRegister = cg->allocateRegister();
     // Move the mask to a GPR.
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1, cg), 3);
@@ -2097,7 +2097,36 @@ TR::Register *OMR::Z::TreeEvaluator::vmpopcntEvaluator(TR::Node *node, TR::CodeG
 
 TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+    TR::Register *loopCountReg = cg->allocateRegister();
+    TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+    TR::Register *maskReg = cg->gprClobberEvaluate(node->getSecondChild());
+
+    //each lane that is not masked, needs to shift left by 8 bits so set all non masked lanes to 8! the easiet way is to count the leading or triling zeros!
+    generateVRRaInstruction(cg, TR::InstOpCode::VCLZ, node, maskRegister, maskRegister, 0, 0, 0);
+
+
+    // Start a loop to compress the vector byte by byte.
+    // In each iteration one unmasked lane is shifted left.
+    // Worst case scenario that the mask is zero, we need 16 iterations.TODO better explain the plan for reviewr als mention why we use byte size instead of lane size.
+    generateRIInstruction(cg, TR::InstOpCode::LHI, node, loopCountReg, 16);
+    TR::LabelSymbol *loopTopLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
+
+    // Keep shifting unmasked lanes left in both the mask and the source until no unmasked lane is left. it could take 0 to 16 iterations.
+    // it is easier to run it 16 times instead of calculating the reqired numbers!
+    generateVRRcInstruction(cg, TR::InstOpCode::VSL, node, sourceReg, sourceReg, maskReg, 0);
+    generateVRRcInstruction(cg, TR::InstOpCode::VSL, node, maskReg,, maskReg,, maskReg, 0);
+
+    generateS390BranchInstruction(cg, TR::InstOpCode::BRCT, node, loopCountReg, loopTopLabel);
+    
+    cg->stopUsingRegister(loopCountReg);
+
+    node->setRegister(sourceReg);
+    cg->decReferenceCount(node->getFirstChild());
+    cg->decReferenceCount(node->getSecondChild());
+    return sourceReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vexpandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
