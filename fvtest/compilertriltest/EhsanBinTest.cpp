@@ -205,7 +205,7 @@ INSTANTIATE_TEST_CASE_P(vexpand, IntBinTest, testing::ValuesIn({
          std::vector<int32_t>{1,  2, 3,  4},
          std::vector<int32_t>{-1, 0, 0, -1},
          std::vector<int32_t>{0},
-         std::vector<int32_t>{1, 2, 0, 0})
+         std::vector<int32_t>{1, 0, 0, 2})
    }));
 
 // INSTANTIATE_TEST_CASE_P(s, ShortBinTest, testing::ValuesIn({
