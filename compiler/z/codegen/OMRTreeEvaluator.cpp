@@ -2166,7 +2166,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandEvaluator(TR::Node *node, TR::CodeGe
     generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
 
     // Move the first element of the source to the result
-    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, resultReg, resultReg, sourceReg, 16 - elementSize, 0);
+    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, resultReg, resultReg, sourceReg, elementSize, 0);
     
     // go to the next source element if the current element is masked
     generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, sourceReg, sourceReg, shiftCountReg, elementSizeMask);
