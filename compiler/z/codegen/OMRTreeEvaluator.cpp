@@ -1879,13 +1879,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmcmpleEvaluator(TR::Node *node, TR::CodeGe
 
 TR::Register *OMR::Z::TreeEvaluator::vmdivEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    if(node->getDataType().getVectorElementType().isFloatingPoint()) {
-        return OMR::Z::TreeEvaluator::inlineVectorBinaryOp(node, cg, TR::InstOpCode::VFD);
-    } else {
-        TR_ASSERT_FATAL_WITH_NODE(node, false,
-            "Float failure %s", node->getDataType().toString());
-    }
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vdivEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmfmaEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -16247,9 +16241,20 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
         generateVRIaInstruction(cg, TR::InstOpCode::VREPI, node, resultVRF, isDivision ? 1 : 0, mask4);
 
         node->setRegister(resultVRF);
+        if (node->getOpCode().isVectorMasked()) {
+            TR::Node *maskChild = node->getThirdChild();
+            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+            // otherwise, the source1 value remains unchanged in the result register.
+            generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultVRF, resultVRF, cg->evaluate(dividend),
+                cg->evaluate(maskChild), 0, 0);
+            cg->decReferenceCount(maskChild);
+            cg->decReferenceCount(dividend);
+        } else {
+            // not evaluating, so recursively decrement reference count
+            cg->recursivelyDecReferenceCount(dividend);
+        }
 
         // not evaluating, so recursively decrement reference count
-        cg->recursivelyDecReferenceCount(dividend);
         cg->recursivelyDecReferenceCount(divisor);
     } else {
         TR::Register *dividendGPRHigh = cg->allocateRegister();
@@ -16296,6 +16301,15 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
             // Store result GPR into VRF
             generateVRSbInstruction(cg, TR::InstOpCode::VLVG, node, resultVRF,
                 isDivision ? dividendGPRLow : dividendGPRHigh, generateS390MemoryReference(i, cg), mask4);
+        }
+
+        if (node->getOpCode().isVectorMasked()) {
+            TR::Node *maskChild = node->getThirdChild();
+            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
+            // otherwise, the source1 value remains unchanged in the result register.
+            generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultVRF, resultVRF, dividendVRF,
+                cg->evaluate(maskChild), 0, 0);
+            cg->decReferenceCount(maskChild);
         }
 
         node->setRegister(resultVRF);
