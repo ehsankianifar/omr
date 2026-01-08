@@ -2241,15 +2241,13 @@ TR::Register *OMR::Z::TreeEvaluator::mcompressEvaluator(TR::Node *node, TR::Code
     // count the number of bits that are set
     generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, sourceReg, sourceReg, 0, 0, 3);
 
-    // Zero the result register.
-    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, resultReg, 0, 0);
-    // it was done on two 64 bit lanes. add to get total count!
-    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, sourceReg, sourceReg, resultReg, 3);
-
     // set all bits of the result register to one.
-    generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, resultReg, resultReg, resultReg, 0);
+    generateVRRcInstruction(cg, TR::InstOpCode::VOC, node, resultReg, resultReg, resultReg, 0);
 
-    // move the sum to location 7
+    // VSLDB can not shift 16 bytes so we can not sum lanes of pop count. instead we shift once for the element0 and once for element 1.
+    // supply zeroes to the right
+    generateVRRcInstruction(cg, TR::InstOpCode::VSRLB, node, resultReg, resultReg, sourceReg, 0);
+    // the shift the number of bits in the second lane.
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, 8, 0);
     // supply zeroes to the right
     generateVRRcInstruction(cg, TR::InstOpCode::VSRLB, node, resultReg, resultReg, sourceReg, 0);
