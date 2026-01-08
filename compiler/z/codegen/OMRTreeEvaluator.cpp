@@ -2127,7 +2127,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, 16 - elementSize, 0);
     
     // remove the last inserted element if it was unmasked
-    generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, resultReg, resultReg, maskReg, elementSizeMask);
+    generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, resultReg, resultReg, maskReg, 0);
     // rotate mask right
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, maskReg, maskReg, maskReg, 16 - elementSize, 0);
 
@@ -2169,7 +2169,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandEvaluator(TR::Node *node, TR::CodeGe
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, resultReg, resultReg, sourceReg, elementSize, 0);
     
     // go to the next source element if the current element is masked
-    generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, sourceReg, sourceReg, shiftCountReg, elementSizeMask);
+    generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, sourceReg, sourceReg, shiftCountReg, 0);
     // rotate mask left
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, shiftCountReg, shiftCountReg, shiftCountReg, elementSize, 0);
 
