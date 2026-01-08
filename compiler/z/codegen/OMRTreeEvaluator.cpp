@@ -2252,7 +2252,7 @@ TR::Register *OMR::Z::TreeEvaluator::mcompressEvaluator(TR::Node *node, TR::Code
     // move the sum to location 7
     generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, 8, 0);
     // supply zeroes to the right
-    generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, resultReg, resultReg, sourceReg, 0);
+    generateVRRcInstruction(cg, TR::InstOpCode::VSRLB, node, resultReg, resultReg, sourceReg, 0);
 
     // we supplied zeroes so should invert to make zeroes to ones.
     generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, resultReg, resultReg, resultReg, 0);
