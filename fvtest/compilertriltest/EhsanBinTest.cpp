@@ -200,6 +200,13 @@ INSTANTIATE_TEST_CASE_P(vexpand, ByteBinTest, testing::ValuesIn({
          std::vector<int8_t>{0},
          std::vector<int8_t>{0, 1, 0, 3, 0, 5, 0, 7, 0, 9, 0, 11, 0, 13, 0, 15})
    }));
+INSTANTIATE_TEST_CASE_P(vexpand, IntBinTest, testing::ValuesIn({
+      std::make_tuple("vexpand",
+         std::vector<int32_t>{1,  2, 3,  4, 5, 6,  7, 8},
+         std::vector<int32_t>{-1, 0, 0, -1, 0, 0, -1, 0},
+         std::vector<int32_t>{0},
+         std::vector<int32_t>{1, 2, 3, 0, 0, 0, 0, 0})
+   }));
 
 // INSTANTIATE_TEST_CASE_P(s, ShortBinTest, testing::ValuesIn({
 //       std::vector<int16_t>{0, 1, 2, 3, 4, 5, 6, 7},
