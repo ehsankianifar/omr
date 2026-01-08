@@ -2231,7 +2231,35 @@ TR::Register *OMR::Z::TreeEvaluator::vmrolEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::mcompressEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+    const uint8_t elementSizeMask = getVectorElementSizeMask(node);
+    const uint32_t elementSize = getVectorElementSize(node);
+    TR::Register *resultReg = cg->allocateRegister(TR_VRF);
+    TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
+
+    // count the number of bits that are set
+    generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, sourceReg, sourceReg, 0, 0, 3);
+
+    // Zero the result register.
+    generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, resultReg, 0, 0);
+    // it was done on two 64 bit lanes. add to get total count!
+    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, sourceReg, sourceReg, resultReg, 3);
+
+    // set all bits of the result register to one.
+    generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, resultReg, resultReg, resultReg, 0);
+
+    // move the sum to location 7
+    generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, 8, 0);
+    // supply zeroes to the right
+    generateVRRcInstruction(cg, TR::InstOpCode::VSLB, node, resultReg, resultReg, sourceReg, 0);
+
+    // we supplied zeroes so should invert to make zeroes to ones.
+    generateVRRcInstruction(cg, TR::InstOpCode::VNN, node, resultReg, resultReg, resultReg, 0);
+
+    node->setRegister(resultReg);
+    cg->decReferenceCount(node->getFirstChild());
+    return resultReg;
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmnotzEvaluator(TR::Node *node, TR::CodeGenerator *cg)
