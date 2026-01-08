@@ -79,5 +79,15 @@ INSTANTIATE_TEST_CASE_P(mcompress, ByteUniTest, testing::ValuesIn({
          std::vector<int8_t>{0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, -1}, 
          std::vector<int8_t>{0},
          std::vector<int8_t>{0},
-         std::vector<int8_t>{-1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+         std::vector<int8_t>{-1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+      std::make_tuple("mcompress",
+         std::vector<int8_t>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 
+         std::vector<int8_t>{0},
+         std::vector<int8_t>{0},
+         std::vector<int8_t>{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+      std::make_tuple("mcompress",
+         std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}, 
+         std::vector<int8_t>{0},
+         std::vector<int8_t>{0},
+         std::vector<int8_t>{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1})
    }));
