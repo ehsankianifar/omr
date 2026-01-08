@@ -2159,7 +2159,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandEvaluator(TR::Node *node, TR::CodeGe
     generateVRRcInstruction(cg, TR::InstOpCode::VN, node, shiftCountReg, shiftCountReg, maskReg, 0);
     // Rotate mask to make up for VSLB opcode requirement.
     if (elementSize < 8)
-        generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, shiftCountReg, shiftCountReg, shiftCountReg, 8 - elementSize, 0);
+        generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, shiftCountReg, shiftCountReg, shiftCountReg, 8 + elementSize, 0);
 
     // Start a loop to compress the vector lane by lane.
     generateRIInstruction(cg, TR::InstOpCode::LHI, node, loopCountReg, 16 / elementSize);
