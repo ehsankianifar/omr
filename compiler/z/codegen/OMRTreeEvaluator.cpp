@@ -16427,8 +16427,12 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpneEvaluator(TR::Node *node, TR::CodeGen
 
 TR::Register *OMR::Z::TreeEvaluator::vcmpltEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
+    static bool breakBefore = feGetEnv("TR_breakBefore") != NULL;
     node->swapChildren();
-    return TR::TreeEvaluator::vcmpgtEvaluator(node, cg);
+    if (breakBefore)
+         generateS390EInstruction(cg, TR::InstOpCode::BREAK, node);
+    TR::TreeEvaluator::vcmpgtEvaluator(node, cg);
+    return node->getRegister();
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vcmpgtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
