@@ -135,7 +135,7 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
             break;
         }
         case TR_FPR:
-            if (targetReg->getKind == TR_FPR) {
+            if (targetReg->getKind() == TR_FPR) {
                 cursor = generateRRInstruction(cg, TR::InstOpCode::LDR, node, targetReg, sourceReg, precedingInstruction);
                 break;
             }
