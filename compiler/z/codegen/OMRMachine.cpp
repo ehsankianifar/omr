@@ -2632,10 +2632,14 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
     TR::Register *currentTargetVirtual = NULL;
     TR_RegisterKinds rk = virtualRegister->getKind();
 
-    if (rk == TR_FPR && targetRegister->getKind() == TR_VRF) {
-        // Since FPR is overlapping with VRF, it is possible that the source and target are different types.
-        // In that case we need to change the type to VRF to make sure the correct instruction was selected.
-        rk = TR_VRF;
+    if (rk == TR_FPR) {
+        printf("RealReg kind: %d\n", targetRegister->getKind());
+        printf("Reg kind: %d\n", targetRegister->getRegister()->getKind());
+        if (targetRegister->getRegister()->getKind() == TR_VRF) {
+            // Since FPR is overlapping with VRF, it is possible that the source and target are different types.
+            // In that case we need to change the type to VRF to make sure the correct instruction was selected.
+            rk = TR_VRF;
+        }
     }
 
     TR::Instruction *cursor = NULL;
