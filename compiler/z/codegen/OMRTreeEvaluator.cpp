@@ -16560,6 +16560,36 @@ TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::In
     return resultReg;
 }
 
+TR::Register *iterativeFloatReductionHelper(TR::Node *node, TR::CodeGenerator *cg,
+    TR::InstOpCode::Mnemonic op, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
+{
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *resultReg = cg->allocateRegister(TR_FPR);
+
+    TR::Register *sourceReg = cg->gprClobberEvaluate(sourceNode);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    if (isMasked) {
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        setIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, resultReg, identityValue, isDouble ? 3 : 2);
+        cg->decReferenceCount(maskChild);
+    }
+    // Move the first element to result
+    generateRRInstruction(cg, isDouble ? TR::InstOpCode::LDR : TR::InstOpCode::LER, node, resultReg, sourceReg);
+
+    int loops = isDouble ? 1 : 3;
+    for (int i = 0; i < loops; i++) {
+        // Shift To the next element
+        generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, isDouble ? 8 : 4);
+        // run the operation
+        generateRREInstruction(cg, op, node, resultReg, sourceReg);
+    }
+
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultReg);
+    return resultReg;
+}
+
 TR::Register *longReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, TR_IdentityValues identityValue = TR_IdentityValues::Int_1)
 {
     TR::Node *sourceNode = node->getFirstChild();
@@ -16693,7 +16723,9 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
     } else if (type.isIntegral()) {
         return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */, TR_IdentityValues::Int_1);
     } else if (type.isFloat()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
+        //return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
+        //return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MDBR, false /* isDouble */, TR_IdentityValues::Float_1, true);
+        return iterativeFloatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
     } else if (type.isDouble()) {
         return floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::MDBR, true /* isDouble */, TR_IdentityValues::Double_1);
     } else {
