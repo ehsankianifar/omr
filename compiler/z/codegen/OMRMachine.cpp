@@ -105,7 +105,7 @@ static const char *getRegisterName(TR::Register *reg, TR::CodeGenerator *cg)
 //  Copy Register by moving source register to target register
 ///////////////////////////////////////////////////////////////////////////////
 TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_RegisterKinds rk, TR::RealRegister *targetReg,
-    TR::RealRegister *sourceReg, TR::Instruction *precedingInstruction, int cnt=0)
+    TR::RealRegister *sourceReg, TR::Instruction *precedingInstruction, int cnt)
 {
     // TODO: In reality we should be validating that the the source is NULL and target is non-NULL however we cannot
     // currently do this because the registerCopy and registerExchange APIs are not updating the register states as
