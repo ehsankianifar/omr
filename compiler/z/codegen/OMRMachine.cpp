@@ -139,8 +139,11 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
                 cursor = generateRRInstruction(cg, TR::InstOpCode::LDR, node, targetReg, sourceReg, precedingInstruction);
                 break;
             }
-            // because FPR and VRF registers are overlapping, it is possible that we have a VFR target register.
-            // We need to fall through the VFR register copy in that case to have the correct instruction.
+            /*
+            FPR and VRF registers are overlapping, so it is possible to have an FPR source and a VRF target.
+            To ensure the correct load instruction is chosen, allow execution to fall through to the TR_VRF case
+            when the target kind is not FPR.
+            */
         case TR_VRF:
             cursor = generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, targetReg, sourceReg, precedingInstruction);
             break;
@@ -2635,6 +2638,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
     TR::RealRegister *spareReg = NULL;
     TR::Register *currentTargetVirtual = NULL;
     TR_RegisterKinds rk = virtualRegister->getKind();
+    
     TR::Instruction *cursor = NULL;
     TR::Node *currentNode = currentInstruction->getNode();
     bool doNotRegCopy = false;
