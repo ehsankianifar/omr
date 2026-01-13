@@ -16561,7 +16561,7 @@ TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::In
 }
 
 TR::Register *iterativeFloatReductionHelper(TR::Node *node, TR::CodeGenerator *cg,
-    TR::InstOpCode::Mnemonic op, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
+    TR::InstOpCode::Mnemonic floatOP, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
@@ -16642,9 +16642,9 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
     if (type.isIntegral()) {
         resultReg = vIntReductionAddHelper(node, cg, type);
     } else if (type.isDouble()) {
-        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::ADBR, true /* isDouble */);
+        resultReg = iterativeFloatReductionHelper(node, cg, TR::InstOpCode::ADBR, true /* isDouble */);
     } else if (type.isFloat()) {
-        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::VFA, TR::InstOpCode::AEBR, false /* isDouble */);
+        resultReg = iterativeFloatReductionHelper(node, cg, TR::InstOpCode::AEBR, false /* isDouble */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -16733,7 +16733,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         //return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MDBR, false /* isDouble */, TR_IdentityValues::Float_1, true);
         return iterativeFloatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, TR_IdentityValues::Float_1);
     } else if (type.isDouble()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::NOP, TR::InstOpCode::MDBR, true /* isDouble */, TR_IdentityValues::Double_1);
+        return iterativeFloatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */, TR_IdentityValues::Double_1);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
