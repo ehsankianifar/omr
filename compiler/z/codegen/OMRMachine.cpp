@@ -121,7 +121,7 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
         getRegisterName(sourceReg, cg), getRegisterName(targetReg, cg));
 
     TR::Node *node = precedingInstruction->getNode();
-    TR::Instruction *cursor = NULL;
+    TR::Instruction *cursor = precedingInstruction;
 
     switch (rk) {
         case TR_GPR: {
@@ -147,7 +147,7 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
             printf("CALLER: %d\n",cnt);
             static bool breakBefore = feGetEnv("TR_breakBefore2") != NULL;
             if (breakBefore)
-                cursor = generateS390EInstruction(cg, TR::InstOpCode::BREAK, node, precedingInstruction);
+                cursor = generateS390EInstruction(cg, TR::InstOpCode::BREAK, node, cursor);
         case TR_VRF:
             cursor = generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, targetReg, sourceReg, cursor);
             break;
