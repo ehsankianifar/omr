@@ -16580,7 +16580,7 @@ TR::Register *iterativeFloatReductionHelper(TR::Node *node, TR::CodeGenerator *c
     int loops = isDouble ? 1 : 3;
     for (int i = 0; i < loops; i++) {
         // Shift To the next element
-        generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, isDouble ? 8 : 4);
+        generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, sourceReg, sourceReg, sourceReg, isDouble ? 8 : 4, 0);
         // run the operation
         generateRREInstruction(cg, op, node, resultReg, sourceReg);
     }
