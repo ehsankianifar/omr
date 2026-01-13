@@ -2638,7 +2638,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
     TR::RealRegister *spareReg = NULL;
     TR::Register *currentTargetVirtual = NULL;
     TR_RegisterKinds rk = virtualRegister->getKind();
-    
+
     TR::Instruction *cursor = NULL;
     TR::Node *currentNode = currentInstruction->getNode();
     bool doNotRegCopy = false;
