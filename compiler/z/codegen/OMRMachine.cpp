@@ -147,9 +147,9 @@ TR::Instruction *OMR::Z::Machine::registerCopy(TR::CodeGenerator *cg, TR_Registe
             printf("CALLER: %d\n",cnt);
             static bool breakBefore = feGetEnv("TR_breakBefore2") != NULL;
             if (breakBefore)
-                generateS390EInstruction(cg, TR::InstOpCode::BREAK, node);
+                cursor = generateS390EInstruction(cg, TR::InstOpCode::BREAK, node, precedingInstruction);
         case TR_VRF:
-            cursor = generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, targetReg, sourceReg, precedingInstruction);
+            cursor = generateVRRaInstruction(cg, TR::InstOpCode::VLR, node, targetReg, sourceReg, cursor);
             break;
         default:
             break;
