@@ -16518,7 +16518,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
 }
 
 TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic vectorOp,
-    TR::InstOpCode::Mnemonic floatOP, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
+    TR::InstOpCode::Mnemonic floatOP, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0, bool toDouble = false)
 {
     // TODO: if it was used for reduceLanesToLong(), then we need to convert float to double.
     TR::Node *sourceNode = node->getFirstChild();
@@ -16532,14 +16532,22 @@ TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::In
         setIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, resultReg, identityValue, isDouble ? 3 : 2);
         cg->decReferenceCount(maskChild);
     }
-    // Need the second half of the source in first half of the scratch register.
-    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
+    if (toDouble) {
+        generateVRRaInstruction(cg, TR::InstOpCode::VFLL, node, resultReg, sourceReg, 0, 0, 2);
+        // Move odd indexed elements to even index
+        generateVRSaInstruction(cg, TR::InstOpCode::VERLL, node, sourceReg, sourceReg,
+            generateS390MemoryReference(32, cg), 3);
+        generateVRRaInstruction(cg, TR::InstOpCode::VFLL, node, sourceReg, sourceReg, 0, 0, 2);
+    } else {
+        // Need the second half of the source in first half of the scratch register.
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
+    }
 
     if (isDouble) {
         generateRREInstruction(cg, floatOP, node, resultReg, sourceReg);
     } else {
-        generateVRRcInstruction(cg, vectorOp, node, sourceReg, sourceReg, resultReg, 0, 0, 2);
-        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 2);
+        generateVRRcInstruction(cg, vectorOp, node, sourceReg, sourceReg, resultReg, 0, 0, toDouble ? 3 : 2);
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, toDouble ? 3 : 2);
         generateRREInstruction(cg, floatOP, node, resultReg, sourceReg);
     }
     TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0, 1, cg);
