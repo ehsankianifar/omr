@@ -16561,7 +16561,7 @@ TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::In
 }
 
 TR::Register *iterativeFloatReductionHelper(TR::Node *node, TR::CodeGenerator *cg,
-    TR::InstOpCode::Mnemonic floatOP, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
+    TR::InstOpCode::Mnemonic op, bool isDouble, TR_IdentityValues identityValue = TR_IdentityValues::Universal_0)
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
