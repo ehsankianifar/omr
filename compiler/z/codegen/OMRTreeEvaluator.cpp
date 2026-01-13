@@ -16585,6 +16585,12 @@ TR::Register *iterativeFloatReductionHelper(TR::Node *node, TR::CodeGenerator *c
         generateRREInstruction(cg, op, node, resultReg, sourceReg);
     }
 
+    // I wish we could add a range of registers instead of just 1;
+    TR::RegisterDependencyConditions *dependencies = generateRegisterDependencyConditions(0, 1, cg);
+    dependencies->addPostCondition(sourceReg, TR::RealRegister::VRF0);
+    TR::LabelSymbol *dummyLabel = generateLabelSymbol(cg);
+    generateS390LabelInstruction(cg, TR::InstOpCode::label, node, dummyLabel, dependencies);
+
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultReg);
     return resultReg;
