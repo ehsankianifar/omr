@@ -16245,8 +16245,7 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
         node->setRegister(resultVRF);
         if (node->getOpCode().isVectorMasked()) {
             TR::Node *maskChild = node->getThirdChild();
-            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
-            // otherwise, the source1 value remains unchanged in the result register.
+            // Copy source 1 to result if the lane is not masked.
             generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultVRF, resultVRF, cg->evaluate(dividend),
                 cg->evaluate(maskChild), 0, 0);
             cg->decReferenceCount(maskChild);
@@ -16283,6 +16282,7 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
 
         for (int i = 0; i < (16 / getVectorElementSize(node)); i++) {
             // Load into GPR from VR element
+            // TODO: need to signextend for signed division.
             generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, is64Bit ? dividendGPRLow : dividendGPRHigh,
                 dividendVRF, generateS390MemoryReference(i, cg), mask4);
             generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, divisorGPR, divisorVRF,
@@ -16307,8 +16307,7 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
 
         if (node->getOpCode().isVectorMasked()) {
             TR::Node *maskChild = node->getThirdChild();
-            // The result should reflect the outcome of the requested operation only if the mask for that lane is true;
-            // otherwise, the source1 value remains unchanged in the result register.
+            // Copy source 1 to result if the lane is not masked.
             generateVRReInstruction(cg, TR::InstOpCode::VSEL, node, resultVRF, resultVRF, dividendVRF,
                 cg->evaluate(maskChild), 0, 0);
             cg->decReferenceCount(maskChild);
@@ -16318,8 +16317,6 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
 
         cg->stopUsingRegister(dividendGPR);
         cg->stopUsingRegister(divisorGPR);
-        cg->stopUsingRegister(dividendVRF);
-        cg->stopUsingRegister(divisorVRF);
 
         cg->decReferenceCount(dividend);
         cg->decReferenceCount(divisor);
