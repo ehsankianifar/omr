@@ -1844,7 +1844,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmaddEvaluator(TR::Node *node, TR::CodeGene
 
 TR::Register *OMR::Z::TreeEvaluator::vmandEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::vandEvaluator(node, cg, TR::InstOpCode::VN);
+    return TR::TreeEvaluator::vandEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmcmpeqEvaluator(TR::Node *node, TR::CodeGenerator *cg)
