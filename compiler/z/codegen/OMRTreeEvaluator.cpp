@@ -1591,7 +1591,7 @@ TR::Register *toMaskEvaluatorHelper(TR::Node *node, TR::CodeGenerator *cg, uint8
     }
 
     if ((sourceNode->getRegister() == NULL) && sourceNode->getOpCode().isLoadIndirect()
-        && (sourceNode->getReferenceCount() == 1) && false) {
+        && (sourceNode->getReferenceCount() == 1)) {
         // If the node is load and it is not evaluated already, directly load to vector register.
         TR::MemoryReference *srcMemRef = new (cg->trHeapMemory()) TR::MemoryReference(sourceNode, cg);
         generateVRXInstruction(cg, opCode, node, maskRegister, srcMemRef, targetIndexOfVectorRegister);
