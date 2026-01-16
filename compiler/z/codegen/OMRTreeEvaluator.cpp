@@ -16803,7 +16803,7 @@ static TR::Register *logicalReductionHelper(TR::Node *node, TR::CodeGenerator *c
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(0, cg), 3);
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, scratchReg, sourceReg, generateS390MemoryReference(1, cg), 3);
     int laneLength = getVectorElementLength(firstChild);
-    for (int dataLength = 64; dataLength > laneLength; dataLength/=2) {
+    for (int dataLength = 64; dataLength >= laneLength; dataLength/=2) {
         if (dataLength < 64) {
             // Iteratively split the data in half, load the second half into the scratch register, and apply the
             // operation with the first half until the desired element size is reached.
