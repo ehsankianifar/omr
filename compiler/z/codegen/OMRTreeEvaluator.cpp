@@ -16809,7 +16809,7 @@ static TR::Register *logicalReductionHelper(TR::Node *node, TR::CodeGenerator *c
             // operation with the first half until the desired element size is reached.
             generateRSInstruction(cg, TR::InstOpCode::SLLG, node, scratchReg, resultReg, dataLength);
         }
-        generateRReInstruction(cg, op, node, resultReg, scratchReg);
+        generateRREInstruction(cg, op, node, resultReg, scratchReg);
     }
 
     // The value is left‑aligned in a 64‑bit GPR. If the lane width is smaller than 64 bits, arithmetic shift right
