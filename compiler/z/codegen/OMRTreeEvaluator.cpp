@@ -16730,12 +16730,36 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
     if (type.isInt64()) {
         return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
     } else if (type.isIntegral()) {
-        return integralReductionHelper(node, cg, TR::InstOpCode::VML, true /* instructionNeedsElementSizeMask */,
-            TR_IdentityValues::Int_1);
+        TR::Node *firstChild = node->getFirstChild();
+        TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
+        uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
+        TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+        bool isMasked = node->getOpCode().isVectorMasked();
+        if (isMasked) {
+            TR::Node *maskChild = node->getSecondChild();
+            TR::Register *maskReg = cg->evaluate(maskChild);
+            copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchReg, TR_IdentityValues::Int_1, elementSizeMask);
+            cg->decReferenceCount(maskChild);
+        }
+        int dataLength = getVectorElementLength(firstChild);
+        for (uint8_t elementSizeMask = getVectorElementSizeMask(firstChild); elementSizeMask <= 3; elementSizeMask++) {
+            // Move odd-indexed elements from the source register into the even-indexed positions of the scratch register.
+            generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, dataLength, 0);
+            // Multiply even-indexed elements; write the next-wider result back into the source register.
+            generateVRRcInstruction(cg, TR::InstOpCode::VME, node, sourceReg, sourceReg, scratchReg, 0, 0, elementSizeMask);
+            // Each iteration doubles the lane width (halves the lane count).
+            dataLength >> 1;
+        }
+        
+        TR::Register *resultReg = cg->allocateRegister();
+        // The final product is 128 bits; extract the lower 64 bits. Note: overflow is not detected here.
+        generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(1, cg), 3);
+
+        cg->decReferenceCount(firstChild);
+        cg->stopUsingRegister(scratchReg);
+        node->setRegister(resultReg);
+        return resultReg;
     } else if (type.isFloat()) {
-        // return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MEEBR, false /* isDouble */,
-        // TR_IdentityValues::Float_1); return floatReductionHelper(node, cg, TR::InstOpCode::VFM, TR::InstOpCode::MDBR,
-        // false /* isDouble */, TR_IdentityValues::Float_1, true);
         return iterativeFloatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */,
             TR_IdentityValues::Float_1);
     } else if (type.isDouble()) {
