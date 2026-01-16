@@ -1715,7 +1715,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionMinEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionMulEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionOrEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15894,7 +15894,51 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
+    if (type.isIntegral()) {
+        TR::Node *firstChild = node->getFirstChild();
+        TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
+        TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+        uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
+        
+        if (node->getOpCode().isVectorMasked()) {
+            TR::Node *maskChild = node->getSecondChild();
+            TR::Register *maskReg = cg->evaluate(maskChild);
+            copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchReg, TR_IdentityValues::Int_1, elementSizeMask);
+            cg->decReferenceCount(maskChild);
+        }
+        
+        for (int laneSize = getVectorElementSize(firstChild); laneSize < 8; laneSize << 1) {
+            // Move odd-indexed elements from the source register into the even-indexed positions of the scratch register.
+            generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, laneSize, 0);
+            // Multiply even-indexed elements; write the next-wider result back into the source register.
+            generateVRRcInstruction(cg, TR::InstOpCode::VME, node, sourceReg, sourceReg, scratchReg, 0, 0, elementSizeMask);
+            // Each iteration doubles the lane width (halves the lane count).
+            elementSizeMask++;
+        }
+        
+        TR::Register *resultReg = cg->allocateRegister();
+        TR::Register *scratchGPR = cg->allocateRegister();
+        // At this stage only two 64‑bit values remain. Extract both to GPRs and use a GPR multiply to produce the final result.
+        generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(0, cg), 3);
+        generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, scratchGPR, sourceReg, generateS390MemoryReference(1, cg), 3);
+        generateRREInstruction(cg, TR::InstOpCode::MSGR, node, resultReg, scratchGPR);
+
+        cg->decReferenceCount(firstChild);
+        cg->stopUsingRegister(scratchReg);
+        cg->stopUsingRegister(scratchGPR);
+        node->setRegister(resultReg);
+        return resultReg;
+    } else if (type.isFloat()) {
+        return floatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */,
+            TR_IdentityValues::Float_1);
+    } else if (type.isDouble()) {
+        return floatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */,
+            TR_IdentityValues::Double_1);
+    } else {
+        TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
+    }
+    return NULL;
 }
 
 /**
