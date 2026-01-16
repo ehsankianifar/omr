@@ -16731,6 +16731,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         TR::Node *firstChild = node->getFirstChild();
         TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
         TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
+        uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
         bool isMasked = node->getOpCode().isVectorMasked();
         if (isMasked) {
             TR::Node *maskChild = node->getSecondChild();
@@ -16739,7 +16740,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
             cg->decReferenceCount(maskChild);
         }
         int dataLength = getVectorElementLength(firstChild);
-        for (uint8_t elementSizeMask = getVectorElementSizeMask(firstChild); elementSizeMask < 3; elementSizeMask++) {
+        for ( ; elementSizeMask < 3; elementSizeMask++) {
             // Move odd-indexed elements from the source register into the even-indexed positions of the scratch register.
             generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, dataLength, 0);
             // Multiply even-indexed elements; write the next-wider result back into the source register.
