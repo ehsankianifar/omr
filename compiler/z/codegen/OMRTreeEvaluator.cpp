@@ -16746,7 +16746,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
             // Multiply even-indexed elements; write the next-wider result back into the source register.
             generateVRRcInstruction(cg, TR::InstOpCode::VME, node, sourceReg, sourceReg, scratchReg, 0, 0, elementSizeMask);
             // Each iteration doubles the lane width (halves the lane count).
-            dataLength >> 1;
+            dataLength << 1;
         }
         
         TR::Register *resultReg = cg->allocateRegister();
