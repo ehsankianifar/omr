@@ -16727,12 +16727,9 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
 TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
-    if (type.isInt64()) {
-        return longReductionHelper(node, cg, TR::InstOpCode::MSGR);
-    } else if (type.isIntegral()) {
+    if (type.isIntegral()) {
         TR::Node *firstChild = node->getFirstChild();
         TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
-        uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
         TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
         bool isMasked = node->getOpCode().isVectorMasked();
         if (isMasked) {
@@ -16742,7 +16739,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
             cg->decReferenceCount(maskChild);
         }
         int dataLength = getVectorElementLength(firstChild);
-        for (uint8_t elementSizeMask = getVectorElementSizeMask(firstChild); elementSizeMask <= 3; elementSizeMask++) {
+        for (uint8_t elementSizeMask = getVectorElementSizeMask(firstChild); elementSizeMask < 3; elementSizeMask++) {
             // Move odd-indexed elements from the source register into the even-indexed positions of the scratch register.
             generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, dataLength, 0);
             // Multiply even-indexed elements; write the next-wider result back into the source register.
@@ -16752,11 +16749,15 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         }
         
         TR::Register *resultReg = cg->allocateRegister();
-        // The final product is 128 bits; extract the lower 64 bits. Note: overflow is not detected here.
-        generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(1, cg), 3);
+        TR::Register *scratchGPR = cg->allocateRegister();
+        // At this stage only two 64‑bit values remain. Extract both to GPRs and use a GPR multiply to produce the final result.
+        generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(0, cg), 3);
+        generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, scratchGPR, sourceReg, generateS390MemoryReference(1, cg), 3);
+        generateRREInstruction(cg, TR::InstOpCode::MSGR, node, resultReg, scratchGPR);
 
         cg->decReferenceCount(firstChild);
         cg->stopUsingRegister(scratchReg);
+        cg->stopUsingRegister(scratchGPR);
         node->setRegister(resultReg);
         return resultReg;
     } else if (type.isFloat()) {
