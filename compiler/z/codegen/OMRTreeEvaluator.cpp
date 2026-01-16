@@ -16739,14 +16739,14 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
             copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchReg, TR_IdentityValues::Int_1, elementSizeMask);
             cg->decReferenceCount(maskChild);
         }
-        int dataLength = getVectorElementLength(firstChild);
-        for ( ; elementSizeMask < 3; elementSizeMask++) {
+        
+        for (int laneSize = getVectorElementSize(firstChild); laneSize < 8; laneSize << 1) {
             // Move odd-indexed elements from the source register into the even-indexed positions of the scratch register.
-            generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, dataLength, 0);
+            generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, laneSize, 0);
             // Multiply even-indexed elements; write the next-wider result back into the source register.
             generateVRRcInstruction(cg, TR::InstOpCode::VME, node, sourceReg, sourceReg, scratchReg, 0, 0, elementSizeMask);
             // Each iteration doubles the lane width (halves the lane count).
-            dataLength << 1;
+            elementSizeMask++;
         }
         
         TR::Register *resultReg = cg->allocateRegister();
