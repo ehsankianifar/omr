@@ -1589,7 +1589,7 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionAddEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionAndEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionAndEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionFirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -1614,17 +1614,17 @@ TR::Register *OMR::Z::TreeEvaluator::vmreductionMulEvaluator(TR::Node *node, TR:
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionOrEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionOrEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionOrUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionOrUncheckedEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmreductionXorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return TR::TreeEvaluator::vreductionXorEvaluator(node, cg);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vmsqrtEvaluator(TR::Node *node, TR::CodeGenerator *cg)
@@ -15700,11 +15700,6 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
     return resultReg;
 }
 
-TR::Register *OMR::Z::TreeEvaluator::vreductionAndEvaluator(TR::Node *node, TR::CodeGenerator *cg)
-{
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
-}
-
 TR::Register *OMR::Z::TreeEvaluator::vreductionFirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
@@ -15725,19 +15720,98 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
 }
 
+/**
+ * \brief
+ * Performs a logical reduction across all vector lanes.
+ *
+ * \details
+ * This helper applies the specified logical operation to all lanes of a vector
+ * and returns the result in a GPR, sign-extended to 64 bits. The operation may
+ * optionally be masked. When masking is enabled, lanes disabled by the mask
+ * must be filled with either 0 or 1 before the reduction, as required by the
+ * reduction semantics. The setUnmaskedLanes argument determines whether those
+ * unmasked bits are cleared or set.
+ *
+ * \param node
+ * The IL node for the logical reduction.
+ *
+ * \param cg
+ * The code generator.
+ *
+ * \param op
+ * The logical operation to apply (e.g., AND, OR, XOR).
+ *
+ * \param setUnmaskedLanes
+ * Indicates whether masked-out lanes should be set to 1 (true)
+ * or cleared to 0 (false) before the reduction.
+ *
+ * \return
+ * A GPR containing the sign-extended reduction result.
+ */
+static TR::Register *logicalReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
+    bool setUnmaskedLanes)
+{
+    TR::Node *firstChild = node->getFirstChild();
+    uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    TR::Register *sourceReg = isMasked ? cg->gprClobberEvaluate(firstChild) : cg->evaluate(firstChild);
+    if (isMasked) {
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        if (setUnmaskedLanes) {
+            // Set all bits of unmasked lanes to 1.
+            generateVRRcInstruction(cg, TR::InstOpCode::VOC, node, sourceReg, sourceReg, maskReg, 0, 0, 0);
+        } else {
+            // Zero all bits of unmasked lanes.
+            generateVRRcInstruction(cg, TR::InstOpCode::VN, node, sourceReg, sourceReg, maskReg, 0, 0, 0);  
+        }
+        cg->decReferenceCount(maskChild);
+    }
+
+    TR::Register *scratchReg = cg->allocateRegister();
+    TR::Register *resultReg = cg->allocateRegister();
+    // Move the first half of the source to the result register and the second half to the scratch register;
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultReg, sourceReg, generateS390MemoryReference(0, cg), 3);
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, scratchReg, sourceReg, generateS390MemoryReference(1, cg), 3);
+    int laneLength = getVectorElementLength(firstChild);
+    for (int dataLength = 64; dataLength >= laneLength; dataLength/=2) {
+        if (dataLength < 64) {
+            // Iteratively split the data in half, load the second half into the scratch register, and apply the
+            // operation with the first half until the desired element size is reached.
+            generateRSInstruction(cg, TR::InstOpCode::SLLG, node, scratchReg, resultReg, dataLength);
+        }
+        generateRREInstruction(cg, op, node, resultReg, scratchReg);
+    }
+
+    // The value is left‑aligned in a 64‑bit GPR. If the lane width is smaller than 64 bits, arithmetic shift right
+    // to obtain the correct sign‑extended result.
+    if (laneLength < 64)
+        generateRSInstruction(cg, TR::InstOpCode::SRAG, node, resultReg, resultReg, 64 - laneLength);
+
+    cg->decReferenceCount(firstChild);
+    cg->stopUsingRegister(scratchReg);
+    node->setRegister(resultReg);
+    return resultReg;
+}
+
+TR::Register *OMR::Z::TreeEvaluator::vreductionAndEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+{
+    return logicalReductionHelper(node, cg, TR::InstOpCode::NGR, true /* setUnmaskedLanes */);
+}
+
 TR::Register *OMR::Z::TreeEvaluator::vreductionOrEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return logicalReductionHelper(node, cg, TR::InstOpCode::OGR, false /* setUnmaskedLanes */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionOrUncheckedEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return logicalReductionHelper(node, cg, TR::InstOpCode::OGR, false /* setUnmaskedLanes */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionXorEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
+    return logicalReductionHelper(node, cg, TR::InstOpCode::XGR, false /* setUnmaskedLanes */);
 }
 
 TR::Register *OMR::Z::TreeEvaluator::vreturnEvaluator(TR::Node *node, TR::CodeGenerator *cg)
