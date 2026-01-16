@@ -15077,6 +15077,28 @@ int32_t getVectorElementSize(TR::Node *node)
     }
 }
 
+int32_t getVectorElementLength(TR::Node *node)
+{
+    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", node->getDataType().toString());
+
+    switch (node->getDataType().getVectorElementType()) {
+        case TR::Int8:
+            return 8;
+        case TR::Int16:
+            return 16;
+        case TR::Int32:
+        case TR::Float:
+            return 32;
+        case TR::Int64:
+        case TR::Double:
+            return 64;
+        default:
+            TR_ASSERT(false, "Unknown vector node type %s for element size\n", node->getDataType().toString());
+            return 0;
+    }
+}
+
 int32_t getVectorElementSizeMask(TR::Node *node)
 {
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
