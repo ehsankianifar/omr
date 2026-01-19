@@ -149,7 +149,7 @@ enum TR_YesNoMaybe {
     TR_maybe
 };
 
-// Well known values used in operations like masked reduction operations.
+// Commonly used constant values for operations, including masked reductions.
 enum TR_IdentityValues {
     Universal_0,
     Int_1,
