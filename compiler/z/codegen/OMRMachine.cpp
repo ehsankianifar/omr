@@ -2092,7 +2092,7 @@ TR::RealRegister *OMR::Z::Machine::findBestFreeRegister(TR::Instruction *current
         freeRegister->setState(TR::RealRegister::Free);
     }
 
-    if (preference == 0x12 && freeRegister->_registerNumber == 0x22) {
+    if (preference == 0x12 && freeRegister->getRegisterNumber() == 0x22) {
         printf("**** HIT THE PROBLEM ****\n");
     }
 
