@@ -1782,6 +1782,9 @@ void OMR::Z::Machine::freeBestRegisterPair(TR::RealRegister **firstReg, TR::Real
     *lastReg = bestCandidateLow;
 }
 
+void ehsanTest(){
+    printf("EH\n");
+}
 ////////////////////////////////////////////////////////////////////////////////
 // SINGLE REGISTER assignment methods
 ////////////////////////////////////////////////////////////////////////////////
@@ -2097,12 +2100,14 @@ TR::RealRegister *OMR::Z::Machine::findBestFreeRegister(TR::Instruction *current
     if (freeRegister != NULL) {
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is %R", virtualReg, freeRegister);
         if (preference == 0x12 && freeRegister->getRegisterNumber() == 0x22) {
-            printf("**** HIT THE PROBLEM ****\n");
+            printf("**** HIT THE PROBLEM %p ****\n", virtualReg);
+            ehsanTest();
+            printf("**** end ****\n");
         }
     }
     else {
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is NULL (could not find one)", virtualReg);
-        printf("**** NO REGISTER! ****\n");
+        //printf("**** NO REGISTER! ****\n");
     }
 
     return freeRegister;
