@@ -120,7 +120,7 @@ enum TR_CompilationOptions {
     // Available                                                  = 0x00200000,
     TR_TraceOptDetails                                            = 0x00400000,
 
-    TR_TraceAll = TR_TraceBC | TR_TraceTrees | TR_TraceCG | TR_TraceOptDetails, // intentionally omits TR_TraceAliases
+    TR_TraceAll = TR_TraceRA | TR_TraceBC | TR_TraceTrees | TR_TraceCG | TR_TraceOptDetails, // intentionally omits TR_TraceAliases
 
     // Must be same option word as TR_TraceOptDetails to allow
     // performTransformation macros to do getAnyOption on them
