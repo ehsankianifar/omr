@@ -2092,6 +2092,10 @@ TR::RealRegister *OMR::Z::Machine::findBestFreeRegister(TR::Instruction *current
         freeRegister->setState(TR::RealRegister::Free);
     }
 
+    if (preference == 0x12 && freeRegister->_registerNumber == 0x22) {
+        printf("**** HIT THE PROBLEM ****\n");
+    }
+
     if (freeRegister != NULL)
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is %R", virtualReg, freeRegister);
     else
