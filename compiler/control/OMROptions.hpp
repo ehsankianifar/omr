@@ -892,7 +892,7 @@ enum TR_CompilationOptions {
     TR_ForceIEEEDivideByZeroException                        = 0x00000020 + 27,
     TR_TraceRA                                               = 0x00000040 + 27,
 
-    TR_TraceAll = TR_TraceRA | TR_TraceBC | TR_TraceTrees | TR_TraceCG | TR_TraceOptDetails, // intentionally omits TR_TraceAliases
+    TR_TraceAll = TR_TraceRA | TR_TraceCG, // intentionally omits TR_TraceAliases
 
     TR_DisableDirectStaticAccessOnZ                          = 0x00000080 + 27,
     // Available                                             = 0x00000100 + 27,
