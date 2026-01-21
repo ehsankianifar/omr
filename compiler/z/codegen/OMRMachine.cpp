@@ -2092,14 +2092,18 @@ TR::RealRegister *OMR::Z::Machine::findBestFreeRegister(TR::Instruction *current
         freeRegister->setState(TR::RealRegister::Free);
     }
 
-    if (preference == 0x12 && freeRegister->getRegisterNumber() == 0x22) {
-        printf("**** HIT THE PROBLEM ****\n");
-    }
+    
 
-    if (freeRegister != NULL)
+    if (freeRegister != NULL) {
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is %R", virtualReg, freeRegister);
-    else
+        if (preference == 0x12 && freeRegister->getRegisterNumber() == 0x22) {
+            printf("**** HIT THE PROBLEM ****\n");
+        }
+    }
+    else {
         self()->cg()->traceRegisterAssignment("BEST FREE REG for %R is NULL (could not find one)", virtualReg);
+        printf("**** NO REGISTER! ****\n");
+    }
 
     return freeRegister;
 }
