@@ -4272,7 +4272,7 @@ void TR_Debug::traceRegisterAssignment(OMR::Logger *log, const char *format, va_
     log->prints("details:                      ");
 
     int32_t j = 0;
-    int32_t length = static_cast<int32_t>(strlen(format)) + 40;
+    int32_t length = static_cast<int32_t>(strlen(format)) + 400;
     char *buffer = (char *)_comp->trMemory()->allocateHeapMemory(length + 1);
     bool sawPercentR = false;
 
