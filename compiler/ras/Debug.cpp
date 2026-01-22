@@ -4391,7 +4391,6 @@ void TR_Debug::traceRegisterAssigned(OMR::Logger *log, TR_RegisterAssignmentFlag
     if (virtReg->isPlaceholderReg() && !_comp->getOption(TR_TraceRA))
         return;
 
-    char buf[30];
     const char *preCoercionSymbol = flags.testAny(TR_PreDependencyCoercion) ? "!" : "";
     const char *postCoercionSymbol = flags.testAny(TR_PostDependencyCoercion) ? "!" : "";
     const char *regSpillSymbol = flags.testAny(TR_RegisterSpilled) ? "$" : "";
@@ -4400,8 +4399,19 @@ void TR_Debug::traceRegisterAssigned(OMR::Logger *log, TR_RegisterAssignmentFlag
     const char *closeParen
         = flags.testAny(TR_ColouringCoercion) ? "}" : (flags.testAny(TR_IndirectCoercion) ? ")" : "");
     const char *equalSign = flags.testAny(TR_ByColouring) ? "#" : (flags.testAny(TR_ByAssociation) ? ":" : "=");
-    sprintf(buf, "%s%s%s%s(%d/%d)%s%s%s%s%s ", preCoercionSymbol, openParen, regReloadSymbol, getName(virtReg),
-        virtReg->getFutureUseCount(), virtReg->getTotalUseCount(), equalSign, regSpillSymbol, getName(realReg),
+    
+    const char *virtRegName = getName(virtReg);
+    const char *realRegName = getName(realReg);
+    
+    // Calculate required buffer size: symbols + names + numbers + formatting chars + null terminator
+    size_t bufSize = strlen(preCoercionSymbol) + strlen(openParen) + strlen(regReloadSymbol)
+                   + strlen(virtRegName) + 20 /* for (futureUse/totalUse) */
+                   + strlen(equalSign) + strlen(regSpillSymbol) + strlen(realRegName)
+                   + strlen(closeParen) + strlen(postCoercionSymbol) + 2; /* space + null */
+    
+    char *buf = (char *)_comp->trMemory()->allocateHeapMemory(bufSize);
+    TR::snprintfNoTrunc(buf, bufSize, "%s%s%s%s(%d/%d)%s%s%s%s%s ", preCoercionSymbol, openParen, regReloadSymbol, virtRegName,
+        virtReg->getFutureUseCount(), virtReg->getTotalUseCount(), equalSign, regSpillSymbol, realRegName,
         closeParen, postCoercionSymbol);
 
     if ((_registerAssignmentTraceCursor += static_cast<int16_t>(strlen(buf))) > 80) {
@@ -4425,9 +4435,16 @@ void TR_Debug::traceRegisterFreed(OMR::Logger *log, TR::Register *virtReg, TR::R
     if (virtReg->isPlaceholderReg() && !_comp->getOption(TR_TraceRA))
         return;
 
-    char buf[30];
-    sprintf(buf, "%s(%d/%d)~%s ", getName(virtReg), virtReg->getFutureUseCount(), virtReg->getTotalUseCount(),
-        getName(realReg));
+    const char *virtRegName = getName(virtReg);
+    const char *realRegName = getName(realReg);
+    
+    // Calculate required buffer size: names + numbers + formatting chars + null terminator
+    size_t bufSize = strlen(virtRegName) + 20 /* for (futureUse/totalUse) */ + 1 /* ~ */
+                   + strlen(realRegName) + 2; /* space + null */
+    
+    char *buf = (char *)_comp->trMemory()->allocateHeapMemory(bufSize);
+    TR::snprintfNoTrunc(buf, bufSize, "%s(%d/%d)~%s ", virtRegName, virtReg->getFutureUseCount(), virtReg->getTotalUseCount(),
+        realRegName);
 
     if ((_registerAssignmentTraceCursor += static_cast<int16_t>(strlen(buf))) > 80) {
         _registerAssignmentTraceCursor = static_cast<int16_t>(strlen(buf));
@@ -4446,8 +4463,13 @@ void TR_Debug::traceRegisterInterference(OMR::Logger *log, TR::Register *virtReg
     if (!_comp->getOption(TR_TraceRA))
         return;
 
-    char buf[40];
-    sprintf(buf, "%s{%d,%d}? ", getName(interferingVirtual), interferingVirtual->getAssociation(), distance);
+    const char *interferingVirtualName = getName(interferingVirtual);
+    
+    // Calculate required buffer size: name + numbers + formatting chars + null terminator
+    size_t bufSize = strlen(interferingVirtualName) + 30; /* for {association,distance}? and space + null */
+    
+    char *buf = (char *)_comp->trMemory()->allocateHeapMemory(bufSize);
+    TR::snprintfNoTrunc(buf, bufSize, "%s{%d,%d}? ", interferingVirtualName, interferingVirtual->getAssociation(), distance);
 
     if ((_registerAssignmentTraceCursor += static_cast<int16_t>(strlen(buf))) > 80) {
         _registerAssignmentTraceCursor = static_cast<int16_t>(strlen(buf));
@@ -4465,8 +4487,13 @@ void TR_Debug::traceRegisterWeight(OMR::Logger *log, TR::Register *realReg, uint
     if (!_comp->getOption(TR_TraceRA))
         return;
 
-    char buf[30];
-    sprintf(buf, "%s[0x%x]? ", getName(realReg), weight);
+    const char *realRegName = getName(realReg);
+    
+    // Calculate required buffer size: name + hex weight + formatting chars + null terminator
+    size_t bufSize = strlen(realRegName) + 20; /* for [0xHEXVALUE]? and space + null */
+    
+    char *buf = (char *)_comp->trMemory()->allocateHeapMemory(bufSize);
+    TR::snprintfNoTrunc(buf, bufSize, "%s[0x%x]? ", realRegName, weight);
 
     if ((_registerAssignmentTraceCursor += static_cast<int16_t>(strlen(buf))) > 80) {
         _registerAssignmentTraceCursor = static_cast<int16_t>(strlen(buf));
