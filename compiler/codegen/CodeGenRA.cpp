@@ -994,8 +994,8 @@ TR_GlobalRegisterNumber OMR::CodeGenerator::pickRegister(TR::RegisterCandidate *
 
     TR::Compilation *comp = self()->comp();
     OMR::Logger *log = comp->log();
-    bool traceSimulateTreeEvaluation = log != NULL;//self()->traceSimulateTreeEvaluation();
-    bool terseSimulateTreeEvaluation = log != NULL;//self()->terseSimulateTreeEvaluation();
+    bool traceSimulateTreeEvaluation = self()->traceSimulateTreeEvaluation();
+    bool terseSimulateTreeEvaluation = self()->terseSimulateTreeEvaluation();
     bool traceGRA = comp->getOptions()->trace(OMR::tacticalGlobalRegisterAllocator);
 
     if (!isInitialized) {
