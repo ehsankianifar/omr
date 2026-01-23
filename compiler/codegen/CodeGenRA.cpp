@@ -1065,7 +1065,6 @@ TR_GlobalRegisterNumber OMR::CodeGenerator::pickRegister(TR::RegisterCandidate *
                 highRegisterNumber ? "high word of " : "", usesFPR ? "FPR" : (usesVRF ? "VRF" : "GPR"),
                 rc->getSymbolReference()->getReferenceNumber(), self()->getDebug()->getName(rc->getSymbolReference()));
             dumpOptDetails(comp, "            Available regs: ");
-            self()->getDebug()->print(log, &availableRegisters);
             if (true) {
                 for (int32_t i = 0; i < TR_numSpillKinds; i++) {
                     TR_SpillKinds sk = (TR_SpillKinds)i;
