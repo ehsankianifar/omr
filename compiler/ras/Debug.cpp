@@ -2303,8 +2303,16 @@ const char *TR_Debug::getName(TR::Register *reg, TR_RegisterSizes size)
             return getName((TR::RealRegister *)reg, size);
 #endif
 #if defined(TR_TARGET_S390)
-        if (_comp->target().cpu.isZ())
-            return getName(toRealRegister(reg), size);
+        if (_comp->target().cpu.isZ()) {
+            // For Z platform, VRF0-15 overlap with FPR0-15. We need to pass the correct size
+            // to distinguish between them. If the virtual register is of kind TR_VRF, we must
+            // pass TR_VectorReg128 to ensure the real register name is printed as VRF, not FPR.
+            TR_RegisterSizes regSize = size;
+            if (reg->getKind() == TR_VRF && size != TR_VectorReg128) {
+                regSize = TR_VectorReg128;
+            }
+            return getName(toRealRegister(reg), regSize);
+        }
 #endif
 #if defined(TR_TARGET_ARM64)
         if (_comp->target().cpu.isARM64())
