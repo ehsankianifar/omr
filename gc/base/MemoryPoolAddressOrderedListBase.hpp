@@ -80,8 +80,7 @@ protected:
 
 		MM_HeapLinkedFreeHeader *freeEntry = MM_HeapLinkedFreeHeader::fillWithHoles(addrBase, freeEntrySize, compressed);
 		if ((NULL != freeEntry) && (freeEntrySize >= _minimumFreeEntrySize)) {
-			/* NEW LAYOUT: freeEntry points to END (addrTop), not beginning (addrBase) */
-			Assert_MM_true(freeEntry == addrTop);
+			Assert_MM_true(freeEntry == addrBase);
 			Assert_MM_true((NULL == next) || (freeEntry < next));
 			freeEntry->setNext(next, compressed);
 			return true;

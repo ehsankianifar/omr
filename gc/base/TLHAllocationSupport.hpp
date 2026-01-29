@@ -53,46 +53,8 @@ struct OMR_VMThread;
 class MM_HeapLinkedFreeHeaderTLH : public MM_HeapLinkedFreeHeader
 {
 public:
-	/* NOTE: With the new layout where pointer points to END, we cannot have fields after the base class.
-	 * Instead, these fields are stored BEFORE the base class header in memory.
-	 * Memory layout: [...free memory...][_memoryPool][_memorySubSpace][beginning_ptr][next_ptr]
-	 *                                                                                    ^
-	 *                                                                                    Pointer here
-	 *
-	 * Access these using helper methods below, NOT as direct fields.
-	 */
-	
-	/**
-	 * Get the memory subspace pointer stored before the header.
-	 */
-	MMINLINE MM_MemorySubSpace* getMemorySubSpace() {
-		return *(MM_MemorySubSpace**)((uintptr_t)this - 3 * sizeof(uintptr_t));
-	}
-	
-	/**
-	 * Set the memory subspace pointer.
-	 */
-	MMINLINE void setMemorySubSpace(MM_MemorySubSpace* subSpace) {
-		*(MM_MemorySubSpace**)((uintptr_t)this - 3 * sizeof(uintptr_t)) = subSpace;
-	}
-	
-	/**
-	 * Get the memory pool pointer stored before the header.
-	 */
-	MMINLINE MM_MemoryPool* getMemoryPool() {
-		return *(MM_MemoryPool**)((uintptr_t)this - 4 * sizeof(uintptr_t));
-	}
-	
-	/**
-	 * Set the memory pool pointer.
-	 */
-	MMINLINE void setMemoryPool(MM_MemoryPool* pool) {
-		*(MM_MemoryPool**)((uintptr_t)this - 4 * sizeof(uintptr_t)) = pool;
-	}
-	
-	/* Keep dummy fields for DDR compatibility */
-	MM_MemorySubSpace *_memorySubSpace; /**< UNUSED - kept for DDR compatibility only */
-	MM_MemoryPool *_memoryPool; /**< UNUSED - kept for DDR compatibility only */
+	MM_MemorySubSpace *_memorySubSpace; /**< The memory subspace of a cached TLH. */
+	MM_MemoryPool *_memoryPool; /**< The memory pool of a cached TLH. */
 };
 
 /**

@@ -151,18 +151,14 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	/* Try to cache the current TLH */
 	if ((NULL != getRealTop()) && (getRemainingSize() >= tlhMinimumSize)) {
 		/* Cache the current TLH because it is bigger than the minimum size */
-		/* NEW LAYOUT: The header is at the END (getRealTop()), not at getAlloc() */
-		MM_HeapLinkedFreeHeaderTLH* newCache = (MM_HeapLinkedFreeHeaderTLH*)getRealTop();
+		MM_HeapLinkedFreeHeaderTLH* newCache = (MM_HeapLinkedFreeHeaderTLH*)getAlloc();
 
 #if defined(OMR_VALGRIND_MEMCHECK)
-		valgrindMakeMemUndefined((uintptr_t)getAlloc(), getRemainingSize());
+		valgrindMakeMemUndefined((uintptr_t)newCache, sizeof(MM_HeapLinkedFreeHeaderTLH));			
 #endif /* defined(OMR_VALGRIND_MEMCHECK) */
-		/* Write the beginning pointer at (end - 2*sizeof(uintptr_t)) */
-		*((uintptr_t*)((uintptr_t)newCache - 2 * sizeof(uintptr_t))) = (uintptr_t)getAlloc();
-		/* Write memorySubSpace at (end - 3*sizeof(uintptr_t)) */
-		newCache->setMemorySubSpace(getMemorySubSpace());
-		/* Write memoryPool at (end - 4*sizeof(uintptr_t)) */
-		newCache->setMemoryPool(getMemoryPool());
+	    newCache->setSize(getRemainingSize());
+		newCache->_memoryPool = getMemoryPool();
+		newCache->_memorySubSpace = getMemorySubSpace();
 		newCache->setNext(_abandonedList, compressed);
 		_abandonedList = newCache;
 		++_abandonedListSize;
@@ -178,9 +174,8 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	/* Try allocating a TLH */
 	if ((NULL != _abandonedList) && (sizeInBytesRequired <= tlhMinimumSize)) {
 		/* Try to get a cached TLH */
-		/* NEW LAYOUT: _abandonedList points to END, get the base and use accessor methods */
-		setupTLH(env, _abandonedList->getBase(), (void *)_abandonedList,
-				_abandonedList->getMemorySubSpace(), _abandonedList->getMemoryPool());
+		setupTLH(env, (void *)_abandonedList, (void *)_abandonedList->afterEnd(),
+				_abandonedList->_memorySubSpace, _abandonedList->_memoryPool);
 		_abandonedList = (MM_HeapLinkedFreeHeaderTLH *)_abandonedList->getNext(compressed);
 		--_abandonedListSize;
 
