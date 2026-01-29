@@ -454,6 +454,9 @@ MM_MemoryPoolAddressOrderedList::internalAllocate(MM_EnvironmentBase *env, uintp
 	uintptr_t walkCount;
 	J9ModronAllocateHint *allocateHintUsed;
 	void *addrBase;
+	void *recycleBase;
+	void *currentBase;
+	uintptr_t currentSize;
 	uintptr_t largestFreeEntry = 0;
 	
 	if (lockingRequired) {
@@ -532,19 +535,29 @@ retry:
 	_allocBytes += sizeInBytesRequired;
 	_allocSearchCount += walkCount;
 
-	tryInitializeMemory(currentFreeEntry, sizeInBytesRequired, false);
+	/* NEW LAYOUT: currentFreeEntry points to END of chunk
+	 * We allocate from the BEGINNING and update the beginning pointer
+	 */
+	currentBase = currentFreeEntry->getBase();
+	currentSize = currentFreeEntry->getSize();
+	
+	tryInitializeMemory((MM_HeapLinkedFreeHeader*)currentBase, sizeInBytesRequired, false);
 
 	/* Determine what to do with the recycled portion of the free entry */
-	recycleEntrySize = currentFreeEntry->getSize() - sizeInBytesRequired;
+	recycleEntrySize = currentSize - sizeInBytesRequired;
 
-	addrBase = (void *)currentFreeEntry;
-	recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
+	/* Allocate from the beginning */
+	addrBase = currentBase;
+	
+	/* The recycled entry starts where allocation ends, and the header is still at the same END location (currentFreeEntry) */
+	recycleBase = (void *)((uint8_t *)currentBase + sizeInBytesRequired);
+	recycleEntry = currentFreeEntry;  /* Header stays at the same end location */
 
 	//ehsan: internalAllocate wait until initialized to base + header size (16) if overlap with initialization!
 	//isInitialized((uintptr_t)addrBase, (uintptr_t)addrBase + sizeInBytesRequired, false);
 	//ehsanLog("InternalAllocate %p to 0x%lx", addrBase, (uintptr_t)addrBase + sizeInBytesRequired);
 
-	if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, currentFreeEntry->getNext(compressed))) {
+	if (recycleHeapChunk(recycleBase, currentFreeEntry, previousFreeEntry, currentFreeEntry->getNext(compressed))) {
 		updatePrevCardUnalignedFreeEntry(currentFreeEntry->getNext(compressed), recycleEntry);
 		updateHint(currentFreeEntry, recycleEntry);
 		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
@@ -709,16 +722,17 @@ retry:
 
 	_allocCount += 1;
 	_allocBytes += consumedSize;
-	/* Collector TLH allocate stats for Survivor are not interesting (_largeObjectCollectorAllocateStats is null for Survivor) */	
+	/* Collector TLH allocate stats for Survivor are not interesting (_largeObjectCollectorAllocateStats is null for Survivor) */
 	if (NULL != largeObjectAllocateStats) {
 		largeObjectAllocateStats->incrementTlhAllocSizeClassStats(consumedSize);
 	}
 
-	addrBase = (void *)freeEntry;
+	/* NEW LAYOUT: freeEntry points to END of chunk, get the base */
+	addrBase = freeEntry->getBase();
 	addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 	entryNext = freeEntry->getNext(compressed);
 
-	tryInitializeMemory(freeEntry, consumedSize, true);
+	tryInitializeMemory((MM_HeapLinkedFreeHeader*)addrBase, consumedSize, true);
 
 	//ehsan: internalAllocateTLH wait if partially initialized
 	//wait until initialized to base + header size (16) if overlap with initialization!
@@ -726,10 +740,11 @@ retry:
 	//ehsanLog("InternalAllocateTLH %p to %p", addrBase, addrTop);
 
 	if (recycleEntrySize > 0) {
-		topOfRecycledChunk = ((uint8_t *)addrTop) + recycleEntrySize;
+		/* NEW LAYOUT: recycled chunk keeps the same end pointer (freeEntry), just update the beginning */
+		topOfRecycledChunk = (void *)freeEntry;  /* End stays at the same location */
 		/* Recycle the remaining entry back onto the free list (if applicable) */
 		if (recycleHeapChunk(addrTop, topOfRecycledChunk, NULL, entryNext)) {
-			updatePrevCardUnalignedFreeEntry(entryNext, (MM_HeapLinkedFreeHeader *)addrTop);
+			updatePrevCardUnalignedFreeEntry(entryNext, (MM_HeapLinkedFreeHeader *)topOfRecycledChunk);
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
 			//trigger the cleaning if not in progress!
 			//tryInitialize((uintptr_t)addrTop, (uintptr_t)topOfRecycledChunk);
@@ -1465,11 +1480,12 @@ MM_MemoryPoolAddressOrderedList::recycleHeapChunk(
 	Assert_MM_true((current == NULL) || (((uintptr_t)current + current->getSize()) >= (uintptr_t)addrBase));
 #endif
 	if (internalRecycleHeapChunk(addrBase, addrTop, nextFreeEntry)) {
+		/* NEW LAYOUT: The free entry header is at addrTop (end), not addrBase (beginning) */
 		if (previousFreeEntry) {
-			Assert_MM_true(previousFreeEntry < addrBase);
-			previousFreeEntry->setNext((MM_HeapLinkedFreeHeader*)addrBase, compressed);
+			Assert_MM_true(previousFreeEntry < addrTop);
+			previousFreeEntry->setNext((MM_HeapLinkedFreeHeader*)addrTop, compressed);
 		} else {
-			_heapFreeList = (MM_HeapLinkedFreeHeader *)addrBase;
+			_heapFreeList = (MM_HeapLinkedFreeHeader *)addrTop;
 		}
 
 		return true;

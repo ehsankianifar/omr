@@ -40,8 +40,19 @@ class MM_HeapLinkedFreeHeader
 {
 public:
 protected:
-	uintptr_t _next; /**< tagged pointer to the next free list entry, or a tagged pointer to NULL */
-	uintptr_t _size; /**< size in bytes (including header) of the free list entry */
+	/* NOTE: New layout - pointer to object points to END of chunk
+	 * Memory layout: [...free memory...][_beginPtr][_next]
+	 * The object pointer points to the location after _next
+	 *
+	 * IMPORTANT: The _next and _size fields below are UNUSED in the new layout.
+	 * They are kept only for compatibility with DDR and debugging tools.
+	 * The actual data is stored at (this - 2*sizeof(uintptr_t)) for beginning pointer
+	 * and (this - sizeof(uintptr_t)) for next pointer.
+	 *
+	 * DO NOT ACCESS THESE FIELDS DIRECTLY - use the accessor methods instead.
+	 */
+	uintptr_t _next;  /**< UNUSED - kept for DDR compatibility only */
+	uintptr_t _size;  /**< UNUSED - kept for DDR compatibility only */
 
 private:
 
@@ -53,6 +64,28 @@ private:
 	 */
 private:
 	/**
+	 * Get pointer to where the beginning pointer is stored.
+	 *
+	 * @return pointer to the location storing the beginning pointer
+	 */
+	MMINLINE uintptr_t*
+	getBeginPtrLocation()
+	{
+		return (uintptr_t*)((uintptr_t)this - 2 * sizeof(uintptr_t));
+	}
+
+	/**
+	 * Get pointer to where the next pointer is stored.
+	 *
+	 * @return pointer to the location storing the next pointer
+	 */
+	MMINLINE uintptr_t*
+	getNextPtrLocation()
+	{
+		return (uintptr_t*)((uintptr_t)this - sizeof(uintptr_t));
+	}
+
+	/**
 	 * Fetch the value encoded in the next pointer.
 	 * Since the encoding may be different depending on the header shape
 	 * other functions in this class should use this helper rather than
@@ -63,7 +96,7 @@ private:
 	MMINLINE uintptr_t
 	getNextImpl(bool compressed)
 	{
-		uintptr_t result = _next;
+		uintptr_t result = *getNextPtrLocation();
 #if defined(OMR_GC_COMPRESSED_POINTERS) && !defined(OMR_ENV_LITTLE_ENDIAN)
 		if (compressed) {
 			/* On big endian compressed, the pointer has been stored
@@ -94,14 +127,39 @@ private:
 			value = (value >> 32) | (value << 32);
 		}
 #endif /* defined(OMR_GC_COMPRESSED_POINTERS) && !defined(OMR_ENV_LITTLE_ENDIAN) */
-		_next = value;
+		*getNextPtrLocation() = value;
 	}
 
 public:
 	/**
+	 * Get pointer to the beginning of the free chunk.
+	 * The object pointer points to the end, so we subtract 2 pointer sizes.
+	 *
+	 * @return pointer to the beginning of the chunk
+	 */
+	MMINLINE void*
+	getBase()
+	{
+		return (void*)((uintptr_t)this - 2 * sizeof(uintptr_t));
+	}
+
+	/**
 	 * Convert a pointer to a dead object to a HeapLinkedFreeHeader.
+	 * NOTE: In the new layout, the pointer should point to the END of the chunk.
+	 * If you have a pointer to the beginning, you need to add the size first.
 	 */
 	static MMINLINE MM_HeapLinkedFreeHeader *getHeapLinkedFreeHeader(void* pointer) { return (MM_HeapLinkedFreeHeader*)pointer; }
+	
+	/**
+	 * Create a HeapLinkedFreeHeader from a base address and size.
+	 * This is the preferred way to create a header when you know the base and size.
+	 * @param[in] addrBase the beginning of the free chunk
+	 * @param[in] size the size of the free chunk
+	 * @return pointer to the header (at the end of the chunk)
+	 */
+	static MMINLINE MM_HeapLinkedFreeHeader *getHeapLinkedFreeHeaderFromBase(void* addrBase, uintptr_t size) {
+		return (MM_HeapLinkedFreeHeader*)((uintptr_t)addrBase + size);
+	}
 
 	/**
 	 * Get the next free header in the linked list of free entries
@@ -126,60 +184,78 @@ public:
 
 	/**
 	 * Get the size in bytes of this free entry. The size is measured
-	 * from the beginning of the header.
+	 * from the beginning of the chunk to the end (where this pointer points).
 	 * @return size in bytes
 	 */
 	MMINLINE uintptr_t getSize()
 	{
-		return _size;
+		void* beginPtr = (void*)(*getBeginPtrLocation());
+		return (uintptr_t)this - (uintptr_t)beginPtr;
 	}
 
 	/**
-	 * Set the size in bytes of this free entry.
+	 * Set the size in bytes of this free entry by updating the beginning pointer.
+	 * The end pointer (this) stays fixed.
 	 */
 	MMINLINE void setSize(uintptr_t size)
 	{
-		_size = size;
+		*getBeginPtrLocation() = (uintptr_t)this - size;
 	}
 
 	/**
 	 * Expand this entry by the specified number of bytes.
+	 * This moves the beginning pointer backward (to lower address).
 	 */
 	MMINLINE void expandSize(uintptr_t increment)
 	{
-		_size += increment;
+		*getBeginPtrLocation() -= increment;
 	}
 
 	/**
 	 * Return the address immediately following the free section
-	 * described by this header
+	 * described by this header. Since the pointer already points to the end,
+	 * this is just the current pointer location.
 	 * @return address following this free section
 	 */
-	MMINLINE MM_HeapLinkedFreeHeader* afterEnd() { return (MM_HeapLinkedFreeHeader*)( ((uintptr_t)this) + getSize() ); }
+	MMINLINE MM_HeapLinkedFreeHeader* afterEnd() { return this; }
 
 	/**
 	 * Mark the specified region of memory as walkable dark matter
 	 * @param[in] addrBase the address where the hole begins
 	 * @param[in] freeEntrySize the number of bytes to be consumed (must be a multiple of sizeof(uintptr_t))
-	 * @return The header written or null if the space was too small and was filled with single-slot holes
+	 * @return The header written (pointer to END of chunk) or null if the space was too small and was filled with single-slot holes
 	 */
 	MMINLINE static MM_HeapLinkedFreeHeader*
 	fillWithHoles(void* addrBase, uintptr_t freeEntrySize, bool compressed)
 	{
 		MM_HeapLinkedFreeHeader *freeEntry = NULL;
-		if (freeEntrySize < sizeof(MM_HeapLinkedFreeHeader)) {
+		if (freeEntrySize < 2 * sizeof(uintptr_t)) {
+			/* Too small for the new header format, fill with single-slot holes */
 			/* Assert_MM_true(0 == (freeEntrySize % sizeof(uintptr_t))); */
+			void* currentAddr = addrBase;
 			while (0 != freeEntrySize) {
-				((MM_HeapLinkedFreeHeader*)addrBase)->setNextImpl(J9_GC_SINGLE_SLOT_HOLE, compressed);
-				addrBase = (void*)(((uintptr_t*)addrBase) + 1);
+				/* For single slot holes, we still write at the beginning */
+				*((uintptr_t*)currentAddr) = J9_GC_SINGLE_SLOT_HOLE;
+				currentAddr = (void*)(((uintptr_t*)currentAddr) + 1);
 				freeEntrySize -= sizeof(uintptr_t);
 			}
 		} else {
-			/* this is too big to use single slot holes so generate an AOL-style hole (note that this is not correct for other allocation schemes) */
-			freeEntry = (MM_HeapLinkedFreeHeader *)addrBase;
+			/* this is too big to use single slot holes so generate an AOL-style hole */
+			/* The free entry pointer points to the END of the chunk */
+			void* addrEnd = (void*)((uintptr_t)addrBase + freeEntrySize);
+			freeEntry = (MM_HeapLinkedFreeHeader *)addrEnd;
 
-			freeEntry->setNext(NULL, compressed);
-			freeEntry->setSize(freeEntrySize);
+			/* Write the beginning pointer at (end - 2*sizeof(uintptr_t)) */
+			*((uintptr_t*)((uintptr_t)addrEnd - 2 * sizeof(uintptr_t))) = (uintptr_t)addrBase;
+			
+			/* Write the next pointer at (end - sizeof(uintptr_t)) */
+			uintptr_t nextValue = (uintptr_t)NULL | ((uintptr_t)J9_GC_MULTI_SLOT_HOLE);
+#if defined(OMR_GC_COMPRESSED_POINTERS) && !defined(OMR_ENV_LITTLE_ENDIAN)
+			if (compressed) {
+				nextValue = (nextValue >> 32) | (nextValue << 32);
+			}
+#endif
+			*((uintptr_t*)((uintptr_t)addrEnd - sizeof(uintptr_t))) = nextValue;
 		}
 		return freeEntry;
 	}
@@ -187,8 +263,8 @@ public:
 	/**
 	 * Links a new free header in at the head of the free list.
 	 * @param[in/out] currentHead Input pointer is set to nextHead on return
-	 * @param[in] nextHead Pointer to the new head of list, with nextHead->_next pointing to previous value of currentHead on return
-	 * @note Caller must set nextHead->_size
+	 * @param[in] nextHead Pointer to the new head of list (pointing to END of chunk), with nextHead->_next pointing to previous value of currentHead on return
+	 * @note Caller must have already set up the beginning pointer for nextHead
 	 */
 	MMINLINE static void
 	linkInAsHead(volatile uintptr_t *currentHead, MM_HeapLinkedFreeHeader* nextHead, bool compressed)
