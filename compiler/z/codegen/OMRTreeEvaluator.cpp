@@ -1339,8 +1339,9 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     // To get the index of the last 'true' when scanning from the left, compute:
     //   lastIndex = (lastLaneIndex) - (indexFromRight).
     // If no lane is true, resultRegister is -1 (expected behavior).
+    int lastLaneIndex = 15 / getVectorElementSize(node->getFirstChild());
     generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
-    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, (15 / getVectorElementSize(sourceNode)));
+    generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, lastLaneIndex);
     node->setRegister(resultRegister);
     return resultRegister;
 }
