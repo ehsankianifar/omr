@@ -4446,6 +4446,9 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::l2m:
         case TR::mstoreiToArray:
         case TR::mloadiFromArray:
+        case TR::mTrueCount:
+        case TR::mFirstTrue:
+        case TR::mLastTrue:
             return true;
         default:
             return false;
