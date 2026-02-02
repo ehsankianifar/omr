@@ -1255,7 +1255,7 @@ TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::Cod
         generateS390MemoryReference(1, cg), 3);
     // Each "true" lane has all bits set, so the popcount reflects the lane bit-width.
     // Divide by the lane size to get the count of true lanes.
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType()));
+    int32_t shiftAmount = getVectorElementSizeMask(sourceNode) + 3;
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
