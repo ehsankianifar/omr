@@ -1232,44 +1232,33 @@ static TR::Register *vIntReductionAddHelper(TR::Node *node, TR::CodeGenerator *c
 
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::Register *resultRegister
-        = vIntReductionAddHelper(node, cg);
-    // Since the true mask value is -1, the result of reduction add is negative!
-    generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
-    return node->getRegister();
-
-    /* Second approach
     TR::Node *sourceNode = node->getFirstChild();
     TR_ASSERT_FATAL_WITH_NODE(node, sourceNode->getDataType().getVectorLength() == TR::VectorLength128,
         "A 128-bit vector was expected as the child node but %s was provided!", sourceNode->getDataType().toString());
     bool supportGprPopcnt = cg->comp()->target().cpu.isAtLeast(OMR_PROCESSOR_S390_Z15);
-    // TODO: reduction add may be faster than this!
-    TR::Register *maskRegister = cg->gprClobberEvaluate(sourceNode);
-    if (sourceNode->getDataType().getVectorElementType() == TR::Int8) {
-        // We can not pack 8bit lanes so shifting it 4 bits to have the same effect as packing 8 bit data!
-        generateVRSaInstruction(cg, TR::InstOpCode::VESRL, node, maskRegister, maskRegister,
-            generateS390MemoryReference(4, cg), 1);
-    }
-    // Reduce the size of the mask to 64 bits so it fits inside a GPR.
-    generateVRRcInstruction(cg, TR::InstOpCode::VPK, node, maskRegister, maskRegister, maskRegister, 1);
+
+    TR::Register *sourceReg = cg->gprClobberEvaluate(sourceNode);
+    // Compute per-lane population counts for both the low and high halves of the vector in sourceReg.
+    generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, sourceReg, sourceReg, 0, 0, 3);
+    // We need to add the popcounts from the upper and lower halves. VSUMQ adds the rightmost element
+    // from a third vector operand. By shifting right to clear the rightmost element, we can safely
+    // reuse sourceReg as that third operand without affecting the sum we care about.
+    generateVRSaInstruction(cg, TR::InstOpCode::VESL, node, sourceReg, sourceReg,
+                generateS390MemoryReference(32, cg), 3);
+    // Now reduce 32-bit lanes: lanes 1 and 3 are zero after the shift, so using sourceReg as the
+    // third operand for VSUMQ is safe and produces the desired sum of the remaining lanes.
+    generateVRRcInstruction(cg, TR::InstOpCode::VSUMQ, node, sourceReg, sourceReg, sourceReg, 0, 0, 2);
+    // Move the scalar sum from the vector register into a GPR.
     TR::Register *resultRegister = cg->allocateRegister();
-    if (!supportGprPopcnt) {
-        generateVRRaInstruction(cg, TR::InstOpCode::VPOPCT, node, maskRegister, maskRegister, 0, 0, 3);
-    }
-    // Move the mask to a GPR.
-    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(0,
-    cg), 3); if(supportGprPopcnt) {
-        // Count the number of bits set to 1
-        generateRRFInstruction(cg, TR::InstOpCode::POPCNT, node, resultRegister, resultRegister,
-    static_cast<uint8_t>(0x8), static_cast<uint8_t>(0x0), NULL);
-    }
-    // Shift right to account for the number of bits set to 1 in each lane.
-    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType())) + 2;
+    generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, resultRegister, maskRegister, generateS390MemoryReference(1,
+    cg), 3);
+    // Each "true" lane has all bits set, so the popcount reflects the lane bit-width.
+    // Divide by the lane size to get the count of true lanes.
+    int32_t shiftAmount = trailingZeroes(TR::DataType::getSize(sourceNode->getDataType().getVectorElementType()));
     generateRSInstruction(cg, TR::InstOpCode::SRLG, node, resultRegister, resultRegister, shiftAmount);
     cg->decReferenceCount(sourceNode);
     node->setRegister(resultRegister);
     return resultRegister;
-    */
 }
 
 static TR::Register *firstTrueHelper(TR::Node *node, TR::CodeGenerator *cg, TR::Register *maskRegister)
