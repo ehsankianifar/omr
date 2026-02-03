@@ -70,12 +70,11 @@ private:
 	uintptr_t _parallelGCAlignmentSize; /**<  Fixed Size used to determine boundaries for alignment. */
 protected:
 public:
-
+	
 /*
  * Function members
  */	
 private:
-
 	void addHint(MM_HeapLinkedFreeHeader *freeEntry, uintptr_t lookupSize);
 	J9ModronAllocateHint *findHint(uintptr_t lookupSize);
 	void removeHint(MM_HeapLinkedFreeHeader *freeEntry);
