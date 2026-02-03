@@ -94,9 +94,9 @@ MM_MemoryPoolAddressOrderedList::newInstance(MM_EnvironmentBase *env, uintptr_t 
 }
 
 void printFreeEntries(const char* message, MM_HeapLinkedFreeHeader *freeEntry, bool compress){
-	ehsanLog("Free entry list after %s\n", message);
+	ehsanLog("Free entry list after %s", message);
 	while(freeEntry){
-		ehsanLog("    from %p to 0x%lx size 0x%lx\n", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize());
+		ehsanLog("    from %p to 0x%lx size 0x%lx", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize());
 		freeEntry = freeEntry->getNext(compress);
 	}
 }
