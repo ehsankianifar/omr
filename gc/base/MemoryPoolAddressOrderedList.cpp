@@ -51,7 +51,7 @@
 #include "HeapRegionManager.hpp"
 #include "HeapRegionDescriptor.hpp"
 
-#include "MemoryInitializer.cpp"
+//#include "MemoryInitializer.cpp"
 
 /**
  * Called when SATB barrier is enabled/disabled. We use this to set the TLH alignment base.
@@ -93,6 +93,14 @@ MM_MemoryPoolAddressOrderedList::newInstance(MM_EnvironmentBase *env, uintptr_t 
 	return memoryPool;
 }
 
+void printFreeEntries(const char* message, MM_HeapLinkedFreeHeader *freeEntry, bool compress){
+	ehsanLog("Free entry list after %s\n", message);
+	while(freeEntry){
+		ehsanLog("    from %p to 0x%lx size 0x%lx\n", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize());
+		freeEntry = freeEntry->getNext(compress);
+	}
+}
+
 bool
 MM_MemoryPoolAddressOrderedList::initialize(MM_EnvironmentBase *env)
 {
@@ -102,7 +110,7 @@ MM_MemoryPoolAddressOrderedList::initialize(MM_EnvironmentBase *env)
 
 	//Init things
 	ehsan_logger_init();
-	resetInitializer();
+	//resetInitializer();
 
 	Assert_MM_true(_minimumFreeEntrySize >= CARD_SIZE);
 
@@ -448,14 +456,14 @@ MMINLINE void *
 MM_MemoryPoolAddressOrderedList::internalAllocate(MM_EnvironmentBase *env, uintptr_t sizeInBytesRequired, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats)
 {
 	bool const compressed = compressObjectReferences();
-	MM_HeapLinkedFreeHeader  *currentFreeEntry, *previousFreeEntry, *recycleEntry;
+	MM_HeapLinkedFreeHeader  *currentFreeEntry, *previousFreeEntry, *recycleEntry, *nextFreeEntry;
 	uintptr_t candidateHintSize;
 	uintptr_t recycleEntrySize;
 	uintptr_t walkCount;
 	J9ModronAllocateHint *allocateHintUsed;
 	void *addrBase;
 	uintptr_t largestFreeEntry = 0;
-	
+	const bool allocateFromTop = getenv("TR_allocateFromTop") != NULL;
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
@@ -531,37 +539,67 @@ retry:
 	_allocCount += 1;
 	_allocBytes += sizeInBytesRequired;
 	_allocSearchCount += walkCount;
+	nextFreeEntry = currentFreeEntry->getNext(compressed);
 
-	tryInitializeMemory(currentFreeEntry, sizeInBytesRequired, false);
+    // EHSAN trying to initialize this heap.
+	//tryInitializeMemory(currentFreeEntry, sizeInBytesRequired, false);
 
 	/* Determine what to do with the recycled portion of the free entry */
 	recycleEntrySize = currentFreeEntry->getSize() - sizeInBytesRequired;
 
-	addrBase = (void *)currentFreeEntry;
-	recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
-
-	//ehsan: internalAllocate wait until initialized to base + header size (16) if overlap with initialization!
-	//isInitialized((uintptr_t)addrBase, (uintptr_t)addrBase + sizeInBytesRequired, false);
-	//ehsanLog("InternalAllocate %p to 0x%lx", addrBase, (uintptr_t)addrBase + sizeInBytesRequired);
-
-	if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, currentFreeEntry->getNext(compressed))) {
-		updatePrevCardUnalignedFreeEntry(currentFreeEntry->getNext(compressed), recycleEntry);
-		updateHint(currentFreeEntry, recycleEntry);
-		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-		//trigger the cleaning if not in progress!
-		//tryInitialize((uintptr_t)recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
-		//ehsanLog("Recycle2 %p to 0x%lx", recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
+	if (allocateFromTop) {
+		//allocating from top so the base is (currentFreeEntry + currentFreeEntry->getSize() - sizeInBytesRequired)
+		addrBase = (void *)((uintptr_t)currentFreeEntry + recycleEntrySize);
+		ehsanLog("InternalAllocate FromTop from %p to 0x%lx recycled Size 0x%lx", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize);
+		// If recycled size is less than header, fill it with holes.
+		// It it is less than minimum, set previous to next.
+		if (recycleEntrySize < _minimumFreeEntrySize) {
+			// It is usless now. Lets fill it with holes and abondan it.
+			MM_HeapLinkedFreeHeader::fillWithHoles((void *)currentFreeEntry, recycleEntrySize, compressed);
+			if (previousFreeEntry) {
+				Assert_MM_true((NULL == nextFreeEntry) || (previousFreeEntry < nextFreeEntry));
+				previousFreeEntry->setNext(nextFreeEntry, compressed);
+			} else {
+				_heapFreeList = nextFreeEntry;
+			}
+			_freeMemorySize -= recycleEntrySize;
+			_freeEntryCount -= 1;
+			_allocDiscardedBytes += recycleEntrySize;
+			removeHint(currentFreeEntry);
+		} else {
+			// Probably unnecessary
+			//updatePrevCardUnalignedFreeEntry(nextFreeEntry, currentFreeEntry);
+			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+			currentFreeEntry->setSize(recycleEntrySize);
+		}
 	} else {
-		updatePrevCardUnalignedFreeEntry(currentFreeEntry->getNext(compressed), previousFreeEntry);
-		/* Adjust the free memory size and count */
-		_freeMemorySize -= recycleEntrySize;
-		_freeEntryCount -= 1;
+		addrBase = (void *)currentFreeEntry;
+		recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
 
-		/* Update discard bytes if necessary */
-		_allocDiscardedBytes += recycleEntrySize;
+		//ehsan: internalAllocate wait until initialized to base + header size (16) if overlap with initialization!
+		//isInitialized((uintptr_t)addrBase, (uintptr_t)addrBase + sizeInBytesRequired, false);
+		ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize);
+		
 
-		/* Removed from the free list - Kill the hint if necessary */
-		removeHint(currentFreeEntry);
+		if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
+			updatePrevCardUnalignedFreeEntry(nextFreeEntry, recycleEntry);
+			updateHint(currentFreeEntry, recycleEntry);
+			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+			//trigger the cleaning if not in progress!
+			//tryInitialize((uintptr_t)recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
+			//ehsanLog("Recycle2 %p to 0x%lx", recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
+		} else {
+			updatePrevCardUnalignedFreeEntry(nextFreeEntry, previousFreeEntry);
+			/* Adjust the free memory size and count */
+			_freeMemorySize -= recycleEntrySize;
+			_freeEntryCount -= 1;
+
+			/* Update discard bytes if necessary */
+			_allocDiscardedBytes += recycleEntrySize;
+
+			/* Removed from the free list - Kill the hint if necessary */
+			removeHint(currentFreeEntry);
+		}
 	}
 	
 	/* Collector object allocate stats for Survivor are not interesting (_largeObjectCollectorAllocateStats is null for Survivor) */	
@@ -657,7 +695,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 	MM_HeapLinkedFreeHeader *freeEntry = NULL;
 	uintptr_t consumedSize = 0;
 	uintptr_t recycleEntrySize = 0;
-	
+		const bool allocateTLHFromTop = getenv("TR_allocateFromTop") != NULL;
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
@@ -714,41 +752,54 @@ retry:
 		largeObjectAllocateStats->incrementTlhAllocSizeClassStats(consumedSize);
 	}
 
-	addrBase = (void *)freeEntry;
-	addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 	entryNext = freeEntry->getNext(compressed);
 
-	tryInitializeMemory(freeEntry, consumedSize, true);
-
-	//ehsan: internalAllocateTLH wait if partially initialized
-	//wait until initialized to base + header size (16) if overlap with initialization!
-	//isInitialized((uintptr_t)addrBase, (uintptr_t)addrTop, true);
-	//ehsanLog("InternalAllocateTLH %p to %p", addrBase, addrTop);
-
-	if (recycleEntrySize > 0) {
-		topOfRecycledChunk = ((uint8_t *)addrTop) + recycleEntrySize;
-		/* Recycle the remaining entry back onto the free list (if applicable) */
-		if (recycleHeapChunk(addrTop, topOfRecycledChunk, NULL, entryNext)) {
-			updatePrevCardUnalignedFreeEntry(entryNext, (MM_HeapLinkedFreeHeader *)addrTop);
-			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-			//trigger the cleaning if not in progress!
-			//tryInitialize((uintptr_t)addrTop, (uintptr_t)topOfRecycledChunk);
-			//ehsanLog("Recycle %p to %p", addrTop, topOfRecycledChunk);
-
-		} else {
-			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
-			/* Adjust the free memory size and count */
-			_freeMemorySize -= recycleEntrySize;
+	if (allocateTLHFromTop) {
+		addrBase = (void *)((uintptr_t)freeEntry + recycleEntrySize);
+		addrTop = (void *)((uintptr_t)freeEntry + freeEntrySize);
+		ehsanLog("InternalAllocateTLH fromTop %p to %p recycled 0x%lx", addrBase, addrTop, recycleEntrySize);
+		// If the lefover is small we just add it to the TLH so we either have a valid chunk or zero leftover.
+		if (recycleEntrySize == 0) {
+			_heapFreeList = entryNext;
 			_freeEntryCount -= 1;
-
-			_allocDiscardedBytes += recycleEntrySize;
+			//removeHint(freeEntry);
+		} else {
+			// Probably unnecessary
+			//updatePrevCardUnalignedFreeEntry(nextFreeEntry, currentFreeEntry);
+			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+			freeEntry->setSize(recycleEntrySize);
 		}
 	} else {
-		updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
-		/* If not recycling just update the free list pointer to the next free entry */
-		_heapFreeList = entryNext;
-		/* also update the freeEntryCount as recycleHeapChunk would do this */
-		_freeEntryCount -= 1;
+		addrBase = (void *)freeEntry;
+		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
+
+		ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx", addrBase, addrTop, recycleEntrySize);
+
+		if (recycleEntrySize > 0) {
+			topOfRecycledChunk = ((uint8_t *)addrTop) + recycleEntrySize;
+			/* Recycle the remaining entry back onto the free list (if applicable) */
+			if (recycleHeapChunk(addrTop, topOfRecycledChunk, NULL, entryNext)) {
+				updatePrevCardUnalignedFreeEntry(entryNext, (MM_HeapLinkedFreeHeader *)addrTop);
+				_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+				//trigger the cleaning if not in progress!
+				//tryInitialize((uintptr_t)addrTop, (uintptr_t)topOfRecycledChunk);
+				//ehsanLog("Recycle %p to %p", addrTop, topOfRecycledChunk);
+
+			} else {
+				updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
+				/* Adjust the free memory size and count */
+				_freeMemorySize -= recycleEntrySize;
+				_freeEntryCount -= 1;
+
+				_allocDiscardedBytes += recycleEntrySize;
+			}
+		} else {
+			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
+			/* If not recycling just update the free list pointer to the next free entry */
+			_heapFreeList = entryNext;
+			/* also update the freeEntryCount as recycleHeapChunk would do this */
+			_freeEntryCount -= 1;
+		}
 	}
 
 	if (lockingRequired) {
@@ -845,9 +896,10 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 void
 MM_MemoryPoolAddressOrderedList::reset(Cause cause)
 {
+	ehsanLog("Reset List\n");
 	/* Call superclass first .. */
 	MM_MemoryPool::reset(cause);
-	checkedResetInitializer();
+	//checkedResetInitializer();
 	clearHints();
 	_heapFreeList = (MM_HeapLinkedFreeHeader *)NULL;
 	_scannableBytes = 0;
@@ -870,7 +922,7 @@ MM_HeapLinkedFreeHeader *
 MM_MemoryPoolAddressOrderedList::rebuildFreeListInRegion(MM_EnvironmentBase *env, MM_HeapRegionDescriptor *region, MM_HeapLinkedFreeHeader *previousFreeEntry)
 {
 	MM_HeapLinkedFreeHeader *newFreeEntry = NULL;
-	checkedResetInitializer();
+	//checkedResetInitializer();
 	void* rangeBase = region->getLowAddress();
 	void* rangeTop = region->getHighAddress();
 	uintptr_t rangeSize = region->getSize();
@@ -904,6 +956,7 @@ MM_MemoryPoolAddressOrderedList::rebuildFreeListInRegion(MM_EnvironmentBase *env
 	}
 	unlock(env);
 	releaseResetLock(env);
+	printFreeEntries("Rebuild free list in range", _heapFreeList, compressObjectReferences());
 
 	return newFreeEntry;
 }
@@ -974,6 +1027,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(previousFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
+			printFreeEntries("expand with range 1", _heapFreeList, compressObjectReferences());
 			return ;
 		}
 		/* Check if the range can be fused to the head of the next free entry */
@@ -999,6 +1053,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(newFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
+			printFreeEntries("expand with range 2", _heapFreeList, compressObjectReferences());
 			return ;
 		}
 	}
@@ -1033,6 +1088,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	}
 
 	assume0(isMemoryPoolValid(env, true));
+	printFreeEntries("expand with range 3", _heapFreeList, compressObjectReferences());
 }
 
 /**
@@ -1124,7 +1180,7 @@ MM_MemoryPoolAddressOrderedList::contractWithRange(MM_EnvironmentBase *env, uint
 	_freeEntryCount -= contractCount;
 
 	assume0(isMemoryPoolValid(env, true));
-	
+	printFreeEntries("contractwith range", _heapFreeList, compressObjectReferences());
 	return lowAddress;
 }
 
@@ -1206,6 +1262,7 @@ MM_MemoryPoolAddressOrderedList::addFreeEntries(MM_EnvironmentBase *env,
 	/* Adjust the free memory data */
 	_freeMemorySize += freeListMemorySize;
 	_freeEntryCount += localFreeListMemoryCount;
+	printFreeEntries("add free entries", _heapFreeList, compressObjectReferences());
 }
 
 #if defined(OMR_GC_LARGE_OBJECT_AREA)
@@ -1386,6 +1443,7 @@ MM_MemoryPoolAddressOrderedList::removeFreeEntriesWithinRange(MM_EnvironmentBase
 	/* Adjust the free memory data */
 	_freeMemorySize -= removeSize;
 	_freeEntryCount -= removeCount;
+	printFreeEntries("remove free entries within range", _heapFreeList, compressObjectReferences());
 
 	return true;
 }
@@ -1632,6 +1690,7 @@ MM_MemoryPoolAddressOrderedList::moveHeap(MM_EnvironmentBase *env, void *srcBase
 		previousFreeEntry = currentFreeEntry;
 		currentFreeEntry = currentFreeEntry->getNext(compressed);
 	}
+	printFreeEntries("move heap", _heapFreeList, compressObjectReferences());
 }
 
 
