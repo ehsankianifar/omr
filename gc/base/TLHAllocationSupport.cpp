@@ -49,6 +49,7 @@
 #include "MemorySubSpace.hpp"
 #include "ObjectAllocationInterface.hpp"
 #include "ObjectHeapIteratorAddressOrderedList.hpp"
+#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -174,7 +175,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	/* Try allocating a TLH */
 	if ((NULL != _abandonedList) && (sizeInBytesRequired <= tlhMinimumSize)) {
 
-		memorySpace->ehsanLogging("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
+		ehsanLog("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
 		/* Try to get a cached TLH */
 		setupTLH(env, (void *)_abandonedList, (void *)_abandonedList->afterEnd(),
 				_abandonedList->_memorySubSpace, _abandonedList->_memoryPool);
@@ -207,11 +208,11 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 			/* allocation contexts currently aren't supported with generational schemes */
 			Assert_MM_true(memorySpace->getTenureMemorySubSpace() == memorySpace->getDefaultMemorySubSpace());
 			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure));
-			memorySpace->ehsanLogging("Allocated using ac: %p", ac);
+			ehsanLog("Allocated using ac: %p", ac);
 		} else {
 			MM_MemorySubSpace *subspace = memorySpace->getDefaultMemorySubSpace();
 			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure));
-			memorySpace->ehsanLogging("Allocated using space %p subspace", memorySpace, subspace);
+			ehsanLog("Allocated using space %p subspace %p", memorySpace, subspace);
 		}
 
 		if (didRefresh) {

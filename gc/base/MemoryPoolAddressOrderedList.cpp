@@ -689,8 +689,8 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 {
     int needed = snprintf(
         NULL, 0,
-        "subspace  %p default %p defaultFromparent %p",
-        _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace(), _memorySubSpace->getParent()->getDefaultMemorySubSpace());
+        "subspace  %p default %p defaultFromparent %p parent %p",
+        _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace(), _memorySubSpace->getParent()->getDefaultMemorySubSpace(), _memorySubSpace->getParent());
 
 		/*
     if (needed < 0) {
