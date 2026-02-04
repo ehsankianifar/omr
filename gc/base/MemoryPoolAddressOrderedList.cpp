@@ -93,11 +93,12 @@ MM_MemoryPoolAddressOrderedList::newInstance(MM_EnvironmentBase *env, uintptr_t 
 	return memoryPool;
 }
 
-void printFreeEntries(const char* message, MM_HeapLinkedFreeHeader *freeEntry, bool compress, MM_MemorySubSpace *subspace){
-	ehsanLog("Free entry list after %s subspace %p default %p", message, subspace, subspace->getDefaultMemorySubSpace());
+void MM_MemoryPoolAddressOrderedList::printFreeEntries(const char* message){
+	ehsanLog("Free entry list after %s. %s", message, ehsanGetInfo());
+	MM_HeapLinkedFreeHeader *freeEntry = _heapFreeList;
 	while(freeEntry){
 		ehsanLog("    from %p to 0x%lx size 0x%lx", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize());
-		freeEntry = freeEntry->getNext(compress);
+		freeEntry = freeEntry->getNext(compressObjectReferences());
 	}
 }
 
@@ -550,7 +551,7 @@ retry:
 	if (allocateFromTop) {
 		//allocating from top so the base is (currentFreeEntry + currentFreeEntry->getSize() - sizeInBytesRequired)
 		addrBase = (void *)((uintptr_t)currentFreeEntry + recycleEntrySize);
-		ehsanLog("InternalAllocate FromTop from %p to 0x%lx recycled Size 0x%lx subspace %p default %p", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace());
+		ehsanLog("InternalAllocate FromTop from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
 		// If recycled size is less than header, fill it with holes.
 		// It it is less than minimum, set previous to next.
 		if (recycleEntrySize < _minimumFreeEntrySize) {
@@ -578,7 +579,7 @@ retry:
 
 		//ehsan: internalAllocate wait until initialized to base + header size (16) if overlap with initialization!
 		//isInitialized((uintptr_t)addrBase, (uintptr_t)addrBase + sizeInBytesRequired, false);
-		ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx subspace %p default %p", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace());
+		ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
 		
 
 		if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
@@ -684,6 +685,30 @@ MM_MemoryPoolAddressOrderedList::alignTLHForParallelGC(MM_EnvironmentBase *env, 
 
 	return true;
 }
+char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
+{
+    int needed = snprintf(
+        NULL, 0,
+        "subspace  %p default %p defaultFromparent %p",
+        _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace(), _memorySubSpace->getParent()->getDefaultMemorySubSpace());
+
+    if (needed < 0) {
+        return "ERROR"; // formatting error
+    }
+
+    // Allocate a string of the needed size + 1 for '\0'
+    char *result = malloc(needed + 1);
+    if (!result) {
+        return "NULL"; // allocation failure
+    }
+
+    // Write final formatted string into the allocated buffer
+    snprintf(result, needed + 1,
+		"subspace  %p default %p defaultFromparent %p",
+		_memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace(), _memorySubSpace->getParent()->getDefaultMemorySubSpace());
+
+    return result;
+}
 
 MMINLINE bool
 MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats)
@@ -757,7 +782,7 @@ retry:
 	if (allocateTLHFromTop) {
 		addrBase = (void *)((uintptr_t)freeEntry + recycleEntrySize);
 		addrTop = (void *)((uintptr_t)freeEntry + freeEntrySize);
-		ehsanLog("InternalAllocateTLH fromTop %p to %p recycled 0x%lx subspace %p default %p", addrBase, addrTop, recycleEntrySize, _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace());
+		ehsanLog("InternalAllocateTLH fromTop %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
 		// If the lefover is small we just add it to the TLH so we either have a valid chunk or zero leftover.
 		if (recycleEntrySize == 0) {
 			_heapFreeList = entryNext;
@@ -773,7 +798,7 @@ retry:
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 
-		ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx subspace %p default %p", addrBase, addrTop, recycleEntrySize, _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace());
+		ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
 
 		if (recycleEntrySize > 0) {
 			topOfRecycledChunk = ((uint8_t *)addrTop) + recycleEntrySize;
@@ -896,7 +921,7 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 void
 MM_MemoryPoolAddressOrderedList::reset(Cause cause)
 {
-	ehsanLog("Reset List  subspace %p", _memorySubSpace);
+	ehsanLog("Reset List  subspace %s", ehsanGetInfo());
 	/* Call superclass first .. */
 	MM_MemoryPool::reset(cause);
 	//checkedResetInitializer();
@@ -956,7 +981,7 @@ MM_MemoryPoolAddressOrderedList::rebuildFreeListInRegion(MM_EnvironmentBase *env
 	}
 	unlock(env);
 	releaseResetLock(env);
-	printFreeEntries("Rebuild free list in range", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+	printFreeEntries("Rebuild free list in range");
 
 	return newFreeEntry;
 }
@@ -1027,7 +1052,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(previousFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
-			printFreeEntries("expand with range 1", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+			printFreeEntries("expand with range 1");
 			return ;
 		}
 		/* Check if the range can be fused to the head of the next free entry */
@@ -1053,7 +1078,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(newFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
-			printFreeEntries("expand with range 2", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+			printFreeEntries("expand with range 2");
 			return ;
 		}
 	}
@@ -1088,7 +1113,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	}
 
 	assume0(isMemoryPoolValid(env, true));
-	printFreeEntries("expand with range 3", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+	printFreeEntries("expand with range 3");
 }
 
 /**
@@ -1180,7 +1205,7 @@ MM_MemoryPoolAddressOrderedList::contractWithRange(MM_EnvironmentBase *env, uint
 	_freeEntryCount -= contractCount;
 
 	assume0(isMemoryPoolValid(env, true));
-	printFreeEntries("contractwith range", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+	printFreeEntries("contractwith range");
 	return lowAddress;
 }
 
@@ -1262,7 +1287,7 @@ MM_MemoryPoolAddressOrderedList::addFreeEntries(MM_EnvironmentBase *env,
 	/* Adjust the free memory data */
 	_freeMemorySize += freeListMemorySize;
 	_freeEntryCount += localFreeListMemoryCount;
-	printFreeEntries("add free entries", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+	printFreeEntries("add free entries");
 }
 
 #if defined(OMR_GC_LARGE_OBJECT_AREA)
@@ -1443,7 +1468,7 @@ MM_MemoryPoolAddressOrderedList::removeFreeEntriesWithinRange(MM_EnvironmentBase
 	/* Adjust the free memory data */
 	_freeMemorySize -= removeSize;
 	_freeEntryCount -= removeCount;
-	printFreeEntries("remove free entries within range", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+	printFreeEntries("remove free entries within range");
 
 	return true;
 }
@@ -1690,7 +1715,7 @@ MM_MemoryPoolAddressOrderedList::moveHeap(MM_EnvironmentBase *env, void *srcBase
 		previousFreeEntry = currentFreeEntry;
 		currentFreeEntry = currentFreeEntry->getNext(compressed);
 	}
-	printFreeEntries("move heap", _heapFreeList, compressObjectReferences(), _memorySubSpace);
+	printFreeEntries("move heap");
 }
 
 

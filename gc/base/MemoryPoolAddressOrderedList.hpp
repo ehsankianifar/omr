@@ -83,6 +83,8 @@ private:
 	void updateHintsBeyondEntry(MM_HeapLinkedFreeHeader *freeEntry);
 	void *internalAllocate(MM_EnvironmentBase *env, uintptr_t sizeInBytesRequired, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats);
 	bool internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats);
+	char *ehsanGetInfo();
+	void printFreeEntries(char *message);
 	uintptr_t getConsumedSizeForTLH(MM_EnvironmentBase *env, MM_HeapLinkedFreeHeader *freeEntry, uintptr_t maximumSizeInBytesRequired);
 
 	/* Align a TLH to meet boundary restrictions. Certain phases of some GCs may require that TLHs not span heap chunks for parallel processing. */
