@@ -49,7 +49,6 @@
 #include "MemorySubSpace.hpp"
 #include "ObjectAllocationInterface.hpp"
 #include "ObjectHeapIteratorAddressOrderedList.hpp"
-#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -170,6 +169,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		clear(env);
 	}
 
+	MM_MemorySpace *memorySpace = _objectAllocationInterface->getOwningEnv()->getMemorySpace();
 	bool didRefresh = false;
 	/* Try allocating a TLH */
 	if ((NULL != _abandonedList) && (sizeInBytesRequired <= tlhMinimumSize)) {
@@ -196,22 +196,21 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		stats->_tlhDiscardedBytes -= getSize();
 
 		didRefresh = true;
-		ehsanLog("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
+		memorySpace->ehsanLogging("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
 	} else {
 		/* Try allocating a fresh TLH */
 		MM_AllocationContext *ac = env->getAllocationContext();
-		MM_MemorySpace *memorySpace = _objectAllocationInterface->getOwningEnv()->getMemorySpace();
 
 		if (NULL != ac) {
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
 			/* allocation contexts currently aren't supported with generational schemes */
 			Assert_MM_true(memorySpace->getTenureMemorySubSpace() == memorySpace->getDefaultMemorySubSpace());
 			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure));
-			ehsanLog("Allocated using ac: %p", ac);
+			memorySpace->ehsanLogging("Allocated using ac: %p", ac);
 		} else {
 			MM_MemorySubSpace *subspace = memorySpace->getDefaultMemorySubSpace();
 			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure));
-			ehsanLog("Allocated using space %p subspace", memorySpace, subspace);
+			memorySpace->ehsanLogging("Allocated using space %p subspace", memorySpace, subspace);
 		}
 
 		if (didRefresh) {

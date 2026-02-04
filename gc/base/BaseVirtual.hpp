@@ -59,6 +59,8 @@ public:
 	 * Get Base Virtual Type Id
 	 */
 	const char* getBaseVirtualTypeId() { return _typeId; }
+	// Having a method in base for logging.
+	void ehsanLogging(const char *fmt, ...);
 };
 
 #endif /* BASEVIRTUAL_HPP_ */

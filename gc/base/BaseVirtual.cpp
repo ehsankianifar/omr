@@ -31,3 +31,10 @@
  * delete implementation will be missing (e.g. needed by stack allocation)
  */
 void MM_BaseVirtual::emptyMethod() { /* No implementation */ }
+
+void ehsanLogging(const char *fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    ehsanLog(args, fmt);
+    va_end(args);
+}

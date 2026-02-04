@@ -11,6 +11,7 @@ extern pthread_mutex_t log_mutex;
 
 void ehsan_logger_init(void);
 void ehsanLog(const char *fmt, ...);
+void ehsanLog(va_list args, const char *fmt);
 void ehsanLogNoNewLine(const char *fmt, ...);
 void ehsan_logger_shutdown(void);
 
