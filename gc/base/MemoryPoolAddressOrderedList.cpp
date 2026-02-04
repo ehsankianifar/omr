@@ -692,6 +692,7 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
         "subspace  %p default %p defaultFromparent %p",
         _memorySubSpace, _memorySubSpace->getDefaultMemorySubSpace(), _memorySubSpace->getParent()->getDefaultMemorySubSpace());
 
+		/*
     if (needed < 0) {
         return "ERROR"; // formatting error
     }
@@ -701,7 +702,7 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
     if (!result) {
         return "NULL"; // allocation failure
     }
-
+		*/
     // Write final formatted string into the allocated buffer
     snprintf(result, needed + 1,
 		"subspace  %p default %p defaultFromparent %p",
