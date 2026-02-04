@@ -21,6 +21,7 @@
  *******************************************************************************/
 
 #include "BaseVirtual.hpp"
+#include "ehsanLogger.c"
 	
 /*
  * Required to force MM_BaseVirtual to have a vtable, otherwise

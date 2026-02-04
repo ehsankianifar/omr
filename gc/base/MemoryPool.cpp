@@ -25,7 +25,6 @@
 #include "AtomicOperations.hpp"
 #include "Debug.hpp"
 #include "GCExtensionsBase.hpp"
-#include "ehsanLogger.c"
 
 #include "ModronAssertions.h"
 

@@ -39,6 +39,7 @@
 #include "ParallelDispatcher.hpp"
 #include "PhysicalSubArena.hpp"
 #include "Scavenger.hpp"
+#include "ehsanLogger.h"
 
 #if defined(OMR_VALGRIND_MEMCHECK)
 #include "MemcheckWrapper.hpp"
@@ -464,6 +465,7 @@ MM_MemorySubSpaceSemiSpace::tearDown(MM_EnvironmentBase *env)
 void
 MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 {
+	ehsanLog("flip before survive %p alloc %p", _memorySubSpaceSurvivor, _memorySubSpaceAllocate);
 	switch (step) {
 	case set_evacuate:
 		Trc_MM_MSSSS_flip_step(env->getLanguageVMThread(), "set_evacuate");
@@ -589,6 +591,7 @@ MM_MemorySubSpaceSemiSpace::flip(MM_EnvironmentBase *env, Flip_step step)
 	default:
 		Assert_MM_unreachable();
 	}
+	ehsanLog("flip after survive %p alloc %p", _memorySubSpaceSurvivor, _memorySubSpaceAllocate);
 }
 
 void
