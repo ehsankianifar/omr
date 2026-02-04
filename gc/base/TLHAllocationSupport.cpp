@@ -173,6 +173,8 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	bool didRefresh = false;
 	/* Try allocating a TLH */
 	if ((NULL != _abandonedList) && (sizeInBytesRequired <= tlhMinimumSize)) {
+
+		memorySpace->ehsanLogging("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
 		/* Try to get a cached TLH */
 		setupTLH(env, (void *)_abandonedList, (void *)_abandonedList->afterEnd(),
 				_abandonedList->_memorySubSpace, _abandonedList->_memoryPool);
@@ -196,7 +198,6 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		stats->_tlhDiscardedBytes -= getSize();
 
 		didRefresh = true;
-		memorySpace->ehsanLogging("Used abandoned list %p size 0x%lx", _abandonedList, _abandonedList->getSize());
 	} else {
 		/* Try allocating a fresh TLH */
 		MM_AllocationContext *ac = env->getAllocationContext();
