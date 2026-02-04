@@ -697,8 +697,10 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
         return "ERROR"; // formatting error
     }
 
+		*/
     // Allocate a string of the needed size + 1 for '\0'
     char *result = (char *)malloc(needed + 1);
+		/*
     if (!result) {
         return "NULL"; // allocation failure
     }
