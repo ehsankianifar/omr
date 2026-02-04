@@ -312,6 +312,7 @@ MM_TLHAllocationSupport::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescrip
 	Assert_MM_true(_reservedBytesForGC == 0);
 
 	if(memoryPool->allocateTLH(env, allocDescription, getRefreshSize(), addrBase, addrTop)) {
+		ehsanLog("Allocate TLH ! base: %p top %p", addrBase, addrTop);
 		setupTLH(env, addrBase, addrTop, memorySubSpace, memoryPool);
 		allocDescription->setMemorySubSpace(memorySubSpace);
 		allocDescription->setObjectFlags(memorySubSpace->getObjectFlags());
