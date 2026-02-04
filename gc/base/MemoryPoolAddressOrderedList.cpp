@@ -881,6 +881,7 @@ MM_MemoryPoolAddressOrderedList::allocateTLH(MM_EnvironmentBase *env, MM_Allocat
 											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
 {
 	void *tlhBase = NULL;
+	ehsanLog(">>allocateTLH");
 
 	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, true, _largeObjectAllocateStats)) {
 		tlhBase = addrBase;
@@ -906,6 +907,7 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 													 MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired,
 													 void * &addrBase, void * &addrTop, bool lockingRequired)
 {
+	ehsanLog(">>collectorAllocateTLH");
 	void *base = NULL;
 	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, lockingRequired, _largeObjectCollectorAllocateStats)) {
 		base = addrBase;
