@@ -32,9 +32,3 @@
  */
 void MM_BaseVirtual::emptyMethod() { /* No implementation */ }
 
-void MM_BaseVirtual::ehsanLogging(const char *fmt, ...){
-    va_list args;
-    va_start(args, fmt);
-    ehsanLog(args, fmt);
-    va_end(args);
-}

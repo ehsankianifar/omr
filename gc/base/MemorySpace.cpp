@@ -30,6 +30,7 @@
 #include "Heap.hpp"
 #include "MemorySubSpace.hpp"
 #include "PhysicalArena.hpp"
+#include "ehsanLogger.h"
 
 /**
  * Create a new MemorySpace
@@ -58,6 +59,14 @@ MM_MemorySpace::kill(MM_EnvironmentBase *env)
 {
 	tearDown(env);
 	env->getForge()->free(this);
+}
+
+
+void MM_MemorySpace::ehsanLogging(const char *fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    ehsanLog(args, fmt);
+    va_end(args);
 }
 
 /**
