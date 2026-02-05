@@ -4446,7 +4446,7 @@ MM_Scavenger::mainThreadGarbageCollect(MM_EnvironmentBase *envBase, MM_AllocateD
 		/* Done doing GC, reset the category back to the old one */
 		omrthread_set_category(env->getOmrVMThread()->_os_thread, 0, J9THREAD_TYPE_SET_GC);
 	}
-
+	_activeSubSpace->notifyHeapIsReady();
 	Trc_MM_Scavenger_mainThreadGarbageCollect_Exit(env->getLanguageVMThread());
 }
 

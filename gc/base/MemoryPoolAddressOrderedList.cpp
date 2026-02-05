@@ -551,7 +551,7 @@ retry:
 	if (allocateFromTop) {
 		//allocating from top so the base is (currentFreeEntry + currentFreeEntry->getSize() - sizeInBytesRequired)
 		addrBase = (void *)((uintptr_t)currentFreeEntry + recycleEntrySize);
-		ehsanLog("InternalAllocate FromTop from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
+		//ehsanLog("InternalAllocate FromTop from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
 		// If recycled size is less than header, fill it with holes.
 		// It it is less than minimum, set previous to next.
 		if (recycleEntrySize < _minimumFreeEntrySize) {
@@ -577,18 +577,13 @@ retry:
 		addrBase = (void *)currentFreeEntry;
 		recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
 
-		//ehsan: internalAllocate wait until initialized to base + header size (16) if overlap with initialization!
-		//isInitialized((uintptr_t)addrBase, (uintptr_t)addrBase + sizeInBytesRequired, false);
-		ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
+		//ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
 		
 
 		if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
 			updatePrevCardUnalignedFreeEntry(nextFreeEntry, recycleEntry);
 			updateHint(currentFreeEntry, recycleEntry);
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-			//trigger the cleaning if not in progress!
-			//tryInitialize((uintptr_t)recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
-			//ehsanLog("Recycle2 %p to 0x%lx", recycleEntry, (uintptr_t)recycleEntry + recycleEntrySize);
 		} else {
 			updatePrevCardUnalignedFreeEntry(nextFreeEntry, previousFreeEntry);
 			/* Adjust the free memory size and count */
@@ -785,7 +780,7 @@ retry:
 	if (allocateTLHFromTop) {
 		addrBase = (void *)((uintptr_t)freeEntry + recycleEntrySize);
 		addrTop = (void *)((uintptr_t)freeEntry + freeEntrySize);
-		ehsanLog("InternalAllocateTLH fromTop %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
+		//ehsanLog("InternalAllocateTLH fromTop %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
 		// If the lefover is small we just add it to the TLH so we either have a valid chunk or zero leftover.
 		if (recycleEntrySize == 0) {
 			_heapFreeList = entryNext;
@@ -801,7 +796,7 @@ retry:
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 
-		ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
+		//ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
 
 		if (recycleEntrySize > 0) {
 			topOfRecycledChunk = ((uint8_t *)addrTop) + recycleEntrySize;
@@ -881,7 +876,7 @@ MM_MemoryPoolAddressOrderedList::allocateTLH(MM_EnvironmentBase *env, MM_Allocat
 											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
 {
 	void *tlhBase = NULL;
-	ehsanLog(">>allocateTLH");
+	//ehsanLog(">>allocateTLH");
 
 	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, true, _largeObjectAllocateStats)) {
 		tlhBase = addrBase;
@@ -907,7 +902,7 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 													 MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired,
 													 void * &addrBase, void * &addrTop, bool lockingRequired)
 {
-	ehsanLog(">>collectorAllocateTLH");
+	//ehsanLog(">>collectorAllocateTLH");
 	void *base = NULL;
 	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, lockingRequired, _largeObjectCollectorAllocateStats)) {
 		base = addrBase;
