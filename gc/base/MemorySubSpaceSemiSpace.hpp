@@ -170,6 +170,7 @@ public:
 	 * Not thread safe - caller has to make sure no other threads are modifying the stats for any of children.
 	 */
 	virtual void mergeLargeObjectAllocateStats(MM_EnvironmentBase *env);
+	void notifyHeapIsReady();
 
 	virtual uintptr_t releaseFreeMemoryPages(MM_EnvironmentBase* env);
 

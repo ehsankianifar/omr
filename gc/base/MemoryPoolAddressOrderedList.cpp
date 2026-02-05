@@ -2063,3 +2063,9 @@ MM_MemoryPoolAddressOrderedList::setSubSpace(MM_MemorySubSpace *memorySubSpace)
 
 	MM_MemoryPool::setSubSpace(memorySubSpace);
 }
+
+void
+MM_MemoryPoolAddressOrderedList::notifyHeapIsReady()
+{
+	printFreeEntries("*** HEAP IS READY ***");
+}

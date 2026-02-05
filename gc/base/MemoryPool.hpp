@@ -173,6 +173,7 @@ public:
  	virtual void mergeFreeEntryAllocateStats() {}
  	virtual void mergeTlhAllocateStats() {}
  	virtual void mergeLargeObjectAllocateStats() {}
+	virtual void notifyHeapIsReady() {}
 	/**
 	 * Average allocation stats.
 	 */

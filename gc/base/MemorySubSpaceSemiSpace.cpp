@@ -1119,5 +1119,11 @@ MM_MemorySubSpaceSemiSpace::releaseFreeMemoryPages(MM_EnvironmentBase* env)
 	return _memorySubSpaceAllocate->releaseFreeMemoryPages(env) + _memorySubSpaceSurvivor->releaseFreeMemoryPages(env);
 }
 
+void
+MM_MemorySubSpaceSemiSpace::notifyHeapIsReady()
+{
+	_memorySubSpaceAllocate->getMemoryPool()->notifyHeapIsReady();
+}
+
 #endif /* OMR_GC_MODRON_SCAVENGER */
 
