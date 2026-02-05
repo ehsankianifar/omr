@@ -192,6 +192,8 @@ public:
 
 	void setParallelGCAlignment(MM_EnvironmentBase *env, bool alignmentEnabled);
 
+	virtual void notifyHeapIsReady();
+
 	/**
 	 * remove a free entry from freelist
 	 */
