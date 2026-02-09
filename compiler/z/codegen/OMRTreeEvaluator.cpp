@@ -14918,6 +14918,17 @@ TR::Register *OMR::Z::TreeEvaluator::inlineVectorBinaryOp(TR::Node *node, TR::Co
         case TR::InstOpCode::VESLV:
         case TR::InstOpCode::VESRAV:
         case TR::InstOpCode::VESRLV:
+            if (isMasked) {
+                // If the shift or rotate operation is masked, we can set the shift/rotate
+                // values to zero on the unmasked lanes. This ensures that the unmasked lanes
+                // in the destination register remain identical to those in the source register.
+                TR::Node *maskChild = node->getThirdChild();
+                generateVRRcInstruction(cg, TR::InstOpCode::VN, node, targetReg, sourceReg2, cg->evaluate(maskChild),
+                    0, 0, 0);
+                cg->decReferenceCount(maskChild);
+                isMasked = FALSE;
+                sourceReg2 = targetReg;
+            }
             breakInst = generateVRRcInstruction(cg, op, node, targetReg, sourceReg1, sourceReg2, mask4);
             break;
         default:
