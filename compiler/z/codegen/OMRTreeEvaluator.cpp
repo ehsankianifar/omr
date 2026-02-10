@@ -1339,7 +1339,7 @@ TR::Register *OMR::Z::TreeEvaluator::mLastTrueEvaluator(TR::Node *node, TR::Code
     // To get the index of the last 'true' when scanning from the left, compute:
     //   lastIndex = (lastLaneIndex) - (indexFromRight).
     // If no lane is true, resultRegister is -1 (expected behavior).
-    int lastLaneIndex = 15 / getVectorElementSize(node->getFirstChild());
+    int lastLaneIndex = 15 / node->getFirstChild()->getVectorOrMaskResultElementSize();
     generateRREInstruction(cg, TR::InstOpCode::LCGR, node, resultRegister, resultRegister);
     generateRIInstruction(cg, TR::InstOpCode::AGHI, node, resultRegister, lastLaneIndex);
     node->setRegister(resultRegister);
@@ -2083,7 +2083,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementSize = getVectorElementSize(node);
+    const uint32_t elementSize = node->getVectorOrMaskResultElementSize();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
     TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
@@ -2130,7 +2130,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandEvaluator(TR::Node *node, TR::CodeGe
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementSize = getVectorElementSize(node);
+    const uint32_t elementSize = node->getVectorOrMaskResultElementSize();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
     TR::Register *sourceReg = cg->evaluate(node->getFirstChild());
@@ -2219,7 +2219,7 @@ TR::Register *OMR::Z::TreeEvaluator::mcompressEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementSize = getVectorElementSize(node);
+    const uint32_t elementSize = node->getVectorOrMaskResultElementSize();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
 
@@ -2260,7 +2260,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbitswapEvaluator(TR::Node *node, TR::CodeG
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementLength = getVectorElementLength(node);
+    const uint32_t elementLength = node->getVectorOrMaskResultElementBitLength();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
@@ -2313,7 +2313,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbyteswapEvaluator(TR::Node *node, TR::Code
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementLength = getVectorElementLength(node);
+    const uint32_t elementLength = node->getVectorOrMaskResultElementBitLength();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
@@ -2323,7 +2323,7 @@ TR::Register *OMR::Z::TreeEvaluator::vbyteswapEvaluator(TR::Node *node, TR::Code
     generateVRIaInstruction(cg, TR::InstOpCode::VREPI, node, scratchReg, 0xff, elementSizeMask);
 
     // Start a loop to compress the vector bit by bit.
-    generateRIInstruction(cg, TR::InstOpCode::LHI, node, loopCountReg, getVectorElementSize(node));
+    generateRIInstruction(cg, TR::InstOpCode::LHI, node, loopCountReg, node->getVectorOrMaskResultElementSize());
     TR::LabelSymbol *loopTopLabel = generateLabelSymbol(cg);
     generateS390LabelInstruction(cg, TR::InstOpCode::label, node, loopTopLabel);
 
@@ -2367,7 +2367,7 @@ TR::Register *OMR::Z::TreeEvaluator::vcompressbitsEvaluator(TR::Node *node, TR::
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementLength = getVectorElementLength(node);
+    const uint32_t elementLength = node->getVectorOrMaskResultElementBitLength();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
@@ -2431,7 +2431,7 @@ TR::Register *OMR::Z::TreeEvaluator::vexpandbitsEvaluator(TR::Node *node, TR::Co
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
         "Only 128-bit vectors are supported %s", node->getDataType().toString());
     const uint8_t elementSizeMask = getVectorElementSizeMask(node);
-    const uint32_t elementLength = getVectorElementLength(node);
+    const uint32_t elementLength = node->getVectorOrMaskResultElementBitLength();
     TR::Register *resultReg = cg->allocateRegister(TR_VRF);
     TR::Register *loopCountReg = cg->allocateRegister();
     TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
@@ -15859,50 +15859,6 @@ TR::Register *OMR::Z::TreeEvaluator::arraycmpSIMDHelper(TR::Node *node, TR::Code
     return NULL;
 }
 
-int32_t getVectorElementSize(TR::Node *node)
-{
-    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
-        "Only 128-bit vectors are supported %s", node->getDataType().toString());
-
-    switch (node->getDataType().getVectorElementType()) {
-        case TR::Int8:
-            return 1;
-        case TR::Int16:
-            return 2;
-        case TR::Int32:
-        case TR::Float:
-            return 4;
-        case TR::Int64:
-        case TR::Double:
-            return 8;
-        default:
-            TR_ASSERT(false, "Unknown vector node type %s for element size\n", node->getDataType().toString());
-            return 0;
-    }
-}
-
-int32_t getVectorElementLength(TR::Node *node)
-{
-    TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
-        "Only 128-bit vectors are supported %s", node->getDataType().toString());
-
-    switch (node->getDataType().getVectorElementType()) {
-        case TR::Int8:
-            return 8;
-        case TR::Int16:
-            return 16;
-        case TR::Int32:
-        case TR::Float:
-            return 32;
-        case TR::Int64:
-        case TR::Double:
-            return 64;
-        default:
-            TR_ASSERT(false, "Unknown vector node type %s for element size\n", node->getDataType().toString());
-            return 0;
-    }
-}
-
 int32_t getVectorElementSizeMask(TR::Node *node)
 {
     TR_ASSERT_FATAL_WITH_NODE(node, node->getDataType().getVectorLength() == TR::VectorLength128,
@@ -16276,7 +16232,7 @@ TR::Register *OMR::Z::TreeEvaluator::vDivOrRemHelper(TR::Node *node, TR::CodeGen
         else
             divOp = isUnsigned ? TR::InstOpCode::DLR : TR::InstOpCode::DR;
 
-        for (int i = 0; i < (16 / getVectorElementSize(node)); i++) {
+        for (int i = 0; i < (16 / node->getVectorOrMaskResultElementSize()); i++) {
             // Load into GPR from VR element
             // TODO: need to signextend for signed division.
             generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, is64Bit ? dividendGPRLow : dividendGPRHigh,
@@ -16812,7 +16768,7 @@ static TR::Register *integralMinMaxReductionHelper(TR::Node *node, TR::CodeGener
         cg->decReferenceCount(maskChild);
     }
 
-    for (int i = 8; i >= getVectorElementSize(firstChild); i >> 1) {
+    for (int i = 8; i >= firstChild->getVectorOrMaskResultElementSize(); i >> 1) {
         // Iteratively split the data in half, load the second half into the scratch register, and apply the
         // operation with the first half until the desired element size is reached.
         generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, i, 0);
@@ -16826,7 +16782,7 @@ static TR::Register *integralMinMaxReductionHelper(TR::Node *node, TR::CodeGener
 
     // The value is left‑aligned in a 64‑bit GPR. If the lane width is smaller than 64 bits, arithmetic shift right
     // to obtain the correct sign‑extended result.
-    int laneLength = getVectorElementLength(firstChild);
+    int laneLength = firstChild->getVectorOrMaskResultElementBitLength();
     if (laneLength < 64)
         generateRSInstruction(cg, TR::InstOpCode::SRAG, node, resultReg, resultReg, 64 - laneLength);
 
@@ -16887,7 +16843,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
             cg->decReferenceCount(maskChild);
         }
 
-        for (int laneSize = getVectorElementSize(firstChild); laneSize < 8; laneSize << 1) {
+        for (int laneSize = firstChild->getVectorOrMaskResultElementSize(); laneSize < 8; laneSize << 1) {
             // Move odd-indexed elements from the source register into the even-indexed positions of the scratch
             // register.
             generateVRIdInstruction(cg, TR::InstOpCode::VSLDB, node, scratchReg, sourceReg, sourceReg, laneSize, 0);
@@ -16978,7 +16934,7 @@ static TR::Register *logicalReductionHelper(TR::Node *node, TR::CodeGenerator *c
         3);
     generateVRScInstruction(cg, TR::InstOpCode::VLGV, node, scratchReg, sourceReg, generateS390MemoryReference(1, cg),
         3);
-    int laneLength = getVectorElementLength(firstChild);
+    int laneLength = firstChild->getVectorOrMaskResultElementBitLength();
     for (int dataLength = 64; dataLength >= laneLength; dataLength /= 2) {
         if (dataLength < 64) {
             // Iteratively split the data in half, load the second half into the scratch register, and apply the
