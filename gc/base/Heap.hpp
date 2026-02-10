@@ -80,6 +80,9 @@ public:
 	MMINLINE MM_MemorySpace *getDefaultMemorySpace() { return _defaultMemorySpace; }
 	MMINLINE void setDefaultMemorySpace(MM_MemorySpace *memorySpace) {
 		_defaultMemorySpace = memorySpace;
+		if (_defaultMemorySpace){
+			_defaultMemorySpace->getDefaultMemorySubSpace()->getMemoryPool()->notifySetDefaultSpace();
+		}
 	}
 	MMINLINE MM_MemorySpace *getMemorySpaceList() { return _memorySpaceList; }
 	MMINLINE MM_HeapRegionManager *getHeapRegionManager() { return _heapRegionManager; }

@@ -432,7 +432,6 @@ MM_MemorySpace::inflate(MM_EnvironmentBase *env)
 		result = mm_memorysubspace->inflate(env);
 		mm_memorysubspace = mm_memorysubspace->getNext();
 	}
-	((MM_MemorySubSpaceSemiSpace *)(env->_cycleState->_activeSubSpace))->notifyHeapIsReady();
 
 	return result;
 }

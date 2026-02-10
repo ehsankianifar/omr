@@ -174,6 +174,7 @@ public:
  	virtual void mergeTlhAllocateStats() {}
  	virtual void mergeLargeObjectAllocateStats() {}
 	virtual void notifyHeapIsReady() {}
+	virtual void notifySetDefaultSpace() {}
 	/**
 	 * Average allocation stats.
 	 */

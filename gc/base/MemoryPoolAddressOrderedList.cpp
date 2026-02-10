@@ -2064,3 +2064,9 @@ MM_MemoryPoolAddressOrderedList::notifyHeapIsReady()
 {
 	printFreeEntries("*** HEAP IS READY ***");
 }
+
+void
+MM_MemoryPoolAddressOrderedList::notifySetDefaultSpace()
+{
+	printFreeEntries("*** Default Space is set ***");
+}
