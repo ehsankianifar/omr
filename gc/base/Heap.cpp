@@ -32,6 +32,7 @@
 #include "HeapRegionManager.hpp"
 #include "HeapStats.hpp"
 #include "MemorySpace.hpp"
+#include "MemoryPoolAddressOrderedList.hpp"
 #include "ModronAssertions.h"
 
 #include "mmhook_common.h"
