@@ -2060,13 +2060,27 @@ MM_MemoryPoolAddressOrderedList::setSubSpace(MM_MemorySubSpace *memorySubSpace)
 }
 
 void
+MM_MemoryPoolAddressOrderedList::superBatchClear()
+{
+	const bool superClean = getenv("TR_superBatchClear") != NULL;
+	MM_HeapLinkedFreeHeader *freeEntry = _heapFreeList;
+	while(freeEntry){
+		ehsanLog("    from %p to 0x%lx size 0x%lx clear: %d", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize(), superClean);
+		if (superClean) {
+			OMRZeroMemory((void *)freeEntry + sizeof(MM_HeapLinkedFreeHeader), freeEntry->getSize() - sizeof(MM_HeapLinkedFreeHeader));
+		}
+		freeEntry = freeEntry->getNext(compressObjectReferences());
+	}
+}
+
+void
 MM_MemoryPoolAddressOrderedList::notifyHeapIsReady()
 {
-	printFreeEntries("*** HEAP IS READY ***");
+	ehsanLog("*** HEAP IS READY ***");
 }
 
 void
 MM_MemoryPoolAddressOrderedList::notifySetDefaultSpace()
 {
-	printFreeEntries("*** Default Space is set ***");
+	ehsanLog("*** Default Space is set ***");
 }

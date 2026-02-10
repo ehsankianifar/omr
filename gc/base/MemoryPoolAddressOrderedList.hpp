@@ -194,6 +194,7 @@ public:
 
 	virtual void notifyHeapIsReady();
 	virtual void notifySetDefaultSpace();
+	void superBatchClear();
 
 	/**
 	 * remove a free entry from freelist

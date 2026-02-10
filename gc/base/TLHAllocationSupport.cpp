@@ -219,9 +219,15 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
 			if (_zeroTLH) {
 				if (0 != extensions->batchClearTLH) {
-					void *base = getBase();
-					void *top = getTop();
-					OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
+					const bool noSuperClean = getenv("TR_superBatchClear") == NULL;
+					const bool allocateFromBottom = getenv("TR_allocateFromTop") == NULL;
+					if (noSuperClean) {
+						void *base = getBase();
+						void *top = getTop();
+						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
+					} else if (allocateFromBottom) {
+						memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeader));
+					}
 				}
 			}
 #endif /* defined(OMR_GC_BATCH_CLEAR_TLH) */
