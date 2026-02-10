@@ -478,6 +478,22 @@ public:
     inline bool isVector();
     inline bool isVectorElement();
 
+    /** \brief
+     *     Checks if the type is a Mask type
+     *
+     *  \return
+     *     true if is a Mask type
+     */
+    inline bool isMask();
+
+    /** \brief
+     *     Checks if the type is a vector or Mask type
+     *
+     *  \return
+     *     true if is a vector or Mask type
+     */
+    inline bool isVectorOrMask();
+
     inline bool isBFPorHFP();
     inline bool isDouble();
     inline bool isFloat();
@@ -494,7 +510,7 @@ public:
      *  \return
      *     True if OMR type and false otherwise
      */
-    bool isOMRDataType() { return (_type < TR::NumOMRTypes) || isVector() || isMask(); }
+    bool isOMRDataType() { return (_type < TR::NumOMRTypes) || isVectorOrMask(); }
 
     /** \brief
      *     Returns vector type with integral element type of the same size as the original element type
@@ -561,14 +577,6 @@ public:
      *     Vector type
      */
     TR::DataType scalarToVector(TR::VectorLength length);
-
-    /** \brief
-     *     Checks if the type is a Mask type
-     *
-     *  \return
-     *     true iff is a Mask type
-     */
-    inline bool isMask();
 
     /** \brief
      *     Creates mask type based on element type and vector length
