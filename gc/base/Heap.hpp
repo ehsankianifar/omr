@@ -31,11 +31,12 @@
 #include "GCExtensionsBase.hpp"
 #include "HeapResizeStats.hpp"
 #include "PercolateStats.hpp"
+#include "memorySpace.hpp"
 
 class MM_HeapRegionDescriptor;
 class MM_HeapRegionManager;
 class MM_HeapStats;
-class MM_MemorySpace;
+//class MM_MemorySpace;
 class MM_MemorySubSpace;
 class MM_PhysicalArena;
 
