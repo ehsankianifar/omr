@@ -2077,10 +2077,12 @@ void
 MM_MemoryPoolAddressOrderedList::notifyHeapIsReady()
 {
 	ehsanLog("*** HEAP IS READY ***");
+	superBatchClear();
 }
 
 void
 MM_MemoryPoolAddressOrderedList::notifySetDefaultSpace()
 {
 	ehsanLog("*** Default Space is set ***");
+	superBatchClear();
 }
