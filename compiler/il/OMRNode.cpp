@@ -2807,6 +2807,11 @@ uint32_t OMR::Node::getVectorOrMaskResultElementSize()
     return TR::DataType::getElementSize(getDataType());
 }
 
+uint32_t OMR::Node::getVectorOrMaskResultElementBitLength()
+{
+    return getVectorOrMaskResultElementSize() * 8;
+}
+
 uint32_t OMR::Node::getRoundedSize()
 {
     int32_t roundedSize = (self()->getSize() + 3) & (~3);
