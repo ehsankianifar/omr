@@ -116,7 +116,7 @@ TR::DataTypes OMR::DataType::createVectorType(TR::DataType elementType, TR::Vect
 
 TR::DataType OMR::DataType::getVectorElementType()
 {
-    TR_ASSERT_FATAL(isVectororMask(), "getVectorElementType() is called on non-vector and oon non-mask type\n");
+    TR_ASSERT_FATAL(isVectorOrMask(), "getVectorElementType() is called on non-vector and oon non-mask type\n");
 
     if (isVector())
         return static_cast<TR::DataTypes>((_type - TR::FirstVectorType) % TR::NumVectorElementTypes + 1);
@@ -126,7 +126,7 @@ TR::DataType OMR::DataType::getVectorElementType()
 
 TR::VectorLength OMR::DataType::getVectorLength()
 {
-    TR_ASSERT_FATAL(isVectororMask(), "getVectorLength() is called on non-vector and non-mask type\n");
+    TR_ASSERT_FATAL(isVectorOrMask(), "getVectorLength() is called on non-vector and non-mask type\n");
 
     if (isVector())
         return static_cast<TR::VectorLength>((_type - TR::FirstVectorType) / TR::NumVectorElementTypes + 1);
