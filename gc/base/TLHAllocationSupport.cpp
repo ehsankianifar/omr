@@ -226,7 +226,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 						void *top = getTop();
 						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 					} else if (allocateFromBottom) {
-						memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeader));
+						memset(base, 0, sizeof(MM_HeapLinkedFreeHeader));
 					}
 				}
 			}
