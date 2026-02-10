@@ -560,3 +560,11 @@ MM_Heap::getActualSoftMxSize(MM_EnvironmentBase* env, uintptr_t memoryType)
 	}
 	return actualSoftMX;
 }
+
+	void
+	MM_Heap::setDefaultMemorySpace(MM_MemorySpace *memorySpace) {
+		_defaultMemorySpace = memorySpace;
+		if (_defaultMemorySpace){
+			_defaultMemorySpace->getDefaultMemorySubSpace()->getMemoryPool()->notifySetDefaultSpace();
+		}
+	}

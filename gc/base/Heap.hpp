@@ -31,12 +31,11 @@
 #include "GCExtensionsBase.hpp"
 #include "HeapResizeStats.hpp"
 #include "PercolateStats.hpp"
-#include "memorySpace.hpp"
 
 class MM_HeapRegionDescriptor;
 class MM_HeapRegionManager;
 class MM_HeapStats;
-//class MM_MemorySpace;
+class MM_MemorySpace;
 class MM_MemorySubSpace;
 class MM_PhysicalArena;
 
@@ -79,12 +78,7 @@ public:
 	MMINLINE MM_PercolateStats *getPercolateStats() { return &_percolateStats; }
 
 	MMINLINE MM_MemorySpace *getDefaultMemorySpace() { return _defaultMemorySpace; }
-	MMINLINE void setDefaultMemorySpace(MM_MemorySpace *memorySpace) {
-		_defaultMemorySpace = memorySpace;
-		if (_defaultMemorySpace){
-			_defaultMemorySpace->getDefaultMemorySubSpace()->getMemoryPool()->notifySetDefaultSpace();
-		}
-	}
+	void setDefaultMemorySpace(MM_MemorySpace *memorySpace);
 	MMINLINE MM_MemorySpace *getMemorySpaceList() { return _memorySpaceList; }
 	MMINLINE MM_HeapRegionManager *getHeapRegionManager() { return _heapRegionManager; }
 
