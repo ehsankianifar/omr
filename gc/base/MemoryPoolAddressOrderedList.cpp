@@ -2067,7 +2067,7 @@ MM_MemoryPoolAddressOrderedList::superBatchClear()
 	while(freeEntry){
 		ehsanLog("    from %p to 0x%lx size 0x%lx clear: %d", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize(), superClean);
 		if (superClean) {
-			OMRZeroMemory((void *)freeEntry + sizeof(MM_HeapLinkedFreeHeader), freeEntry->getSize() - sizeof(MM_HeapLinkedFreeHeader));
+			OMRZeroMemory((void *)((uintptr_t)freeEntry + sizeof(MM_HeapLinkedFreeHeader)), freeEntry->getSize() - sizeof(MM_HeapLinkedFreeHeader));
 		}
 		freeEntry = freeEntry->getNext(compressObjectReferences());
 	}
