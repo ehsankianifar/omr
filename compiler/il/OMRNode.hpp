@@ -644,6 +644,7 @@ public:
 
     uint32_t getSize();
     uint32_t getRoundedSize();
+    uint32_t getVectorOrMaskResultElementSize();
 
     uint32_t getNumberOfSlots();
 

@@ -637,6 +637,7 @@ public:
 
     static int32_t getSize(TR::DataType dt);
     static void setSize(TR::DataType dt, int32_t newValue);
+    static int32_t getElementSize(TR::DataType dt);
 
     template<typename T> static bool isSignedInt8() { return false; }
 
