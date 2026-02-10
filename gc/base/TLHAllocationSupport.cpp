@@ -219,7 +219,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
 			if (_zeroTLH) {
 				if (0 != extensions->batchClearTLH) {
-					const bool noSuperClean = getenv("TR_superBatchClear") == NULL;
+					const bool noSuperClean = getenv("TR_superBatchClear2") == NULL;
 					const bool allocateFromBottom = getenv("TR_allocateFromTop") == NULL;
 					if (noSuperClean) {
 						void *base = getBase();
