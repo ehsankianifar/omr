@@ -29,6 +29,7 @@
 #include "Forge.hpp"
 #include "Heap.hpp"
 #include "MemorySubSpace.hpp"
+#include "MemorySubSpaceSemiSpace.hpp"
 #include "PhysicalArena.hpp"
 #include "ehsanLogger.h"
 
