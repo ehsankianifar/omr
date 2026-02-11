@@ -229,8 +229,8 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 					} else if (allocateFromBottom) {
 						memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeader));
 					}
-					for (void *start = getBase(); start < getTop(); start++) {
-						if (*((char*)start) != 0) {
+					for (char *start = (char*)getBase(); start < getTop() && checkMem; start++) {
+						if (*start != 0) {
 							ehsanLog("*** Non zero at %p", start);
 						}
 					}
