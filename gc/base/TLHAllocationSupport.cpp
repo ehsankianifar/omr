@@ -220,6 +220,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 			if (_zeroTLH) {
 				if (0 != extensions->batchClearTLH) {
 					const bool noSuperClean = getenv("TR_superBatchClear2") == NULL;
+					const bool checkMem = getenv("TR_CheckMemory") != NULL;
 					const bool allocateFromBottom = getenv("TR_allocateFromTop") == NULL;
 					if (noSuperClean) {
 						void *base = getBase();
@@ -227,6 +228,11 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 					} else if (allocateFromBottom) {
 						memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeader));
+					}
+					for (void *start = getBase(); start < getTop(); start++) {
+						if (*((char*)start) != 0) {
+							ehsanLog("*** Non zero at %p", start);
+						}
 					}
 				}
 			}
