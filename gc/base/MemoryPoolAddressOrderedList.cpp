@@ -2074,15 +2074,12 @@ MM_MemoryPoolAddressOrderedList::superBatchClear()
 }
 
 void
-MM_MemoryPoolAddressOrderedList::notifyHeapIsReady()
+MM_MemoryPoolAddressOrderedList::notifyHeapIsReady(int source)
 {
-	ehsanLog("*** HEAP IS READY ***");
-	superBatchClear();
-}
-
-void
-MM_MemoryPoolAddressOrderedList::notifySetDefaultSpace()
-{
-	ehsanLog("*** Default Space is set ***");
+	//source: 1: set default memory space
+	//source: 2: MM_Scavenger::mainThreadGarbageCollect
+	//source: 3: MM_ParallelGlobalGC::cleanupAfterGC
+	//source: 4: 
+	ehsanLog("*** Notify: %d ***", source);
 	superBatchClear();
 }

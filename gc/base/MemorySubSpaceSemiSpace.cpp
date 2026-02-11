@@ -1120,9 +1120,10 @@ MM_MemorySubSpaceSemiSpace::releaseFreeMemoryPages(MM_EnvironmentBase* env)
 }
 
 void
-MM_MemorySubSpaceSemiSpace::notifyHeapIsReady()
+MM_MemorySubSpaceSemiSpace::notifyHeapIsReady(int source)
 {
-	_memorySubSpaceAllocate->getMemoryPool()->notifyHeapIsReady();
+	//source: 2:MM_Scavenger::mainThreadGarbageCollect 
+	_memorySubSpaceAllocate->getMemoryPool()->notifyHeapIsReady(source);
 }
 
 #endif /* OMR_GC_MODRON_SCAVENGER */
