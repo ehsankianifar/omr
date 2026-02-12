@@ -222,17 +222,17 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 					const bool noSuperClean = getenv("TR_superBatchClear") == NULL;
 					const bool checkMem = getenv("TR_CheckMemory") != NULL;
 					const bool allocateFromBottom = getenv("TR_allocateFromTop") == NULL;
+					void *base = getBase();
 					if (noSuperClean) {
-						void *base = getBase();
 						void *top = getTop();
 						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
 					} else if (allocateFromBottom || *(uintptr_t*)base != 0) {
 						//if allocating from buttom or allocating from top but it is the last chunck in the heap, we need to clean the header!
 						// *(uintptr_t*)base != 0 should take care of both cases but maybe allocateFromBottom is faster!
-						memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeader));
-						ehsanLog("*** Delete header from  %p", getBase());
+						memset(base, 0, sizeof(MM_HeapLinkedFreeHeader));
+						ehsanLog("*** Delete header from  %p", base);
 					}
-					for (char *start = (char*)getBase(); start < getTop() && checkMem; start++) {
+					for (char *start = (char*)base; start < getTop() && checkMem; start++) {
 						if (*start != 0) {
 							ehsanLog("*** Non zero at %p", start);
 							Assert_MM_true(false);
