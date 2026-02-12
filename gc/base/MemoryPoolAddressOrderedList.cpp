@@ -817,6 +817,13 @@ retry:
 				_allocDiscardedBytes += recycleEntrySize;
 			}
 		} else {
+			/* Better to do it in tlh allocation support since this clean for GC copy allocation as well
+			const bool superClean = getenv("TR_superBatchClear") != NULL;
+			if (superClean) {
+				// Need to delete the header from the top.
+				memset(addrBase, 0, sizeof(MM_HeapLinkedFreeHeader));
+			}
+			*/
 			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
 			/* If not recycling just update the free list pointer to the next free entry */
 			_heapFreeList = entryNext;

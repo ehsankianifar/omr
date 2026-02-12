@@ -219,19 +219,23 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
 			if (_zeroTLH) {
 				if (0 != extensions->batchClearTLH) {
-					const bool noSuperClean = getenv("TR_superBatchClear2") == NULL;
+					const bool noSuperClean = getenv("TR_superBatchClear") == NULL;
 					const bool checkMem = getenv("TR_CheckMemory") != NULL;
 					const bool allocateFromBottom = getenv("TR_allocateFromTop") == NULL;
 					if (noSuperClean) {
 						void *base = getBase();
 						void *top = getTop();
 						OMRZeroMemory(base, (uintptr_t)top - (uintptr_t)base);
-					} else if (allocateFromBottom) {
+					} else if (allocateFromBottom || *(uintptr_t*)base != 0) {
+						//if allocating from buttom or allocating from top but it is the last chunck in the heap, we need to clean the header!
+						// *(uintptr_t*)base != 0 should take care of both cases but maybe allocateFromBottom is faster!
 						memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeader));
+						ehsanLog("*** Delete header from  %p", getBase());
 					}
 					for (char *start = (char*)getBase(); start < getTop() && checkMem; start++) {
 						if (*start != 0) {
 							ehsanLog("*** Non zero at %p", start);
+							Assert_MM_true(false);
 						}
 					}
 				}
