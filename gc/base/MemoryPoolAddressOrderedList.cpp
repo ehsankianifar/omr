@@ -2083,6 +2083,8 @@ MM_MemoryPoolAddressOrderedList::superBatchClear()
 void
 MM_MemoryPoolAddressOrderedList::notifyHeapIsReady(int source)
 {
+	// NOTE: these are not good signals that heap structure is ready. expansion is possible after initial creation (case 1)
+
 	//source: 1: set default memory space
 	//source: 2: MM_Scavenger::mainThreadGarbageCollect
 	//source: 3: MM_ParallelGlobalGC::cleanupAfterGC
