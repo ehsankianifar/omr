@@ -709,7 +709,7 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 }
 
 MMINLINE bool
-MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats)
+MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats, bool initializeTLH)
 {
 	bool const compressed = compressObjectReferences();
 	uintptr_t freeEntrySize = 0;
@@ -880,7 +880,7 @@ MM_MemoryPoolAddressOrderedList::getConsumedSizeForTLH(MM_EnvironmentBase *env, 
 
 void *
 MM_MemoryPoolAddressOrderedList::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription,
-											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
+											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH)
 {
 	void *tlhBase = NULL;
 	//ehsanLog(">>allocateTLH");

@@ -95,7 +95,7 @@ private:
 	 * AllocationDescription with the appropriate information.
 	 * @return true on successful TLH replenishment, false otherwise.
 	 */
-	void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool);
+	void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool, bool initializeTLH);
 
 	void flushCache(MM_EnvironmentBase *env);
 

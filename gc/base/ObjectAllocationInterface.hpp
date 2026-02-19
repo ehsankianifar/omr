@@ -122,7 +122,7 @@ public:
 	}
 
 #if defined(OMR_GC_THREAD_LOCAL_HEAP)
-	virtual void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool);
+	virtual void *allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool, bool initializeTLH);
 #endif /* OMR_GC_THREAD_LOCAL_HEAP */
 
 	virtual void flushCache(MM_EnvironmentBase *env);

@@ -319,13 +319,13 @@ MM_TLHAllocationSupport::allocateFromTLH(MM_EnvironmentBase *env, MM_AllocateDes
 }
 
 void *
-MM_TLHAllocationSupport::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool)
+MM_TLHAllocationSupport::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, MM_MemorySubSpace *memorySubSpace, MM_MemoryPool *memoryPool, bool initializeTLH)
 {
 	void *addrBase, *addrTop;
 
 	Assert_MM_true(_reservedBytesForGC == 0);
 
-	if(memoryPool->allocateTLH(env, allocDescription, getRefreshSize(), addrBase, addrTop)) {
+	if(memoryPool->allocateTLH(env, allocDescription, getRefreshSize(), addrBase, addrTop, initializeTLH)) {
 		ehsanLog("Allocate TLH ! base: %p top %p", addrBase, addrTop);
 		setupTLH(env, addrBase, addrTop, memorySubSpace, memoryPool);
 		allocDescription->setMemorySubSpace(memorySubSpace);
