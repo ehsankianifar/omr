@@ -152,7 +152,7 @@ MM_MemoryPool::unregisterMemoryPool(MM_MemoryPool *memoryPool)
 
 #if defined(OMR_GC_THREAD_LOCAL_HEAP)
 	void *
-	MM_MemoryPool::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop)
+	MM_MemoryPool::allocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH)
 	{
 		Assert_MM_unreachable();
 		return NULL;
@@ -356,7 +356,7 @@ MM_MemoryPool::collectorAllocate(MM_EnvironmentBase *env, MM_AllocateDescription
  * @todo Provide function documentation
  */
 void *
-MM_MemoryPool::collectorAllocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired)
+MM_MemoryPool::collectorAllocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, bool initializeTLH)
 {
 	Assert_MM_unreachable();  // should not be called?
 	return NULL;
