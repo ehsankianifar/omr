@@ -356,7 +356,7 @@ MM_MemoryPool::collectorAllocate(MM_EnvironmentBase *env, MM_AllocateDescription
  * @todo Provide function documentation
  */
 void *
-MM_MemoryPool::collectorAllocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, bool initializeTLH)
+MM_MemoryPool::collectorAllocateTLH(MM_EnvironmentBase *env, MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired)
 {
 	Assert_MM_unreachable();  // should not be called?
 	return NULL;
