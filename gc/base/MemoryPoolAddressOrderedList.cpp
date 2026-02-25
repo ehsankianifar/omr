@@ -837,6 +837,7 @@ retry:
 	}
 
 	if (initializeTLH) {
+		ehsanLog("Clean from %p to %p ", addrBase, addrTop);
 		OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
 	}
 
