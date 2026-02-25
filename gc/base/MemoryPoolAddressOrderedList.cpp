@@ -836,6 +836,10 @@ retry:
 		_heapLock.release();
 	}
 
+	if (initializeTLH) {
+		OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
+	}
+
 	return true;
 
 fail_allocate:

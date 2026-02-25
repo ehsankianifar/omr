@@ -147,8 +147,9 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	stats->_tlhDiscardedBytes += getRemainingSize();
 	uintptr_t usedSize = getUsedSize();
 	stats->_tlhAllocatedUsed += usedSize;
+	bool cleanTLH = false;
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
-	bool cleanTLH = _zeroTLH && (0 != extensions->batchClearTLH);
+	cleanTLH = _zeroTLH && (0 != extensions->batchClearTLH);
 #endif /* OMR_GC_BATCH_CLEAR_TLH */
 	/* Try to cache the current TLH */
 	if ((NULL != getRealTop()) && (getRemainingSize() >= tlhMinimumSize)) {
@@ -207,16 +208,17 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
 			/* allocation contexts currently aren't supported with generational schemes */
 			Assert_MM_true(memorySpace->getTenureMemorySubSpace() == memorySpace->getDefaultMemorySubSpace());
-			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure, false));
+			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure, cleanTLH));
 			ehsanLog("Allocated using ac: %p", ac);
 		} else {
 			MM_MemorySubSpace *subspace = memorySpace->getDefaultMemorySubSpace();
-			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure, false));
+			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure, cleanTLH));
 			ehsanLog("Allocated using space %p subspace %p", memorySpace, subspace);
 		}
 
 		if (didRefresh) {
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
+/*
 			if (cleanTLH) {
 				const bool noSuperClean = getenv("TR_superBatchClear") == NULL;
 				const bool checkMem = getenv("TR_CheckMemory") != NULL;
@@ -238,8 +240,17 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 					}
 				}
 			}
+*/
+			const bool checkMem = getenv("TR_CheckMemory") != NULL;
+			if (checkMem) {
+				for (char *start = (char*)getBase(); start < getTop(); start++) {
+						if (*start != 0) {
+							ehsanLog("*** Non zero at %p", start);
+							Assert_MM_true(false);
+						}
+					}
+			}
 #endif /* defined(OMR_GC_BATCH_CLEAR_TLH) */
-
 			/*
 			 * THL was refreshed however it might be already flushed in GC
 			 * Some special features (like Prepare Heap For Walk called by GC check)
