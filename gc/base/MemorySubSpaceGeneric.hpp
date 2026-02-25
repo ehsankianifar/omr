@@ -83,7 +83,7 @@ public:
 	virtual void* allocateArrayletLeaf(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure);
 
 #if defined(OMR_GC_THREAD_LOCAL_HEAP)
-	virtual void* allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_ObjectAllocationInterface* objectAllocationInterface, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH);
+	virtual void* allocateTLH(MM_EnvironmentBase* env, MM_AllocateDescription* allocDescription, MM_ObjectAllocationInterface* objectAllocationInterface, MM_MemorySubSpace* baseSubSpace, MM_MemorySubSpace* previousSubSpace, bool shouldCollectOnFailure, bool initializeTLH = false);
 #endif /* OMR_GC_THREAD_LOCAL_HEAP */
 
 	virtual void setAllocateAtSafePointOnly(MM_EnvironmentBase* env, bool safePoint) { _allocateAtSafePointOnly = safePoint; }
