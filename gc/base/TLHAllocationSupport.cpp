@@ -207,11 +207,11 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
 			/* allocation contexts currently aren't supported with generational schemes */
 			Assert_MM_true(memorySpace->getTenureMemorySubSpace() == memorySpace->getDefaultMemorySubSpace());
-			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure));
+			didRefresh = (NULL != ac->allocateTLH(env, allocDescription, _objectAllocationInterface, shouldCollectOnFailure, false));
 			ehsanLog("Allocated using ac: %p", ac);
 		} else {
 			MM_MemorySubSpace *subspace = memorySpace->getDefaultMemorySubSpace();
-			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure));
+			didRefresh = (NULL != subspace->allocateTLH(env, allocDescription, _objectAllocationInterface, NULL, NULL, shouldCollectOnFailure, false));
 			ehsanLog("Allocated using space %p subspace %p", memorySpace, subspace);
 		}
 
