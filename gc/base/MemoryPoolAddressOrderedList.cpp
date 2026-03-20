@@ -839,6 +839,8 @@ retry:
 	if (initializeTLH) {
 		ehsanLog("Clean from %p to %p ", addrBase, addrTop);
 		OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
+	} else {
+		ehsanLog("NOT Clean from %p to %p ", addrBase, addrTop);
 	}
 
 	return true;
@@ -888,7 +890,7 @@ MM_MemoryPoolAddressOrderedList::allocateTLH(MM_EnvironmentBase *env, MM_Allocat
 											uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool initializeTLH)
 {
 	void *tlhBase = NULL;
-	//ehsanLog(">>allocateTLH");
+	ehsanLog(">>allocateTLH");
 
 	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, true, _largeObjectAllocateStats, initializeTLH)) {
 		tlhBase = addrBase;
@@ -914,7 +916,7 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 													 MM_AllocateDescription *allocDescription, uintptr_t maximumSizeInBytesRequired,
 													 void * &addrBase, void * &addrTop, bool lockingRequired)
 {
-	//ehsanLog(">>collectorAllocateTLH");
+	ehsanLog(">>collectorAllocateTLH");
 	void *base = NULL;
 	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, lockingRequired, _largeObjectCollectorAllocateStats, false)) {
 		base = addrBase;
