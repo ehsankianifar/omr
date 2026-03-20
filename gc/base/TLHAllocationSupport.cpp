@@ -147,10 +147,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	stats->_tlhDiscardedBytes += getRemainingSize();
 	uintptr_t usedSize = getUsedSize();
 	stats->_tlhAllocatedUsed += usedSize;
-	bool cleanTLH = false;
-#if defined(OMR_GC_BATCH_CLEAR_TLH)
-	cleanTLH = _zeroTLH && (0 != extensions->batchClearTLH);
-#endif /* OMR_GC_BATCH_CLEAR_TLH */
+
 	/* Try to cache the current TLH */
 	if ((NULL != getRealTop()) && (getRemainingSize() >= tlhMinimumSize)) {
 		/* Cache the current TLH because it is bigger than the minimum size */
@@ -175,6 +172,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 
 	MM_MemorySpace *memorySpace = _objectAllocationInterface->getOwningEnv()->getMemorySpace();
 	bool didRefresh = false;
+
 	/* Try allocating a TLH */
 	if ((NULL != _abandonedList) && (sizeInBytesRequired <= tlhMinimumSize)) {
 
@@ -186,7 +184,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		--_abandonedListSize;
 
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
-		if (cleanTLH) {
+		if (_zeroTLH && (0 != extensions->batchClearTLH)) {
 			memset(getBase(), 0, sizeof(MM_HeapLinkedFreeHeaderTLH));
 		}
 #endif /* OMR_GC_BATCH_CLEAR_TLH */
@@ -203,7 +201,10 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 	} else {
 		/* Try allocating a fresh TLH */
 		MM_AllocationContext *ac = env->getAllocationContext();
-
+		bool cleanTLH = false;
+#if defined(OMR_GC_BATCH_CLEAR_TLH)
+		cleanTLH = _zeroTLH && (0 != extensions->batchClearTLH);
+#endif /* OMR_GC_BATCH_CLEAR_TLH */
 		if (NULL != ac) {
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
 			/* allocation contexts currently aren't supported with generational schemes */
