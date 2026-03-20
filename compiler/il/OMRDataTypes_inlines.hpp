@@ -183,10 +183,15 @@ TR::DataTypes OMR::DataType::vectorFromMaskType(TR::DataType maskType)
 }
 
 template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int8_t>() { return TR::Int8; }
+
 template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int16_t>() { return TR::Int16; }
+
 template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int32_t>() { return TR::Int32; }
+
 template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<int64_t>() { return TR::Int64; }
+
 template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<float>() { return TR::Float; }
+
 template<> inline TR::DataTypes OMR::DataType::mapPrimitiveType<double>() { return TR::Double; }
 
 #endif // OMR_DATATYPES_INLINES_INCL
