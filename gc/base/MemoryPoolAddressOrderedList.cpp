@@ -892,7 +892,7 @@ MM_MemoryPoolAddressOrderedList::allocateTLH(MM_EnvironmentBase *env, MM_Allocat
 	void *tlhBase = NULL;
 	ehsanLog(">>allocateTLH clean= %d", initializeTLH);
 
-	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, true, _largeObjectAllocateStats, initializeTLH)) {
+	if (internalAllocateTLH(env, maximumSizeInBytesRequired, addrBase, addrTop, true, _largeObjectAllocateStats, true)) {
 		tlhBase = addrBase;
 	}
 
