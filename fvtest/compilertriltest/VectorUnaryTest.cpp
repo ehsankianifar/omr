@@ -286,8 +286,8 @@ class ParameterizedUnaryVectorTest : public TRTest::JitWithPortTest {
         TR::ILOpCode opcode = TR::ILOpCode::createVectorOpCode(T::operation, vectorType);
         
         // Detect the current CPU and check if it supports this vector operation
-        TR::CPU cpu = TR::CPU::detect(privateOmrPortLibrary);
-        bool isSupported = TR::CodeGenerator::getSupportsOpCodeForAutoSIMD(&cpu, opcode);
+        //TR::CPU cpu = TR::CPU::detect(privateOmrPortLibrary);
+        bool isSupported = TR::CodeGenerator::getSupportsOpCodeForAutoSIMD(opcode);
         SKIP_IF(!isSupported, MissingImplementation) << "Opcode not supported";
 
         // Generate and compile the IL tree for this vector operation
