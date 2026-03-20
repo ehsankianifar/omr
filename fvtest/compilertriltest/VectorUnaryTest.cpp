@@ -269,7 +269,7 @@ std::vector<T> getTestSourceData(int vectorElements) {
  * @tparam T Configuration type containing the element type and operation
  */
 template <typename T>
-class ParameterizedUnaryVectorTest : public TRTest::JitTest {
+class ParameterizedUnaryVectorTest : public TRTest::JitWithPortTest {
     protected:
     /**
      * @brief Run a test for a specific vector length.
