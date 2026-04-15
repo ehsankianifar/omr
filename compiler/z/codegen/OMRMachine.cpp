@@ -2936,8 +2936,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                 if (targetRegister->getRegisterNumber() != spareReg->getRegisterNumber() && !doNotRegCopy) {
                     cg()->resetRegisterAssignmentFlag(TR_RegisterSpilled);
                     cg()->traceRegAssigned(currentTargetVirtual, spareReg);
-                    cursor = self()->registerCopy(cg(), targetRegKind, targetRegister, spareReg,
-                        currentInstruction);
+                    cursor = self()->registerCopy(cg(), targetRegKind, targetRegister, spareReg, currentInstruction);
 
                     // currentTargetVirtual and spareReg are now associated with each other.
                     spareReg->setState(TR::RealRegister::Assigned);
