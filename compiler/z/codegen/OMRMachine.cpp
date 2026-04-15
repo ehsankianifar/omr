@@ -2663,7 +2663,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
         } else {
             // virtual register is currently assigned to a different register,
             // override it with the target reg
-            cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister, currentInstruction);
+            cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister,
+                currentInstruction);
 
             currentAssignedRegister->setState(TR::RealRegister::Free);
             currentAssignedRegister->setAssignedRegister(NULL);
@@ -2700,7 +2701,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
         // or it is a FPR for later use
         // virtual register is currently assigned to a different register,
         if (currentAssignedRegister != NULL) {
-            if (!self()->isAssignable(currentTargetVirtual, currentAssignedRegister) || (targetRegKind != sourceRegisterKind)) {
+            if (!self()->isAssignable(currentTargetVirtual, currentAssignedRegister)
+                || (targetRegKind != sourceRegisterKind)) {
                 {
                     /**
                      * Register exchange API takes care of exchanging between registers.
@@ -2737,8 +2739,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             } else {
                 cg()->traceRegAssigned(currentTargetVirtual, currentAssignedRegister);
 
-                cursor = self()->registerExchange(cg(), sourceRegisterKind, targetRegister, currentAssignedRegister, spareReg,
-                    currentInstruction);
+                cursor = self()->registerExchange(cg(), sourceRegisterKind, targetRegister, currentAssignedRegister,
+                    spareReg, currentInstruction);
 
                 currentAssignedRegister->setState(TR::RealRegister::Blocked);
                 currentAssignedRegister->setAssignedRegister(currentTargetVirtual);
@@ -2839,8 +2841,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                 // to the spareReg, and move the source reg to the target.
                 if (targetRegister->getRegisterNumber() != spareReg->getRegisterNumber() && !doNotRegCopy) {
                     cg()->traceRegAssigned(currentTargetVirtual, spareReg);
-                    cursor = self()->registerCopy(cg(), targetRegKind, targetRegister, spareReg,
-                        currentInstruction);
+                    cursor = self()->registerCopy(cg(), targetRegKind, targetRegister, spareReg, currentInstruction);
 
                     // The target now holds the correct value. Since the final association is made
                     // at the end of the function, it must be unlatched and unassociated here.
@@ -2853,7 +2854,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                     currentTargetVirtual->setAssignedRegister(spareReg);
                 }
 
-                cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister, currentInstruction);
+                cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister,
+                    currentInstruction);
                 currentAssignedRegister->setState(TR::RealRegister::Unlatched);
                 currentAssignedRegister->setAssignedRegister(NULL);
             } else {
@@ -2877,13 +2879,13 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
                     cg()->traceRegAssigned(currentTargetVirtual, currentAssignedRegister);
                     cg()->setRegisterAssignmentFlag(TR_RegisterSpilled);
 
-                    cursor
-                        = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister, currentInstruction);
+                    cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister,
+                        currentInstruction);
                     currentAssignedRegister->setState(TR::RealRegister::Unlatched);
                     currentAssignedRegister->setAssignedRegister(NULL);
                 } else {
-                    cursor = self()->registerExchange(cg(), sourceRegisterKind, targetRegister, currentAssignedRegister, spareReg,
-                        currentInstruction);
+                    cursor = self()->registerExchange(cg(), sourceRegisterKind, targetRegister, currentAssignedRegister,
+                        spareReg, currentInstruction);
                     currentAssignedRegister->setState(TR::RealRegister::Assigned);
                     currentAssignedRegister->setAssignedRegister(currentTargetVirtual);
                     currentTargetVirtual->setAssignedRegister(currentAssignedRegister);
@@ -2997,7 +2999,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
         } else {
             // virtual register is currently assigned to a different register,
             // override it with the target reg
-            cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister, currentInstruction);
+            cursor = self()->registerCopy(cg(), sourceRegisterKind, currentAssignedRegister, targetRegister,
+                currentInstruction);
 
             currentAssignedRegister->setState(TR::RealRegister::Free);
             currentAssignedRegister->setAssignedRegister(NULL);
