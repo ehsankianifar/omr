@@ -1765,6 +1765,7 @@ public:
 #endif /* defined(OMR_GC_SPARSE_HEAP_ALLOCATION) */
 		, heapRegionManager(NULL)
 		, memoryManager(NULL)
+		, memoryZeroer(NULL)
 		, aggressive(0)
 		, sweepHeapSectioning(NULL)
 #if defined(OMR_GC_MODRON_COMPACTION)
