@@ -755,7 +755,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 					_cleanMemorySize -= maximumSizeInBytesRequired;
 					addrTop = (void *)_cleanMemoryStart;
 				}
-				ehsanLogNoNewLine("A%d ", addrTop-addrBase);
+				ehsanLogNoNewLine("A%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 				initializeTLH = false; // no need to initialize as we allocated from clean heap!
 				goto unlock_and_init;
 			} else {
@@ -899,10 +899,10 @@ unlock_and_init:
 	}
 
 	if (initializeTLH) {
-		ehsanLog("Clean from %p to %p ", addrBase, addrTop);
+		ehsanLogNoNewLine("H ");
 		OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
 	} else {
-		ehsanLog("NOT Clean from %p to %p ", addrBase, addrTop);
+		ehsanLogNoNewLine("I ");
 	}
 
 	return true;
@@ -928,7 +928,7 @@ fail_allocate:
 			_cleanMemorySize -= maximumSizeInBytesRequired;
 			addrTop = (void *)_cleanMemoryStart;
 		}
-		ehsanLogNoNewLine("G%d ", addrTop-addrBase);
+		ehsanLogNoNewLine("G%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 		initializeTLH = false; // no need to initialize as we allocated from clean heap!
 		goto unlock_and_init;
 	}
