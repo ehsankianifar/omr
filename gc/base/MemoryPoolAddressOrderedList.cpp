@@ -892,7 +892,7 @@ retry:
 			_freeEntryCount -= 1;
 		}
 	}
-	ehsanLogNoNewLine("E%d ", addrTop-addrBase);
+	ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 unlock_and_init:
 	if (lockingRequired) {
 		_heapLock.release();
