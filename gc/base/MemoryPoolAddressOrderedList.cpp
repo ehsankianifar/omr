@@ -710,9 +710,8 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 }
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
-	MM_GCExtensionsBase *extensions = MM_GCExtensionsBase::getExtensions(_extensions);
-	if (NULL != extensions->memoryZeroer) {
-		extensions->memoryZeroer->requestZeroing((void*)_cleanMemoryStart, _cleanMemorySize, &_cleanMemoryStatus);
+	if (NULL != _extensions->memoryZeroer) {
+		_extensions->memoryZeroer->requestZeroing((void*)_cleanMemoryStart, _cleanMemorySize, &_cleanMemoryStatus);
 	}
 }
 
