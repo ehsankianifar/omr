@@ -137,8 +137,8 @@ MM_MemoryZeroer::workerLoop()
 		
 		/* We have work - copy the parameters and release the monitor */
 		void *start = _zeroStart;
-		uintptr_t size = _zeroSize;
-		volatile int *statusPtr = _statusPtr;
+		uintptr_t size = _zeroSize/8;
+		volatile uintptr_t *statusPtr = _statusPtr;
 		
 		/* Clear work flag before releasing monitor */
 		_hasWork = false;
@@ -146,13 +146,14 @@ MM_MemoryZeroer::workerLoop()
 		/* Release monitor while doing the actual work */
 		omrthread_monitor_exit(_monitor);
 		
-		/* Perform the memory zeroing operation */
-		OMRZeroMemory(start, size);
 		
-		/* Update status to indicate completion */
-		if (NULL != statusPtr) {
-			*statusPtr = 1;
-		}
+        *statusPtr = (uintptr_t)_zeroStart;
+        for(int i=0 ;i<8; i++) {
+            /* Perform the memory zeroing operation */
+            OMRZeroMemory(start, size);
+            start= (void*)((uintptr_t)start + size);
+            *statusPtr = (uintptr_t)start;
+        }
 		
 		/* Re-acquire monitor for next iteration */
 		omrthread_monitor_enter(_monitor);
@@ -165,7 +166,7 @@ MM_MemoryZeroer::workerLoop()
 }
 
 void
-MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile int *statusPtr)
+MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile uintptr_t *statusPtr)
 {
 	Assert_MM_true(NULL != _monitor);
 	

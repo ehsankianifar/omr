@@ -75,7 +75,7 @@ protected:
 public:
 	volatile uintptr_t _cleanMemoryStart;
 	volatile uintptr_t _cleanMemorySize;
-	volatile int _cleanMemoryStatus;
+	volatile uintptr_t _cleanMemoryStatus;
 	
 /*
  * Function members

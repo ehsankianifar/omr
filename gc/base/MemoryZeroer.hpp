@@ -50,7 +50,7 @@ private:
 	
 	void *_zeroStart;                      /**< Start address for zeroing operation */
 	uintptr_t _zeroSize;                   /**< Size of memory to zero */
-	volatile int *_statusPtr;              /**< Pointer to status variable to update on completion */
+	volatile uintptr_t *_statusPtr;        /**< Pointer to status variable to update on completion */
 	
 	volatile bool _hasWork;                /**< Flag indicating work is available */
 	volatile bool _shutdownRequested;      /**< Flag to request thread shutdown */

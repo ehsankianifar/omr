@@ -740,7 +740,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 
 	if(allocateCleanMemory && initializeTLH) {
 		if (0 != _cleanMemoryStart) {
-			if(1 == _cleanMemoryStatus) {
+			if(_cleanMemoryStatus >= _cleanMemoryStart + maximumSizeInBytesRequired) {
 				// we have a initialize memory ready.
 				addrBase = (void *)_cleanMemoryStart;
 				// status 0 means ready. we can allocate from this memory!
@@ -749,6 +749,9 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 					addrTop = (void *)(_cleanMemoryStart + _cleanMemorySize);
 					_cleanMemoryStart = 0;
 					_cleanMemorySize = 0;
+					while (_cleanMemoryStatus < (uintptr_t)addrTop) {
+						// just in case that the size is a littlebit bigger but not cleaned yet!
+					}
 				} else {
 					// Allocate memory from this space and update it!
 					_cleanMemoryStart = _cleanMemoryStart + maximumSizeInBytesRequired;
@@ -911,10 +914,7 @@ unlock_and_init:
 fail_allocate:
 	// If there is a clean memory but it is under init, we should wait until it finishes cleaning!
 	if(allocateCleanMemory && 0 != _cleanMemoryStart) {
-		while (1 != _cleanMemoryStatus) {
-			ehsanLogNoNewLine("F");
-			printf("*** WAITING ***");
-		}
+
 		// we have a initialize memory ready.
 		addrBase = (void *)_cleanMemoryStart;
 		//ehsanLog("Allocate From clean memory.");
@@ -929,6 +929,11 @@ fail_allocate:
 			_cleanMemoryStart = _cleanMemoryStart + maximumSizeInBytesRequired;
 			_cleanMemorySize -= maximumSizeInBytesRequired;
 			addrTop = (void *)_cleanMemoryStart;
+		}
+		// wait until the memory is cleaned. we should not get here!
+		while (_cleanMemoryStatus < (uintptr_t)addrTop) {
+			ehsanLogNoNewLine("F");
+			printf("*** WAITING ***");
 		}
 		ehsanLogNoNewLine("G%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 		initializeTLH = false; // no need to initialize as we allocated from clean heap!
