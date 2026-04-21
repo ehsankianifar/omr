@@ -36,6 +36,7 @@
 #include "Collector.hpp"
 #include "MemoryPool.hpp"
 #include "MemorySubSpace.hpp"
+#include "MemoryZeroer.hpp"
 //#include "mmhook_internal.h"
 #include "HeapRegionDescriptor.hpp"
 #include "LargeObjectAllocateStats.hpp"
@@ -708,9 +709,11 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
     return result;
 }
 MMINLINE void
-MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing(uintptr_t start, uintptr_t size) {
-	// Start an OMR thread to call OMRZeroMemory((void*)start, size);
-	// the async thread should set _cleanMemoryStatus to 1 when the task is finished.
+MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
+	MM_GCExtensionsBase *extensions = MM_GCExtensionsBase::getExtensions(_extensions);
+	if (NULL != extensions->memoryZeroer) {
+		extensions->memoryZeroer->requestZeroing((void*)_cleanMemoryStart, _cleanMemorySize, &_cleanMemoryStatus);
+	}
 }
 
 MMINLINE bool

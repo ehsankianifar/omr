@@ -65,6 +65,7 @@ class MM_HeapRegionManager;
 class MM_InterRegionRememberedSet;
 class MM_MemoryManager;
 class MM_MemorySubSpace;
+class MM_MemoryZeroer;
 class MM_ParallelDispatcher;
 #if defined(OMR_GC_OBJECT_MAP)
 class MM_ObjectMap;
@@ -583,6 +584,7 @@ public:
 #endif /* defined(OMR_GC_SPARSE_HEAP_ALLOCATION) */
 	MM_HeapRegionManager* heapRegionManager; /**< The heap region manager used to view the heap as regions of memory */
 	MM_MemoryManager* memoryManager; /**< memory manager used to access to virtual memory instances */
+	MM_MemoryZeroer* memoryZeroer; /**< Singleton instance for asynchronous memory zeroing operations */
 	uintptr_t aggressive;
 	MM_SweepHeapSectioning* sweepHeapSectioning; /**< Reference to the SweepHeapSectioning to Compact can share the backing store */
 
