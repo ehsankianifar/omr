@@ -76,6 +76,7 @@ protected:
 public:
 	uintptr_t _cleanMemoryStart;
 	uintptr_t _cleanMemorySize;
+	int _cleanMemoryStatus;
 	
 /*
  * Function members
@@ -91,6 +92,7 @@ private:
 	bool internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats, bool initializeTLH);
 	char *ehsanGetInfo();
 	void printFreeEntries(const char* message);
+	void initiateMemoryZeroing(uintptr_t start, uintptr_t size);
 	uintptr_t getConsumedSizeForTLH(MM_EnvironmentBase *env, MM_HeapLinkedFreeHeader *freeEntry, uintptr_t maximumSizeInBytesRequired);
 
 	/* Align a TLH to meet boundary restrictions. Certain phases of some GCs may require that TLHs not span heap chunks for parallel processing. */

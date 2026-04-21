@@ -707,6 +707,11 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 
     return result;
 }
+MMINLINE void
+MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing(uintptr_t start, uintptr_t size) {
+	// Start an OMR thread to call OMRZeroMemory((void*)start, size);
+	// the async thread should set _cleanMemoryStatus to 1 when the task is finished.
+}
 
 MMINLINE bool
 MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, uintptr_t maximumSizeInBytesRequired, void * &addrBase, void * &addrTop, bool lockingRequired, MM_LargeObjectAllocateStats *largeObjectAllocateStats, bool initializeTLH)
