@@ -743,7 +743,6 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 			if(1 == _cleanMemoryStatus) {
 				// we have a initialize memory ready.
 				addrBase = (void *)_cleanMemoryStart;
-				ehsanLog("Allocate From clean memory.");
 				// status 0 means ready. we can allocate from this memory!
 				if (_cleanMemorySize < (maximumSizeInBytesRequired + _minimumFreeEntrySize)) {
 					// Give the whole space to this tlh
@@ -756,10 +755,12 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 					_cleanMemorySize -= maximumSizeInBytesRequired;
 					addrTop = (void *)_cleanMemoryStart;
 				}
+				ehsanLogNoNewLine("A%d ", addrTop-addrBase);
 				initializeTLH = false; // no need to initialize as we allocated from clean heap!
 				goto unlock_and_init;
 			} else {
 				// we have initialized memory in the oven but it is not ready yet.
+				ehsanLogNoNewLine("B ");
 			}
 
 		} else {
@@ -775,7 +776,10 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 				// Allocate from the top of the header
 				_cleanMemoryStart = (uintptr_t)_heapFreeList + _heapFreeList->getSize();
 				_cleanMemoryStatus = 0;
+				ehsanLogNoNewLine("C%d ", _cleanMemorySize);
 				initiateMemoryZeroing();// initiate background thread.
+			} else {
+				ehsanLogNoNewLine("D ");
 			}
 		}
 
@@ -888,6 +892,7 @@ retry:
 			_freeEntryCount -= 1;
 		}
 	}
+	ehsanLogNoNewLine("E%d ", addrTop-addrBase);
 unlock_and_init:
 	if (lockingRequired) {
 		_heapLock.release();
@@ -906,7 +911,7 @@ fail_allocate:
 	// If there is a clean memory but it is under init, we should wait until it finishes cleaning!
 	if(allocateCleanMemory && 0 != _cleanMemoryStart) {
 		while (1 != _cleanMemoryStatus) {
-
+			ehsanLogNoNewLine("F");
 		}
 		// we have a initialize memory ready.
 		addrBase = (void *)_cleanMemoryStart;
@@ -923,6 +928,7 @@ fail_allocate:
 			_cleanMemorySize -= maximumSizeInBytesRequired;
 			addrTop = (void *)_cleanMemoryStart;
 		}
+		ehsanLogNoNewLine("G%d ", addrTop-addrBase);
 		initializeTLH = false; // no need to initialize as we allocated from clean heap!
 		goto unlock_and_init;
 	}
