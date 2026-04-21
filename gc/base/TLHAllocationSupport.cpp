@@ -202,12 +202,12 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		/* Try allocating a fresh TLH */
 		MM_AllocationContext *ac = env->getAllocationContext();
 		bool cleanTLH = false;
-		uintptr_t batchClearTLH = 0;
-		bool cleanDef = false;
+		//uintptr_t batchClearTLH = 0;
+		//bool cleanDef = false;
 #if defined(OMR_GC_BATCH_CLEAR_TLH)
 		cleanTLH = _zeroTLH && (0 != extensions->batchClearTLH);
-		batchClearTLH = extensions->batchClearTLH;
-		cleanDef = true;
+		//batchClearTLH = extensions->batchClearTLH;
+		//cleanDef = true;
 #endif /* OMR_GC_BATCH_CLEAR_TLH */
 		if (NULL != ac) {
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
