@@ -272,6 +272,7 @@ public:
 		,_parallelGCAlignmentSize(0)
 		,_cleanMemoryStart(0)
 		,_cleanMemorySize(0)
+		,_cleanMemoryStatus(0)
 	{
 		_typeId = __FUNCTION__;
 	};
@@ -286,6 +287,7 @@ public:
 		,_parallelGCAlignmentSize(0)
 		,_cleanMemoryStart(0)
 		,_cleanMemorySize(0)
+		,_cleanMemoryStatus(0)
 	{
 		_typeId = __FUNCTION__;
 	};

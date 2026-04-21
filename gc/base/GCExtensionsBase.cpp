@@ -212,11 +212,8 @@ MM_GCExtensionsBase::initialize(MM_EnvironmentBase* env)
 	}
 #endif /* defined(OMR_GC_REALTIME) */
 
-	/* Initialize the memory zeroer singleton */
-	memoryZeroer = MM_MemoryZeroer::newInstance(env);
-	if (NULL == memoryZeroer) {
-		goto failed;
-	}
+	/* Initialize the memory zeroer singleton - will be created lazily on first use */
+	memoryZeroer = NULL;
 
 	return true;
 

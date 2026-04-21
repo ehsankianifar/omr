@@ -710,6 +710,12 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 }
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
+	/* Lazy initialization of memoryZeroer on first use */
+	if (NULL == _extensions->memoryZeroer) {
+		MM_EnvironmentBase env(_extensions->getOmrVM());
+		_extensions->memoryZeroer = MM_MemoryZeroer::newInstance(&env);
+	}
+	
 	if (NULL != _extensions->memoryZeroer) {
 		_extensions->memoryZeroer->requestZeroing((void*)_cleanMemoryStart, _cleanMemorySize, &_cleanMemoryStatus);
 	}
