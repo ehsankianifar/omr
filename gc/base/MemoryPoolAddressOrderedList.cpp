@@ -769,7 +769,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 			// this 20x of min free entry size is arbitrary
 			if (NULL != _heapFreeList && _heapFreeList->getSize() >= maximumSizeInBytesRequired * 20) {
 				//tale half the size and set the last bute to zero to make sure there is no alignment issue
-				const int ratio = std::stoi(getenv("TR_allocateCleanMemory"));
+				const int ratio = std::atoi(getenv("TR_allocateCleanMemory"));
 				_cleanMemorySize = ((_heapFreeList->getSize() * ratio) / 10) & ~(uintptr_t)0xff;
 				_largeObjectAllocateStats->decrementFreeEntrySizeClassStats(_cleanMemorySize);
 				_heapFreeList->setSize(_heapFreeList->getSize() - _cleanMemorySize);
@@ -913,7 +913,7 @@ fail_allocate:
 	if(allocateCleanMemory && 0 != _cleanMemoryStart) {
 		while (1 != _cleanMemoryStatus) {
 			ehsanLogNoNewLine("F");
-			printf("*** WAITING ***"):
+			printf("*** WAITING ***");
 		}
 		// we have a initialize memory ready.
 		addrBase = (void *)_cleanMemoryStart;
