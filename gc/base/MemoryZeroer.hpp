@@ -99,7 +99,7 @@ public:
 	 * @param size Size of memory to zero
 	 * @param statusPtr Pointer to status variable (will be set to 1 when complete)
 	 */
-	void requestZeroing(void *start, uintptr_t size, volatile int *statusPtr);
+	void requestZeroing(void *start, uintptr_t size, volatile uintptr_t *statusPtr);
 	
 	/**
 	 * Constructor
