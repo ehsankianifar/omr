@@ -740,7 +740,8 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 
 	if(allocateCleanMemory && initializeTLH) {
 		if (0 != _cleanMemoryStart) {
-			if(1/*Later add logic to have under init memory!*/) {
+			if(1 == _cleanMemoryStatus) {
+				// we have a initialize memory ready.
 				addrBase = (void *)_cleanMemoryStart;
 				ehsanLog("Allocate From clean memory.");
 				// status 0 means ready. we can allocate from this memory!
@@ -755,8 +756,10 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 					_cleanMemorySize -= maximumSizeInBytesRequired;
 					addrTop = (void *)_cleanMemoryStart;
 				}
-				// initializeTLH = false; // no need to initialize as we allocated from clean heap!
+				initializeTLH = false; // no need to initialize as we allocated from clean heap!
 				goto unlock_and_init;
+			} else {
+				// we have initialized memory in the oven but it is not ready yet.
 			}
 
 		} else {
@@ -771,6 +774,8 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 
 				// Allocate from the top of the header
 				_cleanMemoryStart = (uintptr_t)_heapFreeList + _heapFreeList->getSize();
+				_cleanMemoryStatus = 0;
+				initiateMemoryZeroing();// initiate background thread.
 			}
 		}
 
@@ -899,7 +904,28 @@ unlock_and_init:
 
 fail_allocate:
 	// If there is a clean memory but it is under init, we should wait until it finishes cleaning!
+	if(allocateCleanMemory && 0 != _cleanMemoryStart) {
+		while (1 != _cleanMemoryStatus) {
 
+		}
+		// we have a initialize memory ready.
+		addrBase = (void *)_cleanMemoryStart;
+		//ehsanLog("Allocate From clean memory.");
+		// status 0 means ready. we can allocate from this memory!
+		if (_cleanMemorySize < (maximumSizeInBytesRequired + _minimumFreeEntrySize)) {
+			// Give the whole space to this tlh
+			addrTop = (void *)(_cleanMemoryStart + _cleanMemorySize);
+			_cleanMemoryStart = 0;
+			_cleanMemorySize = 0;
+		} else {
+			// Allocate memory from this space and update it!
+			_cleanMemoryStart = _cleanMemoryStart + maximumSizeInBytesRequired;
+			_cleanMemorySize -= maximumSizeInBytesRequired;
+			addrTop = (void *)_cleanMemoryStart;
+		}
+		initializeTLH = false; // no need to initialize as we allocated from clean heap!
+		goto unlock_and_init;
+	}
 	/* if we failed to allocate a TLH, this pool is either full or so heavily fragmented that it is effectively full */
 	_largestFreeEntry = 0;
 	if(lockingRequired) {

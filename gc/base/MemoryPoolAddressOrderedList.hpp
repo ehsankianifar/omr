@@ -73,8 +73,8 @@ private:
 	uintptr_t _parallelGCAlignmentSize; /**<  Fixed Size used to determine boundaries for alignment. */
 protected:
 public:
-	uintptr_t _cleanMemoryStart;
-	uintptr_t _cleanMemorySize;
+	volatile uintptr_t _cleanMemoryStart;
+	volatile uintptr_t _cleanMemorySize;
 	volatile int _cleanMemoryStatus;
 	
 /*
