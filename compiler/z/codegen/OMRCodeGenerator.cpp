@@ -4362,7 +4362,6 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::mstore:
         case TR::mstorei:
         case TR::vneg:
-        case TR::vnot:
         case TR::vmneg:
         case TR::vsplats:
         case TR::msplats:
@@ -4374,8 +4373,6 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vexpand:
         case TR::vpopcnt:
         case TR::vmpopcnt:
-        case TR::vbitselect:
-        case TR::vblend:
             return true;
         case TR::vmul:
         case TR::vmmul:
