@@ -2633,7 +2633,6 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             cg()->traceRegisterAssignment(" coerceRA: %R needs 32 bit reg ", virtualRegister);
         }
     }
-    static bool applyFix = (feGetEnv("TR_IgnoreTheFix") == NULL);
     
     // already assign with the one we want
     if (currentAssignedRegister == targetRegister) {
@@ -2678,7 +2677,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
         uint64_t regMask = 0xffffffff;
         if (currentTargetVirtual->isUsedInMemRef())
             regMask = ~TR::RealRegister::GPR0Mask;
-        TR_RegisterKinds targetRegKind = applyFix ? currentTargetVirtual->getKind() : sourceRegisterKind;
+        TR_RegisterKinds targetRegKind = currentTargetVirtual->getKind();
         spareReg = self()->findBestFreeRegister(currentInstruction, targetRegKind, currentTargetVirtual, regMask);
 
         cg()->setRegisterAssignmentFlag(TR_IndirectCoercion);
@@ -2786,7 +2785,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
         uint64_t regMask = 0xffffffff;
         if (currentTargetVirtual->isUsedInMemRef())
             regMask = ~TR::RealRegister::GPR0Mask;
-        TR_RegisterKinds targetRegKind = applyFix ? currentTargetVirtual->getKind() : sourceRegisterKind;
+        TR_RegisterKinds targetRegKind = currentTargetVirtual->getKind();
         spareReg = self()->findBestFreeRegister(currentInstruction, targetRegKind, currentTargetVirtual, regMask);
 
         cg()->setRegisterAssignmentFlag(TR_IndirectCoercion);
