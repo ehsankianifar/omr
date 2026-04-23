@@ -2633,8 +2633,7 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             cg()->traceRegisterAssignment(" coerceRA: %R needs 32 bit reg ", virtualRegister);
         }
     }
-    static bool applyFix = (feGetEnv("TR_IgnoreTheFix") == NULL);
-    TR_RegisterKinds targetRegKind = applyFix ? currentTargetVirtual->getKind() : sourceRegisterKind;
+    TR_RegisterKinds targetRegKind = currentTargetVirtual->getKind();
     // already assign with the one we want
     if (currentAssignedRegister == targetRegister) {
         // All is good, so do nothing except set all pointers
