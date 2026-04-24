@@ -2800,7 +2800,8 @@ TR::Instruction *OMR::Z::Machine::coerceRegisterAssignment(TR::Instruction *curr
             //  We may not be able to do an exchange as the target virtReg is not
             //  allowed to be assigned to the source's realReg (e.g. GPR0).
             if (!self()->isAssignable(currentTargetVirtual, currentAssignedRegister)
-                || (sourceRegisterKind != TR_FPR && sourceRegisterKind != TR_VRF)) {
+                || (sourceRegisterKind != TR_FPR && sourceRegisterKind != TR_VRF)
+                || (targetRegKind != sourceRegisterKind)) {
                 // There is an alternative to blindly spilling because:
                 //   1. there was a FREE reg
                 //   2. freeBestReg found a better choice to be spilled
