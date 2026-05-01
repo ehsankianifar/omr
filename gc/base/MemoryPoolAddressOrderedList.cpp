@@ -715,11 +715,6 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
-	/* Lazy initialization of memoryZeroer on first use */
-	if (NULL == _extensions->memoryZeroer) {
-		MM_EnvironmentBase env(_extensions->getOmrVM());
-		_extensions->memoryZeroer = MM_MemoryZeroer::newInstance(&env);
-	}
 	
 	if (NULL != _extensions->memoryZeroer
 		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE, &_cleanMemoryStatus)) {
@@ -2141,7 +2136,11 @@ void
 MM_MemoryPoolAddressOrderedList::notifyHeapIsReady(int source)
 {
 	// NOTE: these are not good signals that heap structure is ready. expansion is possible after initial creation (case 1)
-
+	/* Lazy initialization of memoryZeroer on first use */
+	if (NULL == _extensions->memoryZeroer) {
+		MM_EnvironmentBase env(_extensions->getOmrVM());
+		_extensions->memoryZeroer = MM_MemoryZeroer::newInstance(&env);
+	}
 	//source: 1: set default memory space
 	//source: 2: MM_Scavenger::mainThreadGarbageCollect
 	//source: 3: MM_ParallelGlobalGC::cleanupAfterGC
