@@ -74,7 +74,8 @@ private:
 protected:
 public:
 	volatile uintptr_t _cleanMemoryStart;
-	volatile uintptr_t _cleanMemorySize;
+	volatile uintptr_t _cleanMemoryEnd;
+	// based on implementation strategy, the status could point to clean top or bottom!
 	volatile uintptr_t _cleanMemoryStatus;
 	
 /*

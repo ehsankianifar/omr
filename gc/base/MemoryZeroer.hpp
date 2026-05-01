@@ -98,8 +98,14 @@ public:
 	 * @param start Start address of memory to zero
 	 * @param size Size of memory to zero
 	 * @param statusPtr Pointer to status variable (will be set to 1 when complete)
+	 * @return True if the request was accepted.
 	 */
-	void requestZeroing(void *start, uintptr_t size, volatile uintptr_t *statusPtr);
+	bool requestZeroing(void *start, uintptr_t size, volatile uintptr_t *statusPtr);
+
+	 /**
+	 * Wait for the memory zeroer thread to finish the job
+	 */
+	void waitToFinish();
 	
 	/**
 	 * Constructor

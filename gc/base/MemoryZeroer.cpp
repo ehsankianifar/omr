@@ -27,6 +27,7 @@
 #include "MemoryZeroer.hpp"
 #include "EnvironmentBase.hpp"
 #include "GCExtensionsBase.hpp"
+#include "ehsanLogger.h"
 
 MM_MemoryZeroer *
 MM_MemoryZeroer::newInstance(MM_EnvironmentBase *env)
@@ -62,12 +63,18 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 	if (0 != omrthread_monitor_init_with_name(&_monitor, 0, "MM_MemoryZeroer::monitor")) {
 		return false;
 	}
+
+	// usint TR_memoryCleanerThreadPriority to set the thread priority.
+	// If TR_memoryCleanerThreadPriority is not provided, J9THREAD_PRIORITY_NORMAL is used.
+	const char* priorityChar = getenv("TR_memoryCleanerThreadPriority");
+	const uintptr_t priority = priorityChar == NULL ? J9THREAD_PRIORITY_NORMAL : std::atoi(priorityChar);
 	
 	/* Create the worker thread */
-	if (0 != omrthread_create(&_workerThread, 0, J9THREAD_PRIORITY_NORMAL, 0, 
+	if (0 != omrthread_create(&_workerThread, 0, priority, 0, 
 	                          workerThreadMain, this)) {
 		omrthread_monitor_destroy(_monitor);
 		_monitor = NULL;
+		ehsanLog("Failed to create the worker thread!");
 		return false;
 	}
 	
@@ -77,6 +84,7 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 		omrthread_monitor_wait(_monitor);
 	}
 	omrthread_monitor_exit(_monitor);
+	ehsanLog("Create the worker thread with priority %d.", priority);
 	
 	return true;
 }
@@ -84,6 +92,7 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 void
 MM_MemoryZeroer::tearDown(MM_EnvironmentBase *env)
 {
+	ehsanLog("Thear Down the worker thread!");
 	if (NULL != _monitor) {
 		/* Request shutdown and notify the worker thread */
 		omrthread_monitor_enter(_monitor);
@@ -127,36 +136,48 @@ MM_MemoryZeroer::workerLoop()
 	/* Main worker loop */
 	while (!_shutdownRequested) {
 		/* Wait for work */
+		// this while is unnecessry!
 		while (!_hasWork && !_shutdownRequested) {
+			// Release the monitor, wait for a signal (notification), then re-acquire the monitor.
 			omrthread_monitor_wait(_monitor);
 		}
 		
 		if (_shutdownRequested) {
 			break;
 		}
-		
-		/* We have work - copy the parameters and release the monitor */
-		void *start = _zeroStart;
-		uintptr_t size = _zeroSize/8;
-		volatile uintptr_t *statusPtr = _statusPtr;
-		
-		/* Clear work flag before releasing monitor */
 		_hasWork = false;
-		
-		/* Release monitor while doing the actual work */
-		omrthread_monitor_exit(_monitor);
-		
-		
-        *statusPtr = (uintptr_t)_zeroStart;
-        for(int i=0 ;i<8; i++) {
-            /* Perform the memory zeroing operation */
-            OMRZeroMemory(start, size);
-            start= (void*)((uintptr_t)start + size);
-            *statusPtr = (uintptr_t)start;
-        }
-		
-		/* Re-acquire monitor for next iteration */
-		omrthread_monitor_enter(_monitor);
+		// Current strategy:
+		// Clean the whole block while keeping the monitor aquired!
+		// Update the status to point to the bottom of the clean block!
+		OMRZeroMemory(_zeroStart, _zeroSize);
+		*_statusPtr = (uintptr_t)_zeroStart;
+
+
+
+		/* pervious strategy:
+			// We have work - copy the parameters and release the monitor
+			void *start = _zeroStart;
+			uintptr_t size = _zeroSize;
+			volatile uintptr_t *statusPtr = _statusPtr;
+			
+			// Clear work flag before releasing monitor
+			_hasWork = false;
+			
+			// Release monitor while doing the actual work
+			omrthread_monitor_exit(_monitor);
+			
+			
+			*statusPtr = (uintptr_t)_zeroStart;
+			for(int i=0 ;i<8; i++) {
+				// Perform the memory zeroing operation
+				OMRZeroMemory(start, size);
+				start= (void*)((uintptr_t)start + size);
+				*statusPtr = (uintptr_t)start;
+			}
+			
+			// Re-acquire monitor for next iteration
+			omrthread_monitor_enter(_monitor);
+		*/
 	}
 	
 	/* Signal that thread is exiting */
@@ -165,26 +186,32 @@ MM_MemoryZeroer::workerLoop()
 	omrthread_monitor_exit(_monitor);
 }
 
-void
+bool
 MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile uintptr_t *statusPtr)
 {
-	Assert_MM_true(NULL != _monitor);
-	
-	omrthread_monitor_enter(_monitor);
-	
-	/* Wait if there's already work pending */
-	while (_hasWork) {
-		omrthread_monitor_wait(_monitor);
+	//Assert_MM_true(NULL != _monitor);
+
+	// Easily giveup if can not monotor enter!
+	if (omrthread_monitor_try_enter(_monitor) == 0) {
+		/* Set up the work parameters */
+		_zeroStart = start;
+		_zeroSize = size;
+		_statusPtr = statusPtr;
+		_hasWork = true;
+		
+		/* Notify the worker thread */
+		omrthread_monitor_notify(_monitor);
+		
+		omrthread_monitor_exit(_monitor);
+		return true;
 	}
-	
-	/* Set up the work parameters */
-	_zeroStart = start;
-	_zeroSize = size;
-	_statusPtr = statusPtr;
-	_hasWork = true;
-	
-	/* Notify the worker thread */
-	omrthread_monitor_notify(_monitor);
-	
+	return false;
+}
+
+void
+MM_MemoryZeroer::waitToFinish()
+{
+	// Just wait on the monitor and release it as soon as it is aquired!
+	omrthread_monitor_enter(_monitor);
 	omrthread_monitor_exit(_monitor);
 }

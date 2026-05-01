@@ -708,6 +708,11 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 
     return result;
 }
+
+
+// this value is optimized for spring benchmark with 8gb heap and large data size!
+#define BLOCK_SIZE = 131072;
+
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 	/* Lazy initialization of memoryZeroer on first use */
@@ -716,8 +721,11 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 		_extensions->memoryZeroer = MM_MemoryZeroer::newInstance(&env);
 	}
 	
-	if (NULL != _extensions->memoryZeroer) {
-		_extensions->memoryZeroer->requestZeroing((void*)_cleanMemoryStart, _cleanMemorySize, &_cleanMemoryStatus);
+	if (NULL != _extensions->memoryZeroer
+		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE, &_cleanMemoryStatus)) {
+		// start of the clean memory region is now one block lower!
+		_cleanMemoryStart -= BLOCK_SIZE;
+		
 	}
 }
 
@@ -731,63 +739,13 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 	MM_HeapLinkedFreeHeader *freeEntry = NULL;
 	uintptr_t consumedSize = 0;
 	uintptr_t recycleEntrySize = 0;
-	const bool allocateTLHFromTop = getenv("TR_allocateFromTop") != NULL;
 	const bool allocateCleanMemory = getenv("TR_allocateCleanMemory") != NULL;
+	// If there is enough free clean space on the top, allocate from top!
+	bool allocateTLHFromTop = false;
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
-
-
-	if(allocateCleanMemory && initializeTLH) {
-		if (0 != _cleanMemoryStart) {
-			if(_cleanMemoryStatus >= _cleanMemoryStart + maximumSizeInBytesRequired) {
-				// we have a initialize memory ready.
-				addrBase = (void *)_cleanMemoryStart;
-				// status 0 means ready. we can allocate from this memory!
-				if (_cleanMemorySize < (maximumSizeInBytesRequired + _minimumFreeEntrySize)) {
-					// Give the whole space to this tlh
-					addrTop = (void *)(_cleanMemoryStart + _cleanMemorySize);
-					_cleanMemoryStart = 0;
-					_cleanMemorySize = 0;
-					while (_cleanMemoryStatus < (uintptr_t)addrTop) {
-						// just in case that the size is a littlebit bigger but not cleaned yet!
-					}
-				} else {
-					// Allocate memory from this space and update it!
-					_cleanMemoryStart = _cleanMemoryStart + maximumSizeInBytesRequired;
-					_cleanMemorySize -= maximumSizeInBytesRequired;
-					addrTop = (void *)_cleanMemoryStart;
-				}
-				ehsanLogNoNewLine("A%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-				initializeTLH = false; // no need to initialize as we allocated from clean heap!
-				goto unlock_and_init;
-			} else {
-				// we have initialized memory in the oven but it is not ready yet.
-				ehsanLogNoNewLine("B ");
-			}
-
-		} else {
-			// Initialize creation of clean memory
-			// Just for the experiment lets take half of the whole space of the current header.
-			// this 20x of min free entry size is arbitrary
-			if (NULL != _heapFreeList && _heapFreeList->getSize() >= maximumSizeInBytesRequired * 20) {
-				//tale half the size and set the last bute to zero to make sure there is no alignment issue
-				const int ratio = std::atoi(getenv("TR_allocateCleanMemory"));
-				_cleanMemorySize = ((_heapFreeList->getSize() * ratio) / 10) & ~(uintptr_t)0xff;
-				_largeObjectAllocateStats->decrementFreeEntrySizeClassStats(_cleanMemorySize);
-				_heapFreeList->setSize(_heapFreeList->getSize() - _cleanMemorySize);
-
-				// Allocate from the top of the header
-				_cleanMemoryStart = (uintptr_t)_heapFreeList + _heapFreeList->getSize();
-				_cleanMemoryStatus = 0;
-				ehsanLogNoNewLine("C%d ", _cleanMemorySize);
-				initiateMemoryZeroing();// initiate background thread.
-			} else {
-				ehsanLogNoNewLine("D ");
-			}
-		}
-
-	}
+	bool inlineZeroMemory = false;
 
 retry:
 	freeEntry = _heapFreeList;
@@ -842,24 +800,26 @@ retry:
 	}
 
 	entryNext = freeEntry->getNext(compressed);
-	if (allocateTLHFromTop) {
+
+	if(allocateCleanMemory && initializeTLH && (_cleanMemoryStatus - _cleanMemoryEnd) >= consumedSize) {
+		// We have enough free initialize space on the top to allocate this TLH.
+		// Allocate from top and skip initialization as it was already initialized
+		// impossible to have zero recycled as it would interfere with the header metadata!
 		addrBase = (void *)((uintptr_t)freeEntry + recycleEntrySize);
 		addrTop = (void *)((uintptr_t)freeEntry + freeEntrySize);
+		// The clean memory end address should match the end of the header.
+		Assert_MM_true((uintptr_t)addrTop == _cleanMemoryEnd);
 		//ehsanLog("InternalAllocateTLH fromTop %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
-		// If the lefover is small we just add it to the TLH so we either have a valid chunk or zero leftover.
-		if (recycleEntrySize == 0) {
-			_heapFreeList = entryNext;
-			_freeEntryCount -= 1;
-			//removeHint(freeEntry);
-		} else {
-			// Probably unnecessary
-			//updatePrevCardUnalignedFreeEntry(nextFreeEntry, currentFreeEntry);
-			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-			freeEntry->setSize(recycleEntrySize);
-		}
+		// Probably unnecessary
+		//updatePrevCardUnalignedFreeEntry(nextFreeEntry, currentFreeEntry);
+		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
+		freeEntry->setSize(recycleEntrySize);
+		_cleanMemoryEnd -= consumedSize;
+
 	} else {
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
+		inlineZeroMemory = initializeTLH;
 
 		//ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
 
@@ -882,13 +842,9 @@ retry:
 				_allocDiscardedBytes += recycleEntrySize;
 			}
 		} else {
-			/* Better to do it in tlh allocation support since this clean for GC copy allocation as well
-			const bool superClean = getenv("TR_superBatchClear") != NULL;
-			if (superClean) {
-				// Need to delete the header from the top.
-				memset(addrBase, 0, sizeof(MM_HeapLinkedFreeHeader));
-			}
-			*/
+			// The free entry is consumed. set the clean memory end to zero to indicate that!
+			_cleanMemoryEnd = 0;
+
 			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
 			/* If not recycling just update the free list pointer to the next free entry */
 			_heapFreeList = entryNext;
@@ -901,44 +857,44 @@ unlock_and_init:
 	if (lockingRequired) {
 		_heapLock.release();
 	}
-
-	if (initializeTLH) {
+	if (inlineZeroMemory) {
 		ehsanLogNoNewLine("H ");
-		OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
+		if (_cleanMemoryStart < (uintptr_t)addrTop && _cleanMemoryStart >= addrBase) {
+			// If the cleanining thread is already clean the top of tlh, we only clean the bottom and wait for the cleaner to finish if it is not already!
+			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
+			_extensions->memoryZeroer->waitToFinish();
+		} else {
+			OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
+		}
 	} else {
 		ehsanLogNoNewLine("I ");
+	}
+
+	// Allocation done. lets clean a new block!
+	if (allocateCleanMemory && initializeTLH && _heapFreeList) {
+		if (_cleanMemoryEnd == 0) {
+			// make sure cleaning thread is free!
+			_extensions->memoryZeroer->waitToFinish();
+			// this is the initial cleaning on this header. set values to point to the top!
+			_cleanMemoryEnd = (uintptr_t)_heapFreeList + _heapFreeList->getSize();
+			_cleanMemoryStart = _cleanMemoryEnd;
+			_cleanMemoryStatus = _cleanMemoryEnd;
+			ehsanLogNoNewLine("x ");
+		}
+		if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > BLOCK_SIZE) {
+			// make sure _cleanMemoryStart is within the header range.
+			Assert_MM_true((uintptr_t)_heapFreeList + _heapFreeList->getSize() >= _cleanMemoryStart);
+			initiateMemoryZeroing();
+			ehsanLogNoNewLine("w ");
+		} else {
+			ehsanLogNoNewLine("y ");
+		}
 	}
 
 	return true;
 
 fail_allocate:
-	// If there is a clean memory but it is under init, we should wait until it finishes cleaning!
-	if(allocateCleanMemory && 0 != _cleanMemoryStart) {
 
-		// we have a initialize memory ready.
-		addrBase = (void *)_cleanMemoryStart;
-		//ehsanLog("Allocate From clean memory.");
-		// status 0 means ready. we can allocate from this memory!
-		if (_cleanMemorySize < (maximumSizeInBytesRequired + _minimumFreeEntrySize)) {
-			// Give the whole space to this tlh
-			addrTop = (void *)(_cleanMemoryStart + _cleanMemorySize);
-			_cleanMemoryStart = 0;
-			_cleanMemorySize = 0;
-		} else {
-			// Allocate memory from this space and update it!
-			_cleanMemoryStart = _cleanMemoryStart + maximumSizeInBytesRequired;
-			_cleanMemorySize -= maximumSizeInBytesRequired;
-			addrTop = (void *)_cleanMemoryStart;
-		}
-		// wait until the memory is cleaned. we should not get here!
-		while (_cleanMemoryStatus < (uintptr_t)addrTop) {
-			ehsanLogNoNewLine("F");
-			printf("*** WAITING ***");
-		}
-		ehsanLogNoNewLine("G%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-		initializeTLH = false; // no need to initialize as we allocated from clean heap!
-		goto unlock_and_init;
-	}
 	/* if we failed to allocate a TLH, this pool is either full or so heavily fragmented that it is effectively full */
 	_largestFreeEntry = 0;
 	if(lockingRequired) {
@@ -1045,7 +1001,8 @@ MM_MemoryPoolAddressOrderedList::reset(Cause cause)
 	resetFreeEntryAllocateStats(_largeObjectAllocateStats);
 	resetLargeObjectAllocateStats();
 	_cleanMemoryStart = 0;
-	_cleanMemorySize = 0;
+	_cleanMemoryEnd = 0;
+	_cleanMemoryStatus = 0;
 }
 
 /**
