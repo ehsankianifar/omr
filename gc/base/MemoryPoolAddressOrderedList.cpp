@@ -740,8 +740,6 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 	uintptr_t consumedSize = 0;
 	uintptr_t recycleEntrySize = 0;
 	const bool allocateCleanMemory = getenv("TR_allocateCleanMemory") != NULL;
-	// If there is enough free clean space on the top, allocate from top!
-	bool allocateTLHFromTop = false;
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
@@ -859,7 +857,7 @@ unlock_and_init:
 	}
 	if (inlineZeroMemory) {
 		ehsanLogNoNewLine("H ");
-		if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= addrBase)) {
+		if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
 			// If the cleanining thread is already clean the top of tlh, we only clean the bottom and wait for the cleaner to finish if it is not already!
 			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
 			_extensions->memoryZeroer->waitToFinish();
