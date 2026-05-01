@@ -859,7 +859,7 @@ unlock_and_init:
 	}
 	if (inlineZeroMemory) {
 		ehsanLogNoNewLine("H ");
-		if (_cleanMemoryStart < (uintptr_t)addrTop && _cleanMemoryStart >= addrBase) {
+		if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= addrBase)) {
 			// If the cleanining thread is already clean the top of tlh, we only clean the bottom and wait for the cleaner to finish if it is not already!
 			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
 			_extensions->memoryZeroer->waitToFinish();
@@ -883,7 +883,7 @@ unlock_and_init:
 		}
 		if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > BLOCK_SIZE) {
 			// make sure _cleanMemoryStart is within the header range.
-			Assert_MM_true((uintptr_t)_heapFreeList + _heapFreeList->getSize() >= _cleanMemoryStart);
+			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("w ");
 		} else {
