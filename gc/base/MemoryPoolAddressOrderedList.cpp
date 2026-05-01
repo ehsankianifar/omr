@@ -711,7 +711,7 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 
 
 // this value is optimized for spring benchmark with 8gb heap and large data size!
-#define BLOCK_SIZE = 131072;
+#define BLOCK_SIZE 131072;
 
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
