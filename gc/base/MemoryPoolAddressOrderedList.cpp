@@ -808,6 +808,7 @@ retry:
 		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
 		freeEntry->setSize(recycleEntrySize);
 		_cleanMemoryEnd -= consumedSize;
+		ehsanLogNoNewLine("K");
 
 	} else {
 		addrBase = (void *)freeEntry;
@@ -834,6 +835,7 @@ retry:
 
 				_allocDiscardedBytes += recycleEntrySize;
 			}
+			ehsanLogNoNewLine("L");
 		} else {
 			// The free entry is consumed. set the clean memory end to zero to indicate that!
 			_cleanMemoryEnd = 0;
@@ -843,28 +845,13 @@ retry:
 			_heapFreeList = entryNext;
 			/* also update the freeEntryCount as recycleHeapChunk would do this */
 			_freeEntryCount -= 1;
+			ehsanLogNoNewLine("M");
 		}
 	}
-	ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
+	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
+	ehsanLogNoNewLine("%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 
-	if (lockingRequired) {
-		_heapLock.release();
-	}
-	if (inlineZeroMemory) {
-		ehsanLogNoNewLine("H ");
-		if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
-			// If the cleanining thread is already clean the top of tlh, we only clean the bottom and wait for the cleaner to finish if it is not already!
-			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
-			_extensions->memoryZeroer->waitToFinish();
-		} else {
-			OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
-		}
-	} else {
-		ehsanLogNoNewLine("I ");
-	}
-
-	// Allocation done. lets clean a new block!
-	if (allocateCleanMemory && initializeTLH && _heapFreeList) {
+	if ((recycleEntrySize > (BLOCK_SIZE << 1)) && allocateCleanMemory && initializeTLH) {
 		if (_cleanMemoryEnd == 0) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
@@ -872,16 +859,33 @@ retry:
 			_cleanMemoryEnd = (uintptr_t)_heapFreeList + _heapFreeList->getSize();
 			_cleanMemoryStart = _cleanMemoryEnd;
 			_cleanMemoryStatus = _cleanMemoryEnd;
+			initiateMemoryZeroing();
 			ehsanLogNoNewLine("x ");
-		}
-		if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > BLOCK_SIZE) {
+		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 1)) {
 			// make sure _cleanMemoryStart is within the header range.
 			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("w ");
 		} else {
-			ehsanLogNoNewLine("y ");
+			ehsanLogNoNewLine("z ");
 		}
+	}
+
+	if (lockingRequired) {
+		_heapLock.release();
+	}
+	if (inlineZeroMemory) {
+		if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
+			// If the cleanining thread is already clean the top of tlh, we only clean the bottom and wait for the cleaner to finish if it is not already!
+			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
+			ehsanLogNoNewLine("H ");
+			_extensions->memoryZeroer->waitToFinish();
+		} else {
+			ehsanLogNoNewLine("J ");
+			OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
+		}
+	} else {
+		ehsanLogNoNewLine("I ");
 	}
 
 	return true;
