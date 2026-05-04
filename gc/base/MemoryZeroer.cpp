@@ -131,13 +131,14 @@ MM_MemoryZeroer::workerLoop()
 	
 	/* Signal that thread has started */
 	_threadRunning = true;
-	omrthread_monitor_notify(_monitor);
+	//omrthread_monitor_notify(_monitor);
 	
 	/* Main worker loop */
 	while (!_shutdownRequested) {
 		/* Wait for work */
 		// this while is unnecessry!
 		_hasWork = false;
+		omrthread_monitor_notify(_monitor);
 		while (!_hasWork && !_shutdownRequested) {
 			// Release the monitor, wait for a signal (notification), then re-acquire the monitor.
 			omrthread_monitor_wait(_monitor);
@@ -214,5 +215,8 @@ MM_MemoryZeroer::waitToFinish()
 {
 	// Just wait on the monitor and release it as soon as it is aquired!
 	omrthread_monitor_enter(_monitor);
+	while (_hasWork) {
+		omrthread_monitor_wait(_monitor);
+	}
 	omrthread_monitor_exit(_monitor);
 }
