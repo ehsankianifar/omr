@@ -741,7 +741,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
-	bool inlineZeroMemory = false;
+	uintptr_t inlineZeroMemory = 0;
 
 retry:
 	freeEntry = _heapFreeList;
@@ -816,7 +816,15 @@ retry:
 	} else {
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
-		inlineZeroMemory = initializeTLH;
+		if (initializeTLH) {
+			if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
+				inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
+				_cleanMemoryStart = (uintptr_t)addrTop;
+				_extensions->memoryZeroer->waitToFinish();
+			} else {
+				inlineZeroMemorySize = (uintptr_t)addrTop - (uintptr_t)addrBase;
+			}
+		}
 
 		//ehsanLog("InternalAllocateTLH %p to %p recycled 0x%lx %s", addrBase, addrTop, recycleEntrySize, ehsanGetInfo());
 
@@ -840,6 +848,8 @@ retry:
 			}
 			ehsanLogNoNewLine("L");
 		} else {
+			// The free entry is consumed. set the clean memory end to zero to indicate that!
+			_cleanMemoryEnd = 0;
 			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
 			/* If not recycling just update the free list pointer to the next free entry */
 			_heapFreeList = entryNext;
@@ -874,17 +884,10 @@ retry:
 	if (lockingRequired) {
 		_heapLock.release();
 	}
-	if (inlineZeroMemory) {
-		if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
-			// If the cleanining thread is already clean the top of tlh, we only clean the bottom and wait for the cleaner to finish if it is not already!
-			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
-			ehsanLogNoNewLine("H ");
-			_extensions->memoryZeroer->waitToFinish();
-
-		} else {
-			ehsanLogNoNewLine("J ");
-			OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
-		}
+	if (inlineZeroMemorySize > 0) {
+		ehsanLogNoNewLine("J ");
+		OMRZeroMemory(addrBase, inlineZeroMemorySize);
+		// we may need to wait for async zeroer to finish!
 	} else {
 		ehsanLogNoNewLine("I ");
 	}
