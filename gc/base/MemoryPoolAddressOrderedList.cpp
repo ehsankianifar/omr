@@ -840,9 +840,6 @@ retry:
 			}
 			ehsanLogNoNewLine("L");
 		} else {
-			// The free entry is consumed. set the clean memory end to zero to indicate that!
-			_cleanMemoryEnd = 0;
-
 			updatePrevCardUnalignedFreeEntry(entryNext, FREE_ENTRY_END);
 			/* If not recycling just update the free list pointer to the next free entry */
 			_heapFreeList = entryNext;
