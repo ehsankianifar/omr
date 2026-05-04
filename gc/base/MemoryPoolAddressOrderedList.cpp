@@ -817,7 +817,8 @@ retry:
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 		if (initializeTLH) {
-			if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
+			// we can partially zero the last block if it was half zeroed. Disable to investigate a bug
+			if (false && (_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
 				inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
 				_cleanMemoryStart = (uintptr_t)addrTop;
 				_extensions->memoryZeroer->waitToFinish();
