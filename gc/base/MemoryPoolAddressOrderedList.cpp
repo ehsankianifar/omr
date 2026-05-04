@@ -741,7 +741,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
-	uintptr_t inlineZeroMemory = 0;
+	uintptr_t inlineZeroMemorySize = 0;
 
 retry:
 	freeEntry = _heapFreeList;
