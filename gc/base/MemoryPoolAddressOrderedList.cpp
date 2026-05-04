@@ -720,7 +720,10 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE, &_cleanMemoryStatus)) {
 		// start of the clean memory region is now one block lower!
 		_cleanMemoryStart -= BLOCK_SIZE;
+		ehsanLogNoNewLine("A0x%lx_", _cleanMemoryStart);
 		
+	} else {
+		ehsanLogNoNewLine("B");
 	}
 }
 
@@ -794,7 +797,7 @@ retry:
 
 	entryNext = freeEntry->getNext(compressed);
 
-	if(allocateCleanMemory && initializeTLH && (_cleanMemoryStatus - _cleanMemoryEnd) >= consumedSize) {
+	if(allocateCleanMemory && initializeTLH && (_cleanMemoryEnd - _cleanMemoryStatus) >= consumedSize) {
 		// We have enough free initialize space on the top to allocate this TLH.
 		// Allocate from top and skip initialization as it was already initialized
 		// impossible to have zero recycled as it would interfere with the header metadata!
@@ -849,7 +852,7 @@ retry:
 		}
 	}
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-	ehsanLogNoNewLine("%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
+	ehsanLogNoNewLine("%p_%d_", addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
 
 	if ((recycleEntrySize > (BLOCK_SIZE << 1)) && allocateCleanMemory && initializeTLH) {
 		if (_cleanMemoryEnd == 0) {
@@ -860,14 +863,14 @@ retry:
 			_cleanMemoryStart = _cleanMemoryEnd;
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing();
-			ehsanLogNoNewLine("x ");
+			ehsanLogNoNewLine("x");
 		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 1)) {
 			// make sure _cleanMemoryStart is within the header range.
 			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
 			initiateMemoryZeroing();
-			ehsanLogNoNewLine("w ");
+			ehsanLogNoNewLine("w");
 		} else {
-			ehsanLogNoNewLine("z ");
+			ehsanLogNoNewLine("z");
 		}
 	}
 
