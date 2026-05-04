@@ -797,7 +797,7 @@ retry:
 
 	entryNext = freeEntry->getNext(compressed);
 
-	if(allocateCleanMemory && initializeTLH && (_cleanMemoryEnd - _cleanMemoryStatus) >= consumedSize) {
+	if(allocateCleanMemory && initializeTLH && ((_cleanMemoryEnd - _cleanMemoryStatus) >= consumedSize) && (recycleEntrySize > 0)) {
 		// We have enough free initialize space on the top to allocate this TLH.
 		// Allocate from top and skip initialization as it was already initialized
 		// impossible to have zero recycled as it would interfere with the header metadata!
@@ -880,6 +880,7 @@ retry:
 			OMRZeroMemory(addrBase, _cleanMemoryStart - (uintptr_t)addrBase);
 			ehsanLogNoNewLine("H ");
 			_extensions->memoryZeroer->waitToFinish();
+
 		} else {
 			ehsanLogNoNewLine("J ");
 			OMRZeroMemory(addrBase, (uintptr_t)addrTop - (uintptr_t)addrBase);
