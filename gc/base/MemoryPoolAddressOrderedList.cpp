@@ -861,7 +861,7 @@ retry:
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 	ehsanLogNoNewLine("%p_%d_", addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
 
-	if ((recycleEntrySize > (BLOCK_SIZE << 1)) && allocateCleanMemory && initializeTLH) {
+	if ((recycleEntrySize > (BLOCK_SIZE << 3)) && allocateCleanMemory && initializeTLH) {
 		if (_cleanMemoryEnd == 0) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
@@ -871,7 +871,7 @@ retry:
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("x");
-		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 1)) {
+		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 3)) {
 			// make sure _cleanMemoryStart is within the header range.
 			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
 			initiateMemoryZeroing();
