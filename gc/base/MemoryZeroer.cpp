@@ -137,6 +137,7 @@ MM_MemoryZeroer::workerLoop()
 	while (!_shutdownRequested) {
 		/* Wait for work */
 		// this while is unnecessry!
+		_hasWork = false;
 		while (!_hasWork && !_shutdownRequested) {
 			// Release the monitor, wait for a signal (notification), then re-acquire the monitor.
 			omrthread_monitor_wait(_monitor);
@@ -145,7 +146,7 @@ MM_MemoryZeroer::workerLoop()
 		if (_shutdownRequested) {
 			break;
 		}
-		_hasWork = false;
+		
 		// Current strategy:
 		// Clean the whole block while keeping the monitor aquired!
 		// Update the status to point to the bottom of the clean block!
@@ -192,7 +193,7 @@ MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile uintptr_t 
 	//Assert_MM_true(NULL != _monitor);
 
 	// Easily giveup if can not monotor enter!
-	if (omrthread_monitor_try_enter(_monitor) == 0) {
+	if (!_hasWork && (omrthread_monitor_try_enter(_monitor) == 0)) {
 		/* Set up the work parameters */
 		_zeroStart = start;
 		_zeroSize = size;
