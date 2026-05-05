@@ -554,7 +554,7 @@ retry:
 
 	//ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
 
-	if ((_cleanMemoryStart < ((uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader))
+	if ((_cleanMemoryStart < ((uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader)))
 		&& (_cleanMemoryStatus >= (uintptr_t)addrBase)) {
 		// If the cleanier is working on this section of memory, wait for it to finish.
 		_extensions->memoryZeroer->waitToFinish();
