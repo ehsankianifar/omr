@@ -465,7 +465,6 @@ MM_MemoryPoolAddressOrderedList::internalAllocate(MM_EnvironmentBase *env, uintp
 	J9ModronAllocateHint *allocateHintUsed;
 	void *addrBase;
 	uintptr_t largestFreeEntry = 0;
-	const bool allocateFromTop = getenv("TR_allocateFromTop") != NULL;
 	if (lockingRequired) {
 		_heapLock.acquire();
 	}
@@ -549,54 +548,28 @@ retry:
 	/* Determine what to do with the recycled portion of the free entry */
 	recycleEntrySize = currentFreeEntry->getSize() - sizeInBytesRequired;
 
-	if (allocateFromTop) {
-		//allocating from top so the base is (currentFreeEntry + currentFreeEntry->getSize() - sizeInBytesRequired)
-		addrBase = (void *)((uintptr_t)currentFreeEntry + recycleEntrySize);
-		//ehsanLog("InternalAllocate FromTop from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
-		// If recycled size is less than header, fill it with holes.
-		// It it is less than minimum, set previous to next.
-		if (recycleEntrySize < _minimumFreeEntrySize) {
-			// It is usless now. Lets fill it with holes and abondan it.
-			MM_HeapLinkedFreeHeader::fillWithHoles((void *)currentFreeEntry, recycleEntrySize, compressed);
-			if (previousFreeEntry) {
-				Assert_MM_true((NULL == nextFreeEntry) || (previousFreeEntry < nextFreeEntry));
-				previousFreeEntry->setNext(nextFreeEntry, compressed);
-			} else {
-				_heapFreeList = nextFreeEntry;
-			}
-			_freeMemorySize -= recycleEntrySize;
-			_freeEntryCount -= 1;
-			_allocDiscardedBytes += recycleEntrySize;
-			removeHint(currentFreeEntry);
-		} else {
-			// Probably unnecessary
-			//updatePrevCardUnalignedFreeEntry(nextFreeEntry, currentFreeEntry);
-			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-			currentFreeEntry->setSize(recycleEntrySize);
-		}
+	
+	addrBase = (void *)currentFreeEntry;
+	recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
+
+	//ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
+	
+
+	if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
+		updatePrevCardUnalignedFreeEntry(nextFreeEntry, recycleEntry);
+		updateHint(currentFreeEntry, recycleEntry);
+		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
 	} else {
-		addrBase = (void *)currentFreeEntry;
-		recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
+		updatePrevCardUnalignedFreeEntry(nextFreeEntry, previousFreeEntry);
+		/* Adjust the free memory size and count */
+		_freeMemorySize -= recycleEntrySize;
+		_freeEntryCount -= 1;
 
-		//ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
-		
+		/* Update discard bytes if necessary */
+		_allocDiscardedBytes += recycleEntrySize;
 
-		if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
-			updatePrevCardUnalignedFreeEntry(nextFreeEntry, recycleEntry);
-			updateHint(currentFreeEntry, recycleEntry);
-			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
-		} else {
-			updatePrevCardUnalignedFreeEntry(nextFreeEntry, previousFreeEntry);
-			/* Adjust the free memory size and count */
-			_freeMemorySize -= recycleEntrySize;
-			_freeEntryCount -= 1;
-
-			/* Update discard bytes if necessary */
-			_allocDiscardedBytes += recycleEntrySize;
-
-			/* Removed from the free list - Kill the hint if necessary */
-			removeHint(currentFreeEntry);
-		}
+		/* Removed from the free list - Kill the hint if necessary */
+		removeHint(currentFreeEntry);
 	}
 	
 	/* Collector object allocate stats for Survivor are not interesting (_largeObjectCollectorAllocateStats is null for Survivor) */	
@@ -610,8 +583,13 @@ retry:
 	
 	Assert_MM_true(NULL != addrBase);
 
-	ehsanLog("\nP_%p_%d", addrBase, sizeInBytesRequired);
-	
+	ehsanLog("\nP%d_%p_%d", lockingRequired, addrBase, sizeInBytesRequired);
+	if ((_cleanMemoryStart < (uintptr_t)addrBase + sizeInBytesRequired)
+		&& (_cleanMemoryStatus >= (uintptr_t)addrBase)) {
+		// If the cleanier is working on this section of memory, wait for it to finish.
+		_extensions->memoryZeroer->waitToFinish();
+		ehsanLogNoNewLine("!");
+	}
 	return addrBase;
 
 fail_allocate:
