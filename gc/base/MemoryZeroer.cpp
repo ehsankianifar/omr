@@ -216,9 +216,11 @@ void
 MM_MemoryZeroer::waitToFinish()
 {
 	// Just wait on the monitor and release it as soon as it is aquired!
+	ehsanLogNoNewLine(">");
 	omrthread_monitor_enter(_monitor);
 	while (_hasWork) {
 		omrthread_monitor_wait(_monitor);
 	}
 	omrthread_monitor_exit(_monitor);
+	ehsanLogNoNewLine("<");
 }

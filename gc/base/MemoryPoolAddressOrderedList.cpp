@@ -742,6 +742,7 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 		_heapLock.acquire();
 	}
 	uintptr_t inlineZeroMemorySize = 0;
+	bool waitForZeroer = false;
 
 retry:
 	freeEntry = _heapFreeList;
@@ -822,6 +823,7 @@ retry:
 				inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
 				_cleanMemoryStart = (uintptr_t)addrTop;
 				_extensions->memoryZeroer->waitToFinish();
+				waitForZeroer = true;
 			} else {
 				inlineZeroMemorySize = (uintptr_t)addrTop - (uintptr_t)addrBase;
 			}
@@ -862,7 +864,7 @@ retry:
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 	ehsanLogNoNewLine("%p_%d_", addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
 
-	if ((recycleEntrySize > (BLOCK_SIZE << 3)) && allocateCleanMemory && initializeTLH) {
+	if ((recycleEntrySize > (BLOCK_SIZE << 2)) && allocateCleanMemory && initializeTLH) {
 		if (_cleanMemoryEnd == 0) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
@@ -872,7 +874,7 @@ retry:
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("x");
-		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 3)) {
+		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 2)) {
 			// make sure _cleanMemoryStart is within the header range.
 			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
 			initiateMemoryZeroing();
@@ -886,9 +888,12 @@ retry:
 		_heapLock.release();
 	}
 	if (inlineZeroMemorySize > 0) {
-		ehsanLogNoNewLine("J ");
+		ehsanLogNoNewLine("J%d ", inlineZeroMemorySize);
 		OMRZeroMemory(addrBase, inlineZeroMemorySize);
 		// we may need to wait for async zeroer to finish!
+		if (waitForZeroer) {
+			_extensions->memoryZeroer->waitToFinish();
+		}
 	} else {
 		ehsanLogNoNewLine("I ");
 	}
