@@ -137,6 +137,8 @@ MM_MemoryZeroer::workerLoop()
 	while (!_shutdownRequested) {
 		/* Wait for work */
 		// this while is unnecessry!
+
+		// This is not necessry. the monitor is locked during the work!
 		_hasWork = false;
 		omrthread_monitor_notify(_monitor);
 		while (!_hasWork && !_shutdownRequested) {
@@ -218,6 +220,7 @@ MM_MemoryZeroer::waitToFinish()
 	// Just wait on the monitor and release it as soon as it is aquired!
 	//ehsanLogNoNewLine(">");
 	omrthread_monitor_enter(_monitor);
+	// TODO: this wait is not necessary! just keep the monitor in worker thread while working and use enter exit!
 	while (_hasWork) {
 		omrthread_monitor_wait(_monitor);
 	}
