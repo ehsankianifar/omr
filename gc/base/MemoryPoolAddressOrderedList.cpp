@@ -710,6 +710,8 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 		ehsanLogNoNewLine("B");
 	}
 
+	// Just for test:
+	_extensions->memoryZeroer->waitToFinish();
 
 	/*
 	// inline zero for testing
