@@ -797,7 +797,7 @@ retry:
 
 	entryNext = freeEntry->getNext(compressed);
 
-	if(allocateCleanMemory && initializeTLH && ((_cleanMemoryEnd - _cleanMemoryStatus) >= consumedSize) && (recycleEntrySize > 0)) {
+	if(allocateCleanMemory && initializeTLH && ((_cleanMemoryEnd - _cleanMemoryStatus) >= consumedSize) && (recycleEntrySize > 0) && (_cleanMemoryEnd > 0)) {
 		// We have enough free initialize space on the top to allocate this TLH.
 		// Allocate from top and skip initialization as it was already initialized
 		// impossible to have zero recycled as it would interfere with the header metadata!
