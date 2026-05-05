@@ -553,6 +553,14 @@ retry:
 	recycleEntry = (MM_HeapLinkedFreeHeader *)(((uint8_t *)currentFreeEntry) + sizeInBytesRequired);
 
 	//ehsanLog("InternalAllocate from %p to 0x%lx recycled Size 0x%lx %s", addrBase, (uintptr_t)addrBase + sizeInBytesRequired, recycleEntrySize, ehsanGetInfo());
+
+	if ((_cleanMemoryStart < ((uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader))
+		&& (_cleanMemoryStatus >= (uintptr_t)addrBase)) {
+		// If the cleanier is working on this section of memory, wait for it to finish.
+		_extensions->memoryZeroer->waitToFinish();
+		_cleanMemoryStart = (uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader);
+		ehsanLogNoNewLine("!");
+	}
 	
 
 	if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
@@ -577,6 +585,7 @@ retry:
 		largeObjectAllocateStats->allocateObject(sizeInBytesRequired);
 	}
 
+
 	if(lockingRequired) {
 			_heapLock.release();
 		}
@@ -584,12 +593,7 @@ retry:
 	Assert_MM_true(NULL != addrBase);
 
 	ehsanLogNoNewLine("P_%p_%p ", addrBase, (void *)((uintptr_t)addrBase + sizeInBytesRequired));
-	if ((_cleanMemoryStart < (uintptr_t)addrBase + sizeInBytesRequired)
-		&& (_cleanMemoryStatus >= (uintptr_t)addrBase)) {
-		// If the cleanier is working on this section of memory, wait for it to finish.
-		_extensions->memoryZeroer->waitToFinish();
-		ehsanLogNoNewLine("!");
-	}
+
 	return addrBase;
 
 fail_allocate:
