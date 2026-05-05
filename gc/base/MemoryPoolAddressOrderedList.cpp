@@ -713,7 +713,7 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 	*/
 
 	// inline zero for testing
-	OMRZeroMemory((void*)_cleanMemoryStart - BLOCK_SIZE, BLOCK_SIZE);
+	OMRZeroMemory((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE);
 	_cleanMemoryStart -= BLOCK_SIZE;
 	_cleanMemoryStatus = _cleanMemoryStart;
 	ehsanLogNoNewLine("C");
