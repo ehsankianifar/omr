@@ -700,28 +700,24 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
-	/*
-	 
 	if (NULL != _extensions->memoryZeroer
 		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE, &_cleanMemoryStatus)) {
 		// start of the clean memory region is now one block lower!
 		_cleanMemoryStart -= BLOCK_SIZE;
-		ehsanLogNoNewLine("A0x%lx_", _cleanMemoryStart);
-
-		// Just for test:
-		_extensions->memoryZeroer->waitToFinish();
+		ehsanLogNoNewLine("A_0x%lx_0x%lx ", _cleanMemoryStart, _cleanMemoryStart+BLOCK_SIZE);
 		
 	} else {
 		ehsanLogNoNewLine("B");
 	}
-	
-	*/
 
+
+	/*
 	// inline zero for testing
 	OMRZeroMemory((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE);
 	_cleanMemoryStart -= BLOCK_SIZE;
 	_cleanMemoryStatus = _cleanMemoryStart;
 	ehsanLogNoNewLine("C_%p_%p ", (void*)(_cleanMemoryStart), (void*)(_cleanMemoryStart+BLOCK_SIZE));
+	*/
 }
 
 MMINLINE bool
