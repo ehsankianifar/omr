@@ -982,7 +982,7 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 void
 MM_MemoryPoolAddressOrderedList::reset(Cause cause)
 {
-	ehsanLog("Reset List  subspace %s", ehsanGetInfo());
+	ehsanLog("\nReset List  subspace %s", ehsanGetInfo());
 	/* Call superclass first .. */
 	MM_MemoryPool::reset(cause);
 	//checkedResetInitializer();
@@ -2151,5 +2151,6 @@ MM_MemoryPoolAddressOrderedList::notifyHeapIsReady(int source)
 	//source: 3: MM_ParallelGlobalGC::cleanupAfterGC
 	//source: 4: 
 	ehsanLog("*** Notify: %d ***", source);
-	superBatchClear();
+	//superBatchClear();
+	printFreeEntries("Ready");
 }
