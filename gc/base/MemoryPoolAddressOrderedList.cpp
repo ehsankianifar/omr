@@ -702,6 +702,9 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 		_cleanMemoryStart -= BLOCK_SIZE;
 		ehsanLogNoNewLine("A0x%lx_", _cleanMemoryStart);
 		
+		// Just for test:
+		_extensions->memoryZeroer->waitToFinish();
+		
 	} else {
 		ehsanLogNoNewLine("B");
 	}
@@ -842,9 +845,9 @@ retry:
 		}
 	}
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-	ehsanLogNoNewLine("%p_%d_", addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
+	ehsanLogNoNewLine("%d_%p_%d_", lockingRequired, addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
 
-	if ((recycleEntrySize > (BLOCK_SIZE << 2)) && allocateCleanMemory && initializeTLH) {
+	if ((recycleEntrySize > (BLOCK_SIZE << 4)) && allocateCleanMemory && initializeTLH) {
 		if (_cleanMemoryEnd == 0) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
@@ -854,7 +857,7 @@ retry:
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("x");
-		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 2)) {
+		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 4)) {
 			// make sure _cleanMemoryStart is within the header range.
 			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
 			initiateMemoryZeroing();
