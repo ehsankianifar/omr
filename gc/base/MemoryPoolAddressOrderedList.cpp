@@ -713,7 +713,7 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 	*/
 
 	// inline zero for testing
-	OMRZeroMemory((void*)_cleanMemoryStart, BLOCK_SIZE);
+	OMRZeroMemory((void*)_cleanMemoryStart - BLOCK_SIZE, BLOCK_SIZE);
 	_cleanMemoryStart -= BLOCK_SIZE;
 	_cleanMemoryStatus = _cleanMemoryStart;
 	ehsanLogNoNewLine("C");
@@ -856,8 +856,9 @@ retry:
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 	ehsanLogNoNewLine("%d_%p_%d_", lockingRequired, addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
 
-	if ((recycleEntrySize > (BLOCK_SIZE << 4)) && allocateCleanMemory && initializeTLH) {
-		if (_cleanMemoryEnd == 0) {
+	if ((recycleEntrySize > (BLOCK_SIZE << 2)) && allocateCleanMemory && initializeTLH) {
+		if ((_cleanMemoryEnd <= (uintptr_t)_heapFreeList)
+			|| (_cleanMemoryEnd > ((uintptr_t)_heapFreeList + _heapFreeList->getSize()))) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
 			// this is the initial cleaning on this header. set values to point to the top!
@@ -866,9 +867,7 @@ retry:
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("x");
-		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 4)) {
-			// make sure _cleanMemoryStart is within the header range.
-			Assert_MM_true(((uintptr_t)_heapFreeList + _heapFreeList->getSize()) >= _cleanMemoryStart);
+		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 2)) {
 			initiateMemoryZeroing();
 			ehsanLogNoNewLine("w");
 		} else {
