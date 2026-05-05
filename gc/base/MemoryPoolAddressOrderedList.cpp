@@ -583,7 +583,7 @@ retry:
 	
 	Assert_MM_true(NULL != addrBase);
 
-	ehsanLog("\nP%d_%p_%d", lockingRequired, addrBase, sizeInBytesRequired);
+	ehsanLogNoNewLine(" P%d_%p_%d ", lockingRequired, addrBase, sizeInBytesRequired);
 	if ((_cleanMemoryStart < (uintptr_t)addrBase + sizeInBytesRequired)
 		&& (_cleanMemoryStatus >= (uintptr_t)addrBase)) {
 		// If the cleanier is working on this section of memory, wait for it to finish.
@@ -695,19 +695,28 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 
 MMINLINE void
 MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
-	
+	/*
+	 
 	if (NULL != _extensions->memoryZeroer
 		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE, &_cleanMemoryStatus)) {
 		// start of the clean memory region is now one block lower!
 		_cleanMemoryStart -= BLOCK_SIZE;
 		ehsanLogNoNewLine("A0x%lx_", _cleanMemoryStart);
-		
+
 		// Just for test:
 		_extensions->memoryZeroer->waitToFinish();
 		
 	} else {
 		ehsanLogNoNewLine("B");
 	}
+	
+	*/
+
+	// inline zero for testing
+	OMRZeroMemory((void*)_cleanMemoryStart, BLOCK_SIZE);
+	_cleanMemoryStart -= BLOCK_SIZE;
+	_cleanMemoryStatus = _cleanMemoryStart;
+	ehsanLogNoNewLine("C");
 }
 
 MMINLINE bool
