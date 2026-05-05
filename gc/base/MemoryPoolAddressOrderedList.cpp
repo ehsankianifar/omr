@@ -98,7 +98,7 @@ void MM_MemoryPoolAddressOrderedList::printFreeEntries(const char* message){
 	ehsanLog("Free entry list after %s. %s", message, ehsanGetInfo());
 	MM_HeapLinkedFreeHeader *freeEntry = _heapFreeList;
 	while(freeEntry){
-		ehsanLog("    from %p to 0x%lx size 0x%lx", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize());
+		ehsanLog("F_%p_0x%lx", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize());
 		freeEntry = freeEntry->getNext(compressObjectReferences());
 	}
 }
@@ -583,7 +583,7 @@ retry:
 	
 	Assert_MM_true(NULL != addrBase);
 
-	ehsanLogNoNewLine(" P%d_%p_%d ", lockingRequired, addrBase, sizeInBytesRequired);
+	ehsanLogNoNewLine("P_%p_%p ", addrBase, (void *)((uintptr_t)addrBase + sizeInBytesRequired));
 	if ((_cleanMemoryStart < (uintptr_t)addrBase + sizeInBytesRequired)
 		&& (_cleanMemoryStatus >= (uintptr_t)addrBase)) {
 		// If the cleanier is working on this section of memory, wait for it to finish.
@@ -716,7 +716,7 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 	OMRZeroMemory((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE);
 	_cleanMemoryStart -= BLOCK_SIZE;
 	_cleanMemoryStatus = _cleanMemoryStart;
-	ehsanLogNoNewLine("C");
+	ehsanLogNoNewLine("C_%p_%p ", (void*)(_cleanMemoryStart), (void*)(_cleanMemoryStart+BLOCK_SIZE));
 }
 
 MMINLINE bool
@@ -854,7 +854,7 @@ retry:
 		}
 	}
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-	ehsanLogNoNewLine("%d_%p_%d_", lockingRequired, addrBase, (uintptr_t)addrTop-(uintptr_t)addrBase);
+	ehsanLogNoNewLine("_%p_%p ", addrBase, addrTop);
 
 	if ((recycleEntrySize > (BLOCK_SIZE << 2)) && allocateCleanMemory && initializeTLH) {
 		if ((_cleanMemoryEnd <= (uintptr_t)_heapFreeList)
@@ -866,12 +866,12 @@ retry:
 			_cleanMemoryStart = _cleanMemoryEnd;
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing();
-			ehsanLogNoNewLine("x");
+			//ehsanLogNoNewLine("x");
 		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 2)) {
 			initiateMemoryZeroing();
-			ehsanLogNoNewLine("w");
+			//ehsanLogNoNewLine("w");
 		} else {
-			ehsanLogNoNewLine("z");
+			//ehsanLogNoNewLine("z");
 		}
 	}
 
@@ -879,14 +879,14 @@ retry:
 		_heapLock.release();
 	}
 	if (inlineZeroMemorySize > 0) {
-		ehsanLogNoNewLine("J%d ", inlineZeroMemorySize);
+		ehsanLogNoNewLine("J_%p_%p ", addrBase, (void*)((uintptr_t)addrBase + inlineZeroMemorySize));
 		OMRZeroMemory(addrBase, inlineZeroMemorySize);
 		// we may need to wait for async zeroer to finish!
 		if (waitForZeroer) {
 			_extensions->memoryZeroer->waitToFinish();
 		}
 	} else {
-		ehsanLogNoNewLine("I ");
+		//ehsanLogNoNewLine("I ");
 	}
 
 	return true;

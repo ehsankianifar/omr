@@ -209,7 +209,7 @@ MM_TLHAllocationSupport::refresh(MM_EnvironmentBase *env, MM_AllocateDescription
 		//batchClearTLH = extensions->batchClearTLH;
 		//cleanDef = true;
 #endif /* OMR_GC_BATCH_CLEAR_TLH */
-		ehsanLogNoNewLine("Q%d_", cleanTLH);
+		//ehsanLogNoNewLine("Q%d_", cleanTLH);
 		if (NULL != ac) {
 			/* ensure that we are allowed to use the AI in this configuration in the Tarok case */
 			/* allocation contexts currently aren't supported with generational schemes */
