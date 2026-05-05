@@ -609,6 +609,8 @@ retry:
 		}
 	
 	Assert_MM_true(NULL != addrBase);
+
+	ehsanLog("\nP_%p_%d", addrBase, sizeInBytesRequired);
 	
 	return addrBase;
 
