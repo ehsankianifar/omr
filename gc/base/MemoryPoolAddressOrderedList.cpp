@@ -710,7 +710,7 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 		ehsanLogNoNewLine("B");
 	}
 
-	// Just for test:
+	// Just for test: it synchronized cleaning. fails without it at the momement!
 	_extensions->memoryZeroer->waitToFinish();
 
 	/*
