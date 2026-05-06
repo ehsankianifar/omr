@@ -808,6 +808,7 @@ retry:
 				inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
 				_cleanMemoryStart = (uintptr_t)addrTop + sizeof (MM_HeapLinkedFreeHeader);
 				_extensions->memoryZeroer->waitToFinish();
+				_cleanMemoryStatus = _cleanMemoryStart;
 			} else {
 				inlineZeroMemorySize = (uintptr_t)addrTop - (uintptr_t)addrBase;
 			}
