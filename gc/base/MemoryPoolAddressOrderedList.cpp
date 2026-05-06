@@ -708,7 +708,7 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing(uintptr_t size) {
 	}
 
 	// Just for test: it synchronized cleaning. fails without it at the momement!
-	_extensions->memoryZeroer->waitToFinish();
+	//_extensions->memoryZeroer->waitToFinish();
 }
 
 MMINLINE bool
@@ -850,7 +850,7 @@ retry:
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
 	ehsanLogNoNewLine("_%p_%p_", addrBase, addrTop);
 
-	if ((recycleEntrySize > 0) && allocateCleanMemory && initializeTLH) {
+	if ((recycleEntrySize > (maximumSizeInBytesRequired << 2)) && allocateCleanMemory && initializeTLH) {
 		if ((_cleanMemoryEnd <= (uintptr_t)_heapFreeList)
 			|| (_cleanMemoryEnd > ((uintptr_t)_heapFreeList + recycleEntrySize))) {
 			// make sure cleaning thread is free!
