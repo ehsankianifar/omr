@@ -850,17 +850,17 @@ retry:
 	ehsanLogNoNewLine("_%p_%p_", addrBase, addrTop);
 
 	if ((recycleEntrySize > 0) && allocateCleanMemory && initializeTLH) {
-		if ((_cleanMemoryEnd <= (uintptr_t)freeEntry)
-			|| (_cleanMemoryEnd > ((uintptr_t)freeEntry + recycleEntrySize))) {
+		if ((_cleanMemoryEnd <= (uintptr_t)_heapFreeList)
+			|| (_cleanMemoryEnd > ((uintptr_t)_heapFreeList + recycleEntrySize))) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
 			// this is the initial cleaning on this header. set values to point to the top!
-			_cleanMemoryEnd = (uintptr_t)freeEntry + recycleEntrySize;
+			_cleanMemoryEnd = (uintptr_t)_heapFreeList + recycleEntrySize;
 			_cleanMemoryStart = _cleanMemoryEnd;
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing(maximumSizeInBytesRequired);
 			ehsanLogNoNewLine("x ");
-		} else if (((uintptr_t)freeEntry + (maximumSizeInBytesRequired << 2)) < _cleanMemoryStart) {
+		} else if (((uintptr_t)_heapFreeList + (maximumSizeInBytesRequired << 2)) < _cleanMemoryStart) {
 			initiateMemoryZeroing(maximumSizeInBytesRequired);
 			ehsanLogNoNewLine("w ");
 		} else {
