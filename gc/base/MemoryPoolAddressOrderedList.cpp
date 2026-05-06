@@ -695,16 +695,13 @@ char *MM_MemoryPoolAddressOrderedList::ehsanGetInfo()
 }
 
 
-// this value is optimized for spring benchmark with 8gb heap and large data size!
-#define BLOCK_SIZE 131072
-
 MMINLINE void
-MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
+MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing(uintptr_t size) {
 	if (NULL != _extensions->memoryZeroer
-		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE, &_cleanMemoryStatus)) {
+		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - size), size, &_cleanMemoryStatus)) {
 		// start of the clean memory region is now one block lower!
-		_cleanMemoryStart -= BLOCK_SIZE;
-		ehsanLogNoNewLine("A_0x%lx_0x%lx ", _cleanMemoryStart, _cleanMemoryStart+BLOCK_SIZE);
+		_cleanMemoryStart -= size;
+		ehsanLogNoNewLine("A_0x%lx_0x%lx ", _cleanMemoryStart, _cleanMemoryStart + size);
 		
 	} else {
 		ehsanLogNoNewLine("B");
@@ -712,14 +709,6 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing() {
 
 	// Just for test: it synchronized cleaning. fails without it at the momement!
 	_extensions->memoryZeroer->waitToFinish();
-
-	/*
-	// inline zero for testing
-	OMRZeroMemory((void*)(_cleanMemoryStart - BLOCK_SIZE), BLOCK_SIZE);
-	_cleanMemoryStart -= BLOCK_SIZE;
-	_cleanMemoryStatus = _cleanMemoryStart;
-	ehsanLogNoNewLine("C_%p_%p ", (void*)(_cleanMemoryStart), (void*)(_cleanMemoryStart+BLOCK_SIZE));
-	*/
 }
 
 MMINLINE bool
@@ -737,7 +726,6 @@ MM_MemoryPoolAddressOrderedList::internalAllocateTLH(MM_EnvironmentBase *env, ui
 		_heapLock.acquire();
 	}
 	uintptr_t inlineZeroMemorySize = 0;
-	bool waitForZeroer = false;
 
 retry:
 	freeEntry = _heapFreeList;
@@ -793,7 +781,9 @@ retry:
 
 	entryNext = freeEntry->getNext(compressed);
 
-	if(allocateCleanMemory && initializeTLH && ((_cleanMemoryEnd - _cleanMemoryStatus) >= consumedSize) && (recycleEntrySize > 0) && (_cleanMemoryEnd > 0)) {
+	// If there is enough clean space on top of the heap chunc, allocate from top and skip inline zeroing.
+	//if(allocateCleanMemory && initializeTLH && ((_cleanMemoryStatus + consumedSize) <= _cleanMemoryEnd)) {
+	if((_cleanMemoryStatus + consumedSize) <= _cleanMemoryEnd) {
 		// We have enough free initialize space on the top to allocate this TLH.
 		// Allocate from top and skip initialization as it was already initialized
 		// impossible to have zero recycled as it would interfere with the header metadata!
@@ -813,12 +803,11 @@ retry:
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 		if (initializeTLH) {
-			// we can partially zero the last block if it was half zeroed. Disable to investigate a bug
-			if (false && (_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
+			// we can partially zero the last block if it was half zeroed.
+			if ((_cleanMemoryStart < (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
 				inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
-				_cleanMemoryStart = (uintptr_t)addrTop;
+				_cleanMemoryStart = (uintptr_t)addrTop + sizeof (MM_HeapLinkedFreeHeader);
 				_extensions->memoryZeroer->waitToFinish();
-				waitForZeroer = true;
 			} else {
 				inlineZeroMemorySize = (uintptr_t)addrTop - (uintptr_t)addrBase;
 			}
@@ -857,25 +846,27 @@ retry:
 		}
 	}
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-	ehsanLogNoNewLine("_%p_%p ", addrBase, addrTop);
+	ehsanLogNoNewLine("_%p_%p_", addrBase, addrTop);
 
-	if ((recycleEntrySize > (BLOCK_SIZE << 2)) && allocateCleanMemory && initializeTLH) {
-		if ((_cleanMemoryEnd <= (uintptr_t)_heapFreeList)
-			|| (_cleanMemoryEnd > ((uintptr_t)_heapFreeList + _heapFreeList->getSize()))) {
+	if ((recycleEntrySize > 0) && allocateCleanMemory && initializeTLH) {
+		if ((_cleanMemoryEnd <= (uintptr_t)addrTop)
+			|| (_cleanMemoryEnd > ((uintptr_t)addrTop + recycleEntrySize))) {
 			// make sure cleaning thread is free!
 			_extensions->memoryZeroer->waitToFinish();
 			// this is the initial cleaning on this header. set values to point to the top!
-			_cleanMemoryEnd = (uintptr_t)_heapFreeList + _heapFreeList->getSize();
+			_cleanMemoryEnd = (uintptr_t)addrTop + recycleEntrySize;
 			_cleanMemoryStart = _cleanMemoryEnd;
 			_cleanMemoryStatus = _cleanMemoryEnd;
-			initiateMemoryZeroing();
-			//ehsanLogNoNewLine("x");
-		} else if ((_cleanMemoryStart - (uintptr_t)_heapFreeList) > (BLOCK_SIZE << 2)) {
-			initiateMemoryZeroing();
-			//ehsanLogNoNewLine("w");
+			initiateMemoryZeroing(maximumSizeInBytesRequired);
+			ehsanLogNoNewLine("x ");
+		} else if (((uintptr_t)addrTop + (maximumSizeInBytesRequired << 2)) < _cleanMemoryStart) {
+			initiateMemoryZeroing(maximumSizeInBytesRequired);
+			ehsanLogNoNewLine("w ");
 		} else {
-			//ehsanLogNoNewLine("z");
+			ehsanLogNoNewLine("z ");
 		}
+	} else {
+		ehsanLogNoNewLine("y ");
 	}
 
 	if (lockingRequired) {
@@ -884,10 +875,6 @@ retry:
 	if (inlineZeroMemorySize > 0) {
 		ehsanLogNoNewLine("J_%p_%p ", addrBase, (void*)((uintptr_t)addrBase + inlineZeroMemorySize));
 		OMRZeroMemory(addrBase, inlineZeroMemorySize);
-		// we may need to wait for async zeroer to finish!
-		if (waitForZeroer) {
-			_extensions->memoryZeroer->waitToFinish();
-		}
 	} else {
 		//ehsanLogNoNewLine("I ");
 	}
