@@ -16364,9 +16364,9 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         node->setRegister(resultReg);
         return resultReg;
     } else if (type.isFloat()) {
-        return sequentialFloatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, FLOAT_ONE);
+        return floatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, FLOAT_ONE);
     } else if (type.isDouble()) {
-        return sequentialFloatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */,
+        return floatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */,
             static_cast<int64_t>(DOUBLE_ONE));
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
