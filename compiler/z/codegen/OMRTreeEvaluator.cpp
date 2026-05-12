@@ -1125,7 +1125,7 @@ static void copyIdentityValueToUnmaskedLanes(TR::Node *node, TR::CodeGenerator *
     } else {
         // General path for arbitrary identity values:
         // 1. Replicate the identity value across all lanes of the scratch register.
-        if (identityValue >= INT16_MIN || identityValue <= INT16_MAX) {
+        if (identityValue >= TR::getMinSigned<TR::Int16>() && identityValue <= TR::getMaxSigned<TR::Int16>()) {
             // If the identity value fits within the 16-bit range, use the VREPI instruction to replicate it.
             generateVRIaInstruction(cg, TR::InstOpCode::VREPI, node, scratchReg, static_cast<uint16_t>(identityValue),
                 elementSizeMask);
@@ -1150,6 +1150,25 @@ static void copyIdentityValueToUnmaskedLanes(TR::Node *node, TR::CodeGenerator *
     }
 }
 
+/**
+ * \brief
+ * Count the number of true lanes in a vector mask.
+ *
+ * \details
+ * This evaluator computes the population count (number of true lanes) in a vector mask.
+ * True lanes are represented as -1 (all bits set), which are converted to positive values
+ * before summation. For 8-bit and 16-bit lane sizes, a two-step reduction is performed:
+ * first reducing to 32-bit elements (VSUM), then to a final 128-bit sum (VSUMQ).
+ *
+ * \param node
+ *   The IL node for the mTrueCount operation.
+ *
+ * \param cg
+ *   The code generator.
+ *
+ * \return
+ *   A GPR containing the scalar count of true lanes in the mask.
+ */
 TR::Register *OMR::Z::TreeEvaluator::mTrueCountEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     TR::Node *sourceNode = node->getFirstChild();
@@ -16002,11 +16021,76 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
 
 /**
  * \brief
- * Performs a floating‑point reduction across all vector lanes.
+ * Performs a reduction operation across all vector lanes.
  *
  * \details
- * This helper applies the specified floating‑point reduction operation
- * (e.g., add or mul) to all lanes of a vector and returns the result in a FPR.
+ * This helper computes reduction value across all lanes of a vector
+ * and returns the result in a FPR. The reduction may optionally be masked.
+ * When masking is enabled, lanes disabled by the mask must be initialized
+ * to the appropriate identity value, as required by the reduction semantics.
+ * The identityValue parameter specifies which identity should be applied
+ * to the unmasked lanes.
+ *
+ * \param node
+ * The IL node representing the reduction operation.
+ *
+ * \param cg
+ * The code generator.
+ *
+ * \param op
+ * The instruction mnemonic to apply during the reduction.
+ *
+ * \param isDouble
+ * Indicates the precision of the vector elements. Set to true for
+ * double‑precision (64‑bit) elements, or false for single‑precision
+ * (32‑bit) elements.
+ *
+ * \param identityValue
+ * The identity value to substitute into masked‑out lanes.
+ *
+ * \return
+ * A FPR containing the reduction result.
+ */
+TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, bool isDouble,
+    int64_t identityValue, bool needsZ14)
+{
+    TR_ASSERT_FATAL_WITH_NODE(node,
+        cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1) || !needsZ14,
+        "%s %s is only supported on z14 onwards.", isDouble ? "Long format" : "Short format",
+        ((TR::InstOpCode *)op)->getMnemonicName());
+    TR::Node *sourceNode = node->getFirstChild();
+    TR::Register *resultReg = cg->allocateRegister(TR_FPR);
+    uint8_t elementSizeMask = getVectorElementSizeMask(sourceNode);
+    TR::Register *sourceReg = cg->gprClobberEvaluate(sourceNode);
+    bool isMasked = node->getOpCode().isVectorMasked();
+    if (isMasked) {
+        TR::Node *maskChild = node->getSecondChild();
+        TR::Register *maskReg = cg->evaluate(maskChild);
+        copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, resultReg, identityValue, elementSizeMask);
+        cg->decReferenceCount(maskChild);
+    }
+
+    // Move the second half of the source vector into the first half of the result register.
+    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
+    generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, elementSizeMask);
+    if (!isDouble) {
+        // For float values, repeat the operation between the first and second lanes.
+        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, sourceReg, resultReg, 1, 2);
+        generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, elementSizeMask);
+    }
+
+    cg->decReferenceCount(sourceNode);
+    node->setRegister(resultReg);
+    return resultReg;
+}
+
+/**
+ * \brief
+ * Performs a floating‑point lane by lane reduction across all vector lanes.
+ *
+ * \details
+ * This helper sequentially applies the specified floating‑point operation
+ * to all lanes of a vector and returns the result in a FPR.
  * When masking is used, lanes disabled by the mask must be initialized to an
  * appropriate identity value, provided through identityValue prameter.
  *
@@ -16031,8 +16115,8 @@ TR::Register *OMR::Z::TreeEvaluator::vcmpgeEvaluator(TR::Node *node, TR::CodeGen
  * \return
  * A FPR containing the sign‑extended reduction result.
  */
-TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op, bool isDouble,
-    int64_t identityValue = 0)
+TR::Register *sequentialFloatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
+    bool isDouble, int64_t identityValue = 0)
 {
     TR::Node *sourceNode = node->getFirstChild();
     TR::Register *resultReg = cg->allocateRegister(TR_FPR);
@@ -16079,8 +16163,8 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
     TR::Register *resultReg = NULL;
 
     if (type.isIntegral()) {
-        TR::Register *sourceReg = cg->gprClobberEvaluate(node->getFirstChild());
-        uint8_t elementSizeMask = getVectorElementSizeMask(node->getFirstChild());
+        TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
+        uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
         TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
         bool isMasked = node->getOpCode().isVectorMasked();
         if (isMasked) {
@@ -16089,21 +16173,14 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
             copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, scratchReg, 0, elementSizeMask);
             cg->decReferenceCount(maskChild);
         }
-        if (elementSizeMask < 3) {
-            // Increase the size to make sure no overflow happens.
-            generateVRRaInstruction(cg, TR::InstOpCode::VUPL, node, scratchReg, sourceReg, 0, 0, elementSizeMask);
-            generateVRRaInstruction(cg, TR::InstOpCode::VUPH, node, sourceReg, sourceReg, 0, 0, elementSizeMask);
-            // Now elements are one step larger!
-            elementSizeMask++;
-            generateVRRcInstruction(cg, TR::InstOpCode::VA, node, sourceReg, sourceReg, scratchReg, elementSizeMask);
-        }
+
         generateVRIaInstruction(cg, TR::InstOpCode::VGBM, node, scratchReg, 0, 0);
         uint8_t elementSizeMaskForSignExtension = elementSizeMask;
         if (elementSizeMask < 2) {
-            // Reduce the halfword lane size to word size.
+            // Reduce the byte and halfword lane size to word size.
             generateVRRcInstruction(cg, TR::InstOpCode::VSUM, node, sourceReg, sourceReg, scratchReg, 0, 0,
                 elementSizeMask);
-            elementSizeMask++;
+            elementSizeMask = 2;
         }
 
         // Reduce word or doubleword size to one element.
@@ -16120,12 +16197,14 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
             generateS390MemoryReference(1, cg), 3);
 
         cg->stopUsingRegister(scratchReg);
-        cg->decReferenceCount(node->getFirstChild());
+        cg->decReferenceCount(firstChild);
         node->setRegister(resultReg);
     } else if (type.isDouble()) {
-        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::ADBR, true /* isDouble */);
+        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::VFA, true /* isDouble */, 0 /* identityValue */,
+            false /* needsZ14 */);
     } else if (type.isFloat()) {
-        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::AEBR, false /* isDouble */);
+        resultReg = floatReductionHelper(node, cg, TR::InstOpCode::VFA, false /* isDouble */, 0 /* identityValue */,
+            true /* needsZ14 */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -16136,70 +16215,6 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionAddEvaluator(TR::Node *node, TR::
 TR::Register *OMR::Z::TreeEvaluator::vreductionFirstNonZeroEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
     return TR::TreeEvaluator::unImpOpEvaluator(node, cg);
-}
-
-/**
- * \brief
- * Performs a min/max reduction across all vector lanes.
- *
- * \details
- * This helper computes either the minimum or maximum value across all lanes of
- * a vector and returns the result in a FPR. The reduction may optionally be masked.
- * When masking is enabled, lanes disabled by the mask must be initialized to the
- * appropriate identity value (minimum or maximum), as required by the reduction
- * semantics. The identityValue parameter specifies which identity (min or max)
- * should be applied to the unmasked lanes.
- *
- * \param node
- * The IL node representing the reduction operation.
- *
- * \param cg
- * The code generator.
- *
- * \param op
- * The min or max instruction mnemonic to apply during the reduction.
- *
- * \param isDouble
- * Indicates the precision of the vector elements. Set to true for
- * double‑precision (64‑bit) elements, or false for single‑precision
- * (32‑bit) elements.
- *
- * \param identityValue
- * The identity value to substitute into masked‑out lanes.
- *
- * \return
- * A FPR containing the min/max reduction result.
- */
-TR::Register *floatMaxMinReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::InstOpCode::Mnemonic op,
-    bool isDouble, int64_t identityValue)
-{
-    TR_ASSERT_FATAL_WITH_NODE(node,
-        cg->comp()->target().cpu.supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1),
-        "VFMAX/VFMIN is only supported on z14 onwards.");
-    TR::Node *sourceNode = node->getFirstChild();
-    TR::Register *resultReg = cg->allocateRegister(TR_FPR);
-    uint8_t elementSizeMask = getVectorElementSizeMask(sourceNode);
-    TR::Register *sourceReg = isDouble ? cg->evaluate(sourceNode) : cg->gprClobberEvaluate(sourceNode);
-    bool isMasked = node->getOpCode().isVectorMasked();
-    if (isMasked) {
-        TR::Node *maskChild = node->getSecondChild();
-        TR::Register *maskReg = cg->evaluate(maskChild);
-        copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, resultReg, identityValue, elementSizeMask);
-        cg->decReferenceCount(maskChild);
-    }
-
-    // Move the second half of the source vector into the first half of the result register.
-    generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
-    generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, elementSizeMask);
-    if (!isDouble) {
-        // For float values, repeat the operation between the first and second lanes.
-        generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, sourceReg, resultReg, 1, 2);
-        generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 1, 0, elementSizeMask);
-    }
-
-    cg->decReferenceCount(sourceNode);
-    node->setRegister(resultReg);
-    return resultReg;
 }
 
 /**
@@ -16275,10 +16290,11 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMaxEvaluator(TR::Node *node, TR::
         int64_t identityValue = INT64_MIN >> (64 - getVectorElementLength(node->getFirstChild()));
         return integralMinMaxReductionHelper(node, cg, TR::InstOpCode::VMX, identityValue);
     } else if (type.isFloat()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, false /* isDouble */, FLOAT_NEG_INFINITY);
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFMAX, false /* isDouble */,
+            FLOAT_NEG_INFINITY /* identityValue */, true /* needsZ14 */);
     } else if (type.isDouble()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMAX, true /* isDouble */,
-            static_cast<int64_t>(DOUBLE_NEG_INFINITY));
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFMAX, true /* isDouble */,
+            static_cast<int64_t>(DOUBLE_NEG_INFINITY) /* identityValue */, true /* needsZ14 */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -16292,10 +16308,11 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
         int64_t identityValue = INT64_MAX >> (64 - getVectorElementLength(node->getFirstChild()));
         return integralMinMaxReductionHelper(node, cg, TR::InstOpCode::VMN, identityValue);
     } else if (type.isFloat()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, false /* isDouble */, FLOAT_POS_INFINITY);
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFMIN, false /* isDouble */,
+            FLOAT_POS_INFINITY /* identityValue */, true /* needsZ14 */);
     } else if (type.isDouble()) {
-        return floatMaxMinReductionHelper(node, cg, TR::InstOpCode::VFMIN, true /* isDouble */,
-            static_cast<int64_t>(DOUBLE_POS_INFINITY));
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFMIN, true /* isDouble */,
+            static_cast<int64_t>(DOUBLE_POS_INFINITY) /* identityValue */, true /* needsZ14 */);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
@@ -16304,9 +16321,11 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMinEvaluator(TR::Node *node, TR::
 
 TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::CodeGenerator *cg)
 {
-    TR::DataType type = node->getFirstChild()->getDataType().getVectorElementType();
+    TR::Node *firstChild = node->getFirstChild();
+    TR_ASSERT_FATAL_WITH_NODE(node, firstChild->getDataType().getVectorLength() == TR::VectorLength128,
+        "Only 128-bit vectors are supported %s", firstChild->getDataType().toString());
+    TR::DataType type = firstChild->getDataType().getVectorElementType();
     if (type.isIntegral()) {
-        TR::Node *firstChild = node->getFirstChild();
         TR::Register *sourceReg = cg->gprClobberEvaluate(firstChild);
         TR::Register *scratchReg = cg->allocateRegister(TR_VRF);
         uint8_t elementSizeMask = getVectorElementSizeMask(firstChild);
@@ -16345,9 +16364,9 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         node->setRegister(resultReg);
         return resultReg;
     } else if (type.isFloat()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, FLOAT_ONE);
+        return sequentialFloatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, FLOAT_ONE);
     } else if (type.isDouble()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */,
+        return sequentialFloatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */,
             static_cast<int64_t>(DOUBLE_ONE));
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
