@@ -16370,7 +16370,7 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         return floatReductionHelper(node, cg, TR::InstOpCode::VFM, false /* isDouble */, FLOAT_ONE, true);
     } else if (type.isDouble()) {
         return floatReductionHelper(node, cg, TR::InstOpCode::VFM, true /* isDouble */,
-            static_cast<int64_t>(DOUBLE_ONE), false;
+            static_cast<int64_t>(DOUBLE_ONE), false);
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
