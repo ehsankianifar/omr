@@ -16364,10 +16364,13 @@ TR::Register *OMR::Z::TreeEvaluator::vreductionMulEvaluator(TR::Node *node, TR::
         node->setRegister(resultReg);
         return resultReg;
     } else if (type.isFloat()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::MEEBR, false /* isDouble */, FLOAT_ONE);
+        static bool breakBeforeVFM = feGetEnv("TR_breakBeforeVFM") != NULL;
+        if (breakBeforeVFM)
+            generateS390EInstruction(cg, TR::InstOpCode::BREAK, node);
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFM, false /* isDouble */, FLOAT_ONE, true);
     } else if (type.isDouble()) {
-        return floatReductionHelper(node, cg, TR::InstOpCode::MDBR, true /* isDouble */,
-            static_cast<int64_t>(DOUBLE_ONE));
+        return floatReductionHelper(node, cg, TR::InstOpCode::VFM, true /* isDouble */,
+            static_cast<int64_t>(DOUBLE_ONE), false;
     } else {
         TR_ASSERT_FATAL_WITH_NODE(node, false, "Encountered unsupported data type: %s", type.toString());
     }
