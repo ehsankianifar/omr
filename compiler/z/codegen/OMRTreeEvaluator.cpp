@@ -16069,14 +16069,18 @@ TR::Register *floatReductionHelper(TR::Node *node, TR::CodeGenerator *cg, TR::In
         copyIdentityValueToUnmaskedLanes(node, cg, maskReg, sourceReg, resultReg, identityValue, elementSizeMask);
         cg->decReferenceCount(maskChild);
     }
+    uint8_t mask6 = 0;
+    if(op == TR::InstOpCode::VFMAX || op == TR::InstOpCode::VFMIN)
+        mask6 = 1;
+
 
     // Move the second half of the source vector into the first half of the result register.
     generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, resultReg, sourceReg, 1, 3);
-    generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 0, 0, elementSizeMask);
+    generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, mask6, 0, elementSizeMask);
     if (!isDouble) {
         // For float values, repeat the operation between the first and second lanes.
         generateVRIcInstruction(cg, TR::InstOpCode::VREP, node, sourceReg, resultReg, 1, 2);
-        generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, 0, 0, elementSizeMask);
+        generateVRRcInstruction(cg, op, node, resultReg, resultReg, sourceReg, mask6, 0, elementSizeMask);
     }
 
     cg->decReferenceCount(sourceNode);
