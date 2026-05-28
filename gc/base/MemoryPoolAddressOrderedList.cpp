@@ -799,7 +799,7 @@ retry:
 		addrTop = (void *)((uintptr_t)freeEntry + freeEntrySize);
 		// The clean memory end address should match the end of the header.
 		if (((uintptr_t)addrTop != _cleanMemoryEnd) || (recycleEntrySize < 8)) {
-			printf(" *** ERROR ***\n")
+			printf(" *** ERROR ***\n");
 			printf("Base: %p Top: %p recycleSize: 0x%lx\n", addrBase, addrTop, recycleEntrySize);
 			printf("cleanStart: 0x%lx cleanStatus: 0x%lx cleanEnd: 0x%lx\n", _cleanMemoryStart, _cleanMemoryStatus, _cleanMemoryEnd);
 			printf("%s\n", ehsanGetInfo());
