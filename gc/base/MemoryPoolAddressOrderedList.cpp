@@ -563,7 +563,7 @@ retry:
 			_cleanMemoryStart = _cleanMemoryEnd;
 		}
 		_cleanMemoryStatus = _cleanMemoryStart;
-		//ehsanLogNoNewLine("!");
+		ehsanLogNoNewLine("!");
 	}
 	
 
@@ -596,7 +596,7 @@ retry:
 	
 	Assert_MM_true(NULL != addrBase);
 
-	//ehsanLogNoNewLine("P_%p_%p ", addrBase, (void *)((uintptr_t)addrBase + sizeInBytesRequired));
+	ehsanLogNoNewLine("P_%p_%p ", addrBase, (void *)((uintptr_t)addrBase + sizeInBytesRequired));
 
 	return addrBase;
 
@@ -705,10 +705,10 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing(uintptr_t size) {
 		&& _extensions->memoryZeroer->requestZeroing((void*)(_cleanMemoryStart - size), size, &_cleanMemoryStatus)) {
 		// start of the clean memory region is now one block lower!
 		_cleanMemoryStart -= size;
-		//ehsanLogNoNewLine("A_0x%lx_0x%lx ", _cleanMemoryStart, _cleanMemoryStart + size);
+		ehsanLogNoNewLine("A_0x%lx_0x%lx ", _cleanMemoryStart, _cleanMemoryStart + size);
 		
 	} else {
-		//ehsanLogNoNewLine("B");
+		ehsanLogNoNewLine("B");
 	}
 }
 
@@ -811,7 +811,7 @@ retry:
 		_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(recycleEntrySize);
 		freeEntry->setSize(recycleEntrySize);
 		_cleanMemoryEnd -= consumedSize;
-		//ehsanLogNoNewLine("K");
+		ehsanLogNoNewLine("K");
 
 	} else {
 		addrBase = (void *)freeEntry;
@@ -852,7 +852,7 @@ retry:
 				_allocDiscardedBytes += recycleEntrySize;
 				recycleEntrySize = 0;
 			}
-			//ehsanLogNoNewLine("L");
+			ehsanLogNoNewLine("L");
 		} else {
 			// The free entry is consumed. set the clean memory end to zero to indicate that!
 			_cleanMemoryEnd = 0;
@@ -861,11 +861,11 @@ retry:
 			_heapFreeList = entryNext;
 			/* also update the freeEntryCount as recycleHeapChunk would do this */
 			_freeEntryCount -= 1;
-			//ehsanLogNoNewLine("M");
+			ehsanLogNoNewLine("M");
 		}
 	}
 	//ehsanLogNoNewLine("E%d ", (uintptr_t)addrTop-(uintptr_t)addrBase);
-	//ehsanLogNoNewLine("_%p_%p_", addrBase, addrTop);
+	ehsanLogNoNewLine("_%p_%p_", addrBase, addrTop);
 
 	if ((recycleEntrySize > (maximumSizeInBytesRequired << 2)) && allocateCleanMemory && initializeTLH) {
 		if ((_cleanMemoryEnd <= (uintptr_t)_heapFreeList)
@@ -877,22 +877,22 @@ retry:
 			_cleanMemoryStart = _cleanMemoryEnd;
 			_cleanMemoryStatus = _cleanMemoryEnd;
 			initiateMemoryZeroing(maximumSizeInBytesRequired);
-			//ehsanLogNoNewLine("x ");
+			ehsanLogNoNewLine("x ");
 		} else if (((uintptr_t)_heapFreeList + (maximumSizeInBytesRequired << 2)) < _cleanMemoryStart) {
 			initiateMemoryZeroing(maximumSizeInBytesRequired);
-			//ehsanLogNoNewLine("w ");
+			ehsanLogNoNewLine("w ");
 		} else {
-			//ehsanLogNoNewLine("z ");
+			ehsanLogNoNewLine("z ");
 		}
 	} else {
-		//ehsanLogNoNewLine("y ");
+		ehsanLogNoNewLine("y ");
 	}
 
 	if (lockingRequired) {
 		_heapLock.release();
 	}
 	if (inlineZeroMemorySize > 0) {
-		//ehsanLogNoNewLine("J_%p_%p ", addrBase, (void*)((uintptr_t)addrBase + inlineZeroMemorySize));
+		ehsanLogNoNewLine("J_%p_%p ", addrBase, (void*)((uintptr_t)addrBase + inlineZeroMemorySize));
 		OMRZeroMemory(addrBase, inlineZeroMemorySize);
 	} else {
 		//ehsanLogNoNewLine("I ");
@@ -991,7 +991,7 @@ MM_MemoryPoolAddressOrderedList::collectorAllocateTLH(MM_EnvironmentBase *env,
 void
 MM_MemoryPoolAddressOrderedList::reset(Cause cause)
 {
-	//ehsanLog("\nReset List  subspace %s", ehsanGetInfo());
+	ehsanLog("\nReset List  subspace %s", ehsanGetInfo());
 	/* Call superclass first .. */
 	MM_MemoryPool::reset(cause);
 	//checkedResetInitializer();
@@ -1054,7 +1054,7 @@ MM_MemoryPoolAddressOrderedList::rebuildFreeListInRegion(MM_EnvironmentBase *env
 	}
 	unlock(env);
 	releaseResetLock(env);
-	//printFreeEntries("Rebuild free list in range");
+	printFreeEntries("Rebuild free list in range");
 
 	return newFreeEntry;
 }
@@ -1125,7 +1125,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(previousFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
-			//("expand with range 1");
+			printFreeEntries("expand with range 1");
 			return ;
 		}
 		/* Check if the range can be fused to the head of the next free entry */
@@ -1151,7 +1151,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 			_largeObjectAllocateStats->incrementFreeEntrySizeClassStats(newFreeEntry->getSize());
 
 			assume0(isMemoryPoolValid(env, true));
-			//printFreeEntries("expand with range 2");
+			printFreeEntries("expand with range 2");
 			return ;
 		}
 	}
@@ -1186,7 +1186,7 @@ MM_MemoryPoolAddressOrderedList::expandWithRange(MM_EnvironmentBase *env, uintpt
 	}
 
 	assume0(isMemoryPoolValid(env, true));
-	//printFreeEntries("expand with range 3");
+	printFreeEntries("expand with range 3");
 }
 
 /**
@@ -1278,7 +1278,7 @@ MM_MemoryPoolAddressOrderedList::contractWithRange(MM_EnvironmentBase *env, uint
 	_freeEntryCount -= contractCount;
 
 	assume0(isMemoryPoolValid(env, true));
-	//printFreeEntries("contractwith range");
+	printFreeEntries("contractwith range");
 	return lowAddress;
 }
 
@@ -1360,7 +1360,7 @@ MM_MemoryPoolAddressOrderedList::addFreeEntries(MM_EnvironmentBase *env,
 	/* Adjust the free memory data */
 	_freeMemorySize += freeListMemorySize;
 	_freeEntryCount += localFreeListMemoryCount;
-	//printFreeEntries("add free entries");
+	printFreeEntries("add free entries");
 }
 
 #if defined(OMR_GC_LARGE_OBJECT_AREA)
@@ -1541,7 +1541,7 @@ MM_MemoryPoolAddressOrderedList::removeFreeEntriesWithinRange(MM_EnvironmentBase
 	/* Adjust the free memory data */
 	_freeMemorySize -= removeSize;
 	_freeEntryCount -= removeCount;
-	//printFreeEntries("remove free entries within range");
+	printFreeEntries("remove free entries within range");
 
 	return true;
 }
@@ -1788,7 +1788,7 @@ MM_MemoryPoolAddressOrderedList::moveHeap(MM_EnvironmentBase *env, void *srcBase
 		previousFreeEntry = currentFreeEntry;
 		currentFreeEntry = currentFreeEntry->getNext(compressed);
 	}
-	//printFreeEntries("move heap");
+	printFreeEntries("move heap");
 }
 
 
@@ -2138,7 +2138,7 @@ MM_MemoryPoolAddressOrderedList::superBatchClear()
 	const bool superClean = getenv("TR_superBatchClear") != NULL;
 	MM_HeapLinkedFreeHeader *freeEntry = _heapFreeList;
 	while(freeEntry){
-		//ehsanLog("    from %p to 0x%lx size 0x%lx clear: %d", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize(), superClean);
+		ehsanLog("    from %p to 0x%lx size 0x%lx clear: %d", freeEntry, (uintptr_t)freeEntry + freeEntry->getSize(), freeEntry->getSize(), superClean);
 		if (superClean) {
 			OMRZeroMemory((void *)((uintptr_t)freeEntry + sizeof(MM_HeapLinkedFreeHeader)), freeEntry->getSize() - sizeof(MM_HeapLinkedFreeHeader));
 		}
@@ -2159,7 +2159,7 @@ MM_MemoryPoolAddressOrderedList::notifyHeapIsReady(int source)
 	//source: 2: MM_Scavenger::mainThreadGarbageCollect
 	//source: 3: MM_ParallelGlobalGC::cleanupAfterGC
 	//source: 4: 
-	//ehsanLog("*** Notify: %d ***", source);
+	ehsanLog("*** Notify: %d ***", source);
 	//superBatchClear();
-	//printFreeEntries("Ready");
+	printFreeEntries("Ready");
 }

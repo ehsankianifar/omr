@@ -74,7 +74,7 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 	                          workerThreadMain, this)) {
 		omrthread_monitor_destroy(_monitor);
 		_monitor = NULL;
-		//ehsanLog("Failed to create the worker thread!");
+		ehsanLog("Failed to create the worker thread!");
 		return false;
 	}
 	
@@ -84,7 +84,7 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 		omrthread_monitor_wait(_monitor);
 	}
 	omrthread_monitor_exit(_monitor);
-	//ehsanLog("Create the worker thread with priority %d.", priority);
+	ehsanLog("Create the worker thread with priority %d.", priority);
 	
 	return true;
 }
@@ -92,7 +92,7 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 void
 MM_MemoryZeroer::tearDown(MM_EnvironmentBase *env)
 {
-	//ehsanLog("Thear Down the worker thread!");
+	ehsanLog("Thear Down the worker thread!");
 	if (NULL != _monitor) {
 		/* Request shutdown and notify the worker thread */
 		omrthread_monitor_enter(_monitor);
@@ -149,13 +149,13 @@ MM_MemoryZeroer::workerLoop()
 		if (_shutdownRequested) {
 			break;
 		}
-		//ehsanLogNoNewLine(" S%p ", _zeroStart);
+		ehsanLogNoNewLine(" S%p ", _zeroStart);
 		// Current strategy:
 		// Clean the whole block while keeping the monitor aquired!
 		// Update the status to point to the bottom of the clean block!
 		OMRZeroMemory(_zeroStart, _zeroSize);
 		*_statusPtr = (uintptr_t)_zeroStart;
-		//ehsanLogNoNewLine(" T%p ", _zeroStart);
+		ehsanLogNoNewLine(" T%p ", _zeroStart);
 
 
 
@@ -203,7 +203,7 @@ MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile uintptr_t 
 		_zeroSize = size;
 		_statusPtr = statusPtr;
 		_hasWork = true;
-		//ehsanLogNoNewLine(" R%p ", _zeroStart);
+		ehsanLogNoNewLine(" R%p ", _zeroStart);
 		
 		/* Notify the worker thread */
 		omrthread_monitor_notify(_monitor);
