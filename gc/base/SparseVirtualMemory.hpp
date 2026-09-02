@@ -84,10 +84,24 @@ protected:
 	bool initialize(MM_EnvironmentBase *env, uint32_t memoryCategory);
 	void tearDown(MM_EnvironmentBase *env);
 
+	/*
+	 * Description of Memory allocation modes require for Sparse heap:
+	 * - OMRPORT_VMEM_MEMORY_MODE_READ - general memory read access for all platforms
+	 * - OMRPORT_VMEM_MEMORY_MODE_WRITE - general memory read access for all platforms
+	 * - OMRPORT_VMEM_MEMORY_MODE_VIRTUAL - impact ZOS only, use virtual memory
+	 * - OMRPORT_VMEM_MEMORY_MODE_GUARDED - impact ZOS only, use memory guarding to not exceed MEMLIMIT
+	 * - OMRPORT_VMEM_NO_AFFINITY - needs to be set for AIX to prevent switch reservation method
+	 *  from default for 4k pages mmap() to shmget() if NUMA is enabled.
+	 */
 	MM_SparseVirtualMemory(MM_EnvironmentBase *env, uintptr_t pageSize, uintptr_t pageFlags, MM_Heap *in_heap)
 		: MM_VirtualMemory(
 				env, in_heap->getHeapRegionManager()->getRegionSize(), pageSize, pageFlags, 0,
-				OMRPORT_VMEM_MEMORY_MODE_READ | OMRPORT_VMEM_MEMORY_MODE_WRITE | OMRPORT_VMEM_MEMORY_MODE_VIRTUAL | OMRPORT_VMEM_MEMORY_MODE_GUARDED)
+					OMRPORT_VMEM_MEMORY_MODE_READ
+					| OMRPORT_VMEM_MEMORY_MODE_WRITE
+					| OMRPORT_VMEM_MEMORY_MODE_VIRTUAL
+					| OMRPORT_VMEM_MEMORY_MODE_GUARDED
+					| OMRPORT_VMEM_NO_AFFINITY
+				)
 		, _heap(in_heap)
 		, _sparseDataPool(NULL)
 		, _largeObjectVirtualMemoryMutex(NULL)
