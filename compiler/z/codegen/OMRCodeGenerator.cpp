@@ -4336,6 +4336,7 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         || (et == TR::Float && !cpu->supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_1))) {
         return false;
     }
+    static bool enableMul = feGetEnv("TR_enableMul") != NULL;
 
     // implemented vector opcodes
     switch (opcode.getVectorOperation()) {
@@ -4367,9 +4368,10 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
         case TR::vmexpandbits:
         case TR::vbitswap:
         case TR::vmbitswap:
+            return true;
         case TR::vmul:
         case TR::vmmul:
-            return true;
+            return enableMul;
         case TR::vdiv:
         case TR::vmdiv:
         case TR::vfma:
