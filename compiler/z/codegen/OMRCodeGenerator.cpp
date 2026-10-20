@@ -4313,7 +4313,7 @@ bool OMR::Z::CodeGenerator::getSupportsConstantOffsetInAddressing(int64_t value)
 bool OMR::Z::CodeGenerator::isDispInRange(int64_t disp) { return (MINLONGDISP <= disp) && (disp <= MAXLONGDISP); }
 
 bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpCode opcode,
-    bool supportsVectorRegisters)
+    bool supportsVectorRegisters, bool includeScalarImplementation)
 {
     TR_ASSERT_FATAL(opcode.isVectorOpCode(), "getSupportsOpCodeForAutoSIMD expects vector opcode\n");
 
@@ -4371,7 +4371,8 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
             return true;
         case TR::vmul:
         case TR::vmmul:
-            return enableMul;
+            return (et != TR::Int64) || cpu->supportsFeature(OMR_FEATURE_S390_VECTOR_FACILITY_ENHANCEMENT_3)
+            || includeScalarImplementation;
         case TR::vdiv:
         case TR::vmdiv:
         case TR::vfma:
@@ -4490,10 +4491,10 @@ bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::CPU *cpu, TR::ILOpC
     return false;
 }
 
-bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::ILOpCode opcode)
+bool OMR::Z::CodeGenerator::getSupportsOpCodeForAutoSIMD(TR::ILOpCode opcode, bool includeScalarImplementation)
 {
     return TR::CodeGenerator::getSupportsOpCodeForAutoSIMD(&comp()->target().cpu, opcode,
-        self()->getSupportsVectorRegisters());
+        self()->getSupportsVectorRegisters(), includeScalarImplementation);
 }
 
 // simple syntactic test for matching direct loads when the caller knows (by some mechanism, e.g.
