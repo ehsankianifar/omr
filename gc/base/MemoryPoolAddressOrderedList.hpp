@@ -93,7 +93,7 @@ private:
 	char *ehsanGetInfo();
 	void printFreeEntries(const char* message);
 	void initiateMemoryZeroing(uintptr_t size);
-	void waitMemoryInitializer();
+	bool waitMemoryInitializer();
 	uintptr_t getConsumedSizeForTLH(MM_EnvironmentBase *env, MM_HeapLinkedFreeHeader *freeEntry, uintptr_t maximumSizeInBytesRequired);
 
 	/* Align a TLH to meet boundary restrictions. Certain phases of some GCs may require that TLHs not span heap chunks for parallel processing. */

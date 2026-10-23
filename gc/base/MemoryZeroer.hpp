@@ -106,6 +106,7 @@ public:
 	 * Wait for the memory zeroer thread to finish the job
 	 */
 	void waitToFinish();
+	bool cancelUnstartedJob();
 	
 	/**
 	 * Constructor
