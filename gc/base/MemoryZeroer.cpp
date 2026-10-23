@@ -156,7 +156,7 @@ MM_MemoryZeroer::workerLoop()
 		// Update the status to point to the bottom of the clean block!
 		OMRZeroMemory(_zeroStart, _zeroSize);
 		*_statusPtr = (uintptr_t)_zeroStart;
-		ehsanLogNoNewLine(" T%p ", _zeroStart);
+		//ehsanLogNoNewLine(" T%p ", _zeroStart);
 
 	}
 	
@@ -178,7 +178,7 @@ MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile uintptr_t 
 		_zeroSize = size;
 		_statusPtr = statusPtr;
 		_hasWork = true;
-		ehsanLogNoNewLine(" R%p ", _zeroStart);
+		//ehsanLogNoNewLine(" R%p ", _zeroStart);
 		
 		/* Notify the worker thread */
 		omrthread_monitor_notify(_monitor);
@@ -227,8 +227,8 @@ MM_MemoryZeroer::cancelUnstartedJob()
 	bool returnValue = _hasWork;
 	_hasWork = false;
 	omrthread_monitor_exit(_monitor);
-	if(returnValue) {
-		ehsanLogNoNewLine(" C%p ", _zeroStart);
-	}
+	// if(returnValue) {
+	// 	ehsanLogNoNewLine(" C%p ", _zeroStart);
+	// }
 	return returnValue;
 }
