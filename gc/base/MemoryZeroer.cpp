@@ -88,7 +88,7 @@ MM_MemoryZeroer::initialize(MM_EnvironmentBase *env)
 		omrthread_monitor_wait(_monitor);
 	}
 	omrthread_monitor_exit(_monitor);
-	//ehsanLog("Create the worker thread with priority %d.", priority);
+	ehsanLog("Create the worker thread with priority %d.", priority);
 	
 	return true;
 }
@@ -156,7 +156,7 @@ MM_MemoryZeroer::workerLoop()
 		// Update the status to point to the bottom of the clean block!
 		OMRZeroMemory(_zeroStart, _zeroSize);
 		*_statusPtr = (uintptr_t)_zeroStart;
-		//ehsanLogNoNewLine(" T%p ", _zeroStart);
+		ehsanLogNoNewLine(" T%p ", _zeroStart);
 
 	}
 	
@@ -178,7 +178,7 @@ MM_MemoryZeroer::requestZeroing(void *start, uintptr_t size, volatile uintptr_t 
 		_zeroSize = size;
 		_statusPtr = statusPtr;
 		_hasWork = true;
-		//ehsanLogNoNewLine(" R%p ", _zeroStart);
+		ehsanLogNoNewLine(" R%p ", _zeroStart);
 		
 		/* Notify the worker thread */
 		omrthread_monitor_notify(_monitor);
@@ -215,4 +215,20 @@ MM_MemoryZeroer::waitToFinish()
 
 	omrthread_monitor_exit(_monitor);
 	//ehsanLogNoNewLine("<");
+}
+
+bool
+MM_MemoryZeroer::cancelUnstartedJob()
+{
+	// if we can aquire the monitor, the thread is not working already
+	// if the _hasWork is true, then there was an unstarted job that we just canceled
+	// eitherwise there was no job to cancel on exit!
+	omrthread_monitor_enter(_monitor);
+	bool returnValue = _hasWork;
+	_hasWork = false;
+	omrthread_monitor_exit(_monitor);
+	if(returnValue) {
+		ehsanLogNoNewLine(" C%p ", _zeroStart);
+	}
+	return returnValue;
 }

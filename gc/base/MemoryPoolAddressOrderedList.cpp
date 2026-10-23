@@ -557,14 +557,15 @@ retry:
 	if ((_cleanMemoryStart < ((uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader)))
 		&& (_cleanMemoryStart >= (uintptr_t)addrBase)) {
 		// If the cleanier is working on this section of memory, wait for it to finish.
-		waitMemoryInitializer();
-		_cleanMemoryStart = (uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader);
-		if (_cleanMemoryStart > _cleanMemoryEnd) {
-			_cleanMemoryStart = _cleanMemoryEnd;
-		}
-		_cleanMemoryStatus = _cleanMemoryStart;
-                // ehsanLogNoNewLine("!");
+		if (!waitMemoryInitializer() ||  (_cleanMemoryStart < ((uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader)))) {
+			_cleanMemoryStart = (uintptr_t)addrBase + sizeInBytesRequired + sizeof(MM_HeapLinkedFreeHeader);
+			if (_cleanMemoryStart > _cleanMemoryEnd) {
+				_cleanMemoryStart = _cleanMemoryEnd;
+			}
+			_cleanMemoryStatus = _cleanMemoryStart;
+					// ehsanLogNoNewLine("!");
         }
+	}
 	
 
 	if (recycleHeapChunk(recycleEntry, ((uint8_t *)recycleEntry) + recycleEntrySize, previousFreeEntry, nextFreeEntry)) {
@@ -712,11 +713,17 @@ MM_MemoryPoolAddressOrderedList::initiateMemoryZeroing(uintptr_t size) {
 	}
 }
 
-MMINLINE void
+MMINLINE bool
 MM_MemoryPoolAddressOrderedList::waitMemoryInitializer() {
+	//it wait if work is in progress or cancel if not started;
 	if (_cleanMemoryStart != _cleanMemoryStatus) {
-		_extensions->memoryZeroer->waitToFinish();
+		//_extensions->memoryZeroer->waitToFinish();
+		if(_extensions->memoryZeroer->cancelUnstartedJob()) {
+			_cleanMemoryStart = _cleanMemoryStatus;
+			return true;
+		}
 	}
+	return false;
 }
 
 MMINLINE bool
@@ -819,17 +826,17 @@ retry:
 		addrBase = (void *)freeEntry;
 		addrTop = (void *) (((uint8_t *)addrBase) + consumedSize);
 		if (initializeTLH) {
+			inlineZeroMemorySize = (uintptr_t)addrTop - (uintptr_t)addrBase;
 			// we can partially zero the last block if it was half zeroed.
 			if ((_cleanMemoryStart <= (uintptr_t)addrTop) && (_cleanMemoryStart >= (uintptr_t)addrBase)) {
-				inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
-				waitMemoryInitializer();
-				_cleanMemoryStart = (uintptr_t)addrTop + sizeof (MM_HeapLinkedFreeHeader);
-				if (_cleanMemoryStart > _cleanMemoryEnd) {
-					_cleanMemoryStart = _cleanMemoryEnd;
+				if (!waitMemoryInitializer() || (_cleanMemoryStart <= (uintptr_t)addrTop)) {
+					inlineZeroMemorySize = _cleanMemoryStart - (uintptr_t)addrBase;
+					_cleanMemoryStart = (uintptr_t)addrTop + sizeof (MM_HeapLinkedFreeHeader);
+					if (_cleanMemoryStart > _cleanMemoryEnd) {
+						_cleanMemoryStart = _cleanMemoryEnd;
+					}
+					_cleanMemoryStatus = _cleanMemoryStart;
 				}
-				_cleanMemoryStatus = _cleanMemoryStart;
-			} else {
-				inlineZeroMemorySize = (uintptr_t)addrTop - (uintptr_t)addrBase;
 			}
 		}
 
