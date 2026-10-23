@@ -140,9 +140,6 @@ MM_MemoryZeroer::workerLoop()
 	/* Main worker loop */
 	while (!_shutdownRequested) {
 		/* Wait for work */
-		// this while is unnecessry!
-
-		// This is not necessry. the monitor is locked during the work!
 		_hasWork = false;
 		omrthread_monitor_notify(_monitor);
 		while (!_hasWork && !_shutdownRequested) {
@@ -154,39 +151,13 @@ MM_MemoryZeroer::workerLoop()
 			break;
 		}
 		//ehsanLogNoNewLine(" S%p ", _zeroStart);
-		// Current strategy:
+
 		// Clean the whole block while keeping the monitor aquired!
 		// Update the status to point to the bottom of the clean block!
 		OMRZeroMemory(_zeroStart, _zeroSize);
 		*_statusPtr = (uintptr_t)_zeroStart;
 		//ehsanLogNoNewLine(" T%p ", _zeroStart);
 
-
-
-		/* pervious strategy:
-			// We have work - copy the parameters and release the monitor
-			void *start = _zeroStart;
-			uintptr_t size = _zeroSize;
-			volatile uintptr_t *statusPtr = _statusPtr;
-			
-			// Clear work flag before releasing monitor
-			_hasWork = false;
-			
-			// Release monitor while doing the actual work
-			omrthread_monitor_exit(_monitor);
-			
-			
-			*statusPtr = (uintptr_t)_zeroStart;
-			for(int i=0 ;i<8; i++) {
-				// Perform the memory zeroing operation
-				OMRZeroMemory(start, size);
-				start= (void*)((uintptr_t)start + size);
-				*statusPtr = (uintptr_t)start;
-			}
-			
-			// Re-acquire monitor for next iteration
-			omrthread_monitor_enter(_monitor);
-		*/
 	}
 	
 	/* Signal that thread is exiting */
@@ -224,10 +195,24 @@ MM_MemoryZeroer::waitToFinish()
 	// Just wait on the monitor and release it as soon as it is aquired!
 	//ehsanLogNoNewLine(">");
 	omrthread_monitor_enter(_monitor);
-	// TODO: this wait is not necessary! just keep the monitor in worker thread while working and use enter exit!
-	while (_hasWork) {
-		omrthread_monitor_wait(_monitor);
+	// if we got the monitor, either there is a job but the thread is still sleeping or thread has no work!
+	if (_hasWork) {
+		const bool inlineCleaning = getenv("TR_inlineUnstartedCleaning") != NULL;
+		if (inlineCleaning) {
+			// do the job yourself! 
+			// when the cleaning thread wakes up, see the job was finished and goes back to sleep!
+			OMRZeroMemory(_zeroStart, _zeroSize);
+			*_statusPtr = (uintptr_t)_zeroStart;
+			_hasWork = false;
+			ehsanLogNoNewLine("Fin");
+		} else {
+			// wait for cleaning thread to wake up and finish the job
+			while (_hasWork) {
+				omrthread_monitor_wait(_monitor);
+			}
+		}
 	}
+
 	omrthread_monitor_exit(_monitor);
 	//ehsanLogNoNewLine("<");
 }
